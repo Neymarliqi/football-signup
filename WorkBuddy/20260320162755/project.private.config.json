@@ -2,7 +2,7 @@
   "miniprogramRoot": "miniprogram/",
   "cloudfunctionRoot": "cloudfunctions/",
   "libVersion": "3.4.3",
-  "projectname": "20260320162755",
+  "projectname": "SoccerMatch",
   "condition": {},
   "setting": {
     "urlCheck": true,
