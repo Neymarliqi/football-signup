@@ -1,0 +1,39 @@
+{
+  "pages": [
+    "pages/index/index",
+    "pages/activity/detail",
+    "pages/activity/create",
+    "pages/tactics/tactics",
+    "pages/profile/profile",
+    "pages/admin/admin"
+  ],
+  "tabBar": {
+    "color": "#999999",
+    "selectedColor": "#2ecc71",
+    "backgroundColor": "#ffffff",
+    "borderStyle": "black",
+    "list": [
+      {
+        "pagePath": "pages/index/index",
+        "text": "约球"
+      },
+      {
+        "pagePath": "pages/profile/profile",
+        "text": "我的"
+      }
+    ]
+  },
+  "window": {
+    "backgroundTextStyle": "light",
+    "navigationBarBackgroundColor": "#1a1a2e",
+    "navigationBarTitleText": "⚽ 约球",
+    "navigationBarTextStyle": "white"
+  },
+  "permission": {
+    "scope.userLocation": {
+      "desc": "获取您的位置用于显示踢球地点附近信息"
+    }
+  },
+  "sitemapLocation": "sitemap.json",
+  "usingComponents": {}
+}

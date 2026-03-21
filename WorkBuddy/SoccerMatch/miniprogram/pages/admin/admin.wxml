@@ -1,0 +1,100 @@
+<!-- pages/admin/admin.wxml - 管理员后台 -->
+<view class="container">
+  <view class="admin-header">
+    <text class="admin-title">⚙ 管理后台</text>
+    <text class="admin-sub">活动管理 · 公告 · 球员管理</text>
+  </view>
+
+  <!-- 快捷操作 -->
+  <view class="quick-actions">
+    <view class="quick-btn" bindtap="createActivity">
+      <view class="qb-icon">🆕</view>
+      <text class="qb-label">发布活动</text>
+    </view>
+    <view class="quick-btn" bindtap="createAnnouncement">
+      <view class="qb-icon">📢</view>
+      <text class="qb-label">发布公告</text>
+    </view>
+    <view class="quick-btn" bindtap="manageMembers">
+      <view class="qb-icon">👥</view>
+      <text class="qb-label">球员管理</text>
+    </view>
+    <view class="quick-btn" bindtap="exportData">
+      <view class="qb-icon">📊</view>
+      <text class="qb-label">数据导出</text>
+    </view>
+  </view>
+
+  <!-- 活动管理 -->
+  <view class="card">
+    <view class="section-title flex-between">
+      <text>⚽ 活动管理</text>
+      <view class="create-btn" bindtap="createActivity">+ 新建</view>
+    </view>
+
+    <view wx:if="{{activities.length === 0}}" class="empty-tip">暂无活动</view>
+
+    <view wx:for="{{activities}}" wx:key="_id" class="admin-act-item">
+      <view class="admin-act-info">
+        <view class="admin-act-title">{{item.title}}</view>
+        <view class="admin-act-meta">
+          {{item.displayDate}} · {{item.matchType}} · {{item.confirmedCount}}/{{item.maxPlayers}}人
+        </view>
+      </view>
+      <view class="admin-act-status tag {{item.statusClass}}">{{item.statusText}}</view>
+      <view class="admin-act-btns">
+        <view class="admin-btn edit-btn" bindtap="editActivity" data-id="{{item._id}}">编辑</view>
+        <view class="admin-btn view-btn" bindtap="viewActivity" data-id="{{item._id}}">查看</view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 公告管理 -->
+  <view class="card">
+    <view class="section-title flex-between">
+      <text>📢 公告管理</text>
+      <view class="create-btn" bindtap="createAnnouncement">+ 新建</view>
+    </view>
+    <view wx:if="{{announcements.length === 0}}" class="empty-tip">暂无公告</view>
+    <view wx:for="{{announcements}}" wx:key="_id" class="announce-manage-item">
+      <view class="announce-content">{{item.content}}</view>
+      <view class="announce-actions">
+        <view class="ann-btn {{item.active ? 'ann-active' : 'ann-inactive'}}" 
+              bindtap="toggleAnnouncement" data-id="{{item._id}}" data-active="{{item.active}}">
+          {{item.active ? '显示中' : '已隐藏'}}
+        </view>
+        <view class="ann-btn ann-delete" bindtap="deleteAnnouncement" data-id="{{item._id}}">删除</view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 球员管理 -->
+  <view class="card">
+    <view class="section-title">👥 球员列表 ({{members.length}}人)</view>
+    <view wx:if="{{members.length === 0}}" class="empty-tip">暂无球员</view>
+    <view wx:for="{{members}}" wx:key="openid" class="member-item">
+      <image class="member-avatar" src="{{item.avatarUrl || '/assets/default_avatar.png'}}" mode="aspectFill"></image>
+      <view class="member-info">
+        <view class="member-name">{{item.nickName || '未命名'}}</view>
+        <view class="member-pos">{{item.position || '未设置位置'}}</view>
+      </view>
+      <view class="member-stat">
+        <text class="member-games">{{item.totalGames || 0}}场</text>
+      </view>
+      <view class="member-admin-badge" wx:if="{{item.isAdmin}}">管理员</view>
+    </view>
+  </view>
+</view>
+
+<!-- 发布公告弹窗 -->
+<view class="modal-mask" wx:if="{{showAnnouncementModal}}" bindtap="closeAnnouncementModal">
+  <view class="modal-content" catchtap="stopPropagation">
+    <view class="modal-title">📢 发布公告</view>
+    <textarea class="modal-textarea" value="{{newAnnouncement}}" bindinput="onAnnouncementInput"
+              placeholder="输入公告内容..." maxlength="100" focus="{{true}}"/>
+    <view class="modal-btns">
+      <view class="modal-cancel" bindtap="closeAnnouncementModal">取消</view>
+      <view class="modal-confirm" bindtap="submitAnnouncement">发布</view>
+    </view>
+  </view>
+</view>
