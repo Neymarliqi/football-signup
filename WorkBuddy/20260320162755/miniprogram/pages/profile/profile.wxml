@@ -1,0 +1,120 @@
+<!-- pages/profile/profile.wxml - 个人中心 -->
+<view class="container">
+  
+  <!-- 头部用户信息卡 -->
+  <view class="profile-header">
+    <!-- 头像 -->
+    <view class="avatar-wrap" bindtap="chooseAvatar">
+      <image class="profile-avatar" src="{{userInfo.avatarUrl || '/assets/default_avatar.png'}}" mode="aspectFill"></image>
+      <view class="avatar-edit-badge">📷</view>
+    </view>
+
+    <!-- 用户名 -->
+    <view class="name-wrap">
+      <view wx:if="{{!editingName}}" class="display-name" bindtap="startEditName">
+        <text class="name-text">{{userInfo.nickName || '点击设置昵称'}}</text>
+        <text class="name-edit-icon">✏</text>
+      </view>
+      <view wx:else class="edit-name-wrap">
+        <input class="name-input" value="{{tempName}}" bindinput="onNameInput" 
+               placeholder="输入你的昵称" maxlength="10" focus="{{true}}"/>
+        <view class="name-save-btn" bindtap="saveName">✅</view>
+        <view class="name-cancel-btn" bindtap="cancelEditName">✕</view>
+      </view>
+      <view class="uid-text">ID: {{shortOpenid}}</view>
+    </view>
+  </view>
+
+  <!-- 位置偏好 -->
+  <view class="card">
+    <view class="section-title">⚽ 位置偏好</view>
+    <view class="position-grid">
+      <view wx:for="{{positions}}" wx:key="value"
+            class="pos-option {{userInfo.position === item.value ? 'pos-option-active' : ''}}"
+            bindtap="selectPosition" data-pos="{{item.value}}">
+        <text class="pos-emoji">{{item.emoji}}</text>
+        <text class="pos-label">{{item.label}}</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 我的统计 -->
+  <view class="card">
+    <view class="section-title">📊 我的数据</view>
+    <view class="stats-row">
+      <view class="stat-block">
+        <view class="stat-num text-primary">{{myStats.totalGames}}</view>
+        <view class="stat-label">参与场次</view>
+      </view>
+      <view class="stat-block">
+        <view class="stat-num text-blue">{{myStats.confirmedCount}}</view>
+        <view class="stat-label">已报名</view>
+      </view>
+      <view class="stat-block">
+        <view class="stat-num" style="color: #f39c12;">{{myStats.pendingCount}}</view>
+        <view class="stat-label">待定次数</view>
+      </view>
+      <view class="stat-block">
+        <view class="stat-num text-danger">{{myStats.leaveCount}}</view>
+        <view class="stat-label">请假次数</view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 参与记录 -->
+  <view class="card">
+    <view class="section-title">📅 参与记录</view>
+    <view wx:if="{{history.length === 0}}" class="empty-tip">暂无参与记录</view>
+    <view wx:for="{{history}}" wx:key="_id" class="history-item" bindtap="goDetail" data-id="{{item._id}}">
+      <view class="history-left">
+        <view class="history-title">{{item.title}}</view>
+        <view class="history-date">{{item.displayDate}}  {{item.time}}</view>
+      </view>
+      <view class="history-status tag {{item.myStatusClass}}">{{item.myStatusText}}</view>
+    </view>
+  </view>
+
+  <!-- 设置项 -->
+  <view class="card">
+    <view class="section-title">⚙ 设置</view>
+    <view class="setting-item" bindtap="clearCache">
+      <view class="setting-left">
+        <text class="setting-icon">🗑</text>
+        <text class="setting-label">清除缓存</text>
+      </view>
+      <text class="setting-arrow">›</text>
+    </view>
+    <view class="setting-item" bindtap="contactAdmin">
+      <view class="setting-left">
+        <text class="setting-icon">💬</text>
+        <text class="setting-label">联系管理员</text>
+      </view>
+      <text class="setting-arrow">›</text>
+    </view>
+    <view class="setting-item" bindtap="about">
+      <view class="setting-left">
+        <text class="setting-icon">ℹ</text>
+        <text class="setting-label">关于约球助手</text>
+      </view>
+      <text class="setting-version">v1.0.0</text>
+    </view>
+  </view>
+
+  <!-- 管理员申请（非管理员显示） -->
+  <view class="card admin-apply" wx:if="{{!isAdmin}}" bindtap="applyAdmin">
+    <text class="apply-icon">🔑</text>
+    <view class="apply-info">
+      <view class="apply-title">申请成为管理员</view>
+      <view class="apply-sub">管理员可发布活动、安排战术</view>
+    </view>
+    <text class="apply-arrow">›</text>
+  </view>
+
+  <!-- 管理员标识 -->
+  <view class="admin-badge-wrap" wx:if="{{isAdmin}}">
+    <view class="admin-badge">⚙ 管理员身份</view>
+    <view class="admin-go-btn" bindtap="goAdmin">进入管理后台</view>
+  </view>
+
+  <view style="height: 60rpx;"></view>
+</view>
