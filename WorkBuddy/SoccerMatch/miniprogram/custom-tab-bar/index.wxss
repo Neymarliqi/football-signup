@@ -1,0 +1,207 @@
+/* custom-tab-bar/index.wxss - 微信风格底部TabBar */
+
+.custom-tab-bar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 100rpx;
+  background: #f7f7f7;
+  border-top: 1rpx solid #e5e5e5;
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  z-index: 9999;
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+/* iPhoneX适配 */
+.custom-tab-bar.ipx {
+  padding-bottom: 34rpx;
+}
+
+/* Tab项 */
+.tab-item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  padding-top: 6rpx;
+}
+
+.tab-icon {
+  width: 48rpx;
+  height: 48rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 4rpx;
+  position: relative;
+}
+
+.tab-text {
+  font-size: 20rpx;
+  color: #999;
+  transition: color 0.2s ease;
+}
+
+/* 选中状态 - 绿色高亮 */
+.tab-item.active .tab-text {
+  color: #07c160;
+}
+
+/* ===== 首页图标（房子形状） ===== */
+.icon-home {
+  width: 40rpx;
+  height: 32rpx;
+  position: relative;
+  margin-top: 8rpx;
+}
+
+/* 房子主体 - 使用 border 绘制 */
+.icon-home::before {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 36rpx;
+  height: 24rpx;
+  border: 4rpx solid #999;
+  border-radius: 4rpx;
+  background: transparent;
+  box-sizing: border-box;
+}
+
+/* 房子屋顶 - 使用三角形 */
+.icon-home::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 0;
+  height: 0;
+  border-left: 20rpx solid transparent;
+  border-right: 20rpx solid transparent;
+  border-bottom: 16rpx solid #999;
+}
+
+/* 房子门 */
+.icon-home {
+  box-shadow: inset 0 -8rpx 0 0 #f7f7f7;
+}
+
+/* 首页图标选中状态 */
+.icon-home.active::before {
+  border-color: #07c160;
+  background: rgba(7, 193, 96, 0.1);
+}
+
+.icon-home.active::after {
+  border-bottom-color: #07c160;
+}
+
+/* ===== 用户图标（人像形状） ===== */
+.icon-user {
+  width: 40rpx;
+  height: 40rpx;
+  position: relative;
+}
+
+/* 头部 - 圆形 */
+.icon-user::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 16rpx;
+  height: 16rpx;
+  border: 4rpx solid #999;
+  border-radius: 50%;
+  background: transparent;
+  box-sizing: border-box;
+}
+
+/* 身体 - 弧线 */
+.icon-user::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 36rpx;
+  height: 18rpx;
+  border: 4rpx solid #999;
+  border-bottom: none;
+  border-radius: 18rpx 18rpx 0 0;
+  background: transparent;
+  box-sizing: border-box;
+}
+
+/* 用户图标选中状态 */
+.icon-user.active::before {
+  border-color: #07c160;
+  background: rgba(7, 193, 96, 0.1);
+}
+
+.icon-user.active::after {
+  border-color: #07c160;
+  background: rgba(7, 193, 96, 0.1);
+}
+
+/* ===== 中间发布按钮 ===== */
+.publish-btn {
+  width: 96rpx;
+  height: 96rpx;
+  border-radius: 50%;
+  background: #07c160;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: -40rpx;
+  box-shadow: 0 4rpx 16rpx rgba(7, 193, 96, 0.4);
+  transition: transform 0.1s ease, opacity 0.2s ease;
+  position: relative;
+}
+
+.publish-btn:active {
+  opacity: 0.8;
+  transform: scale(0.95);
+}
+
+/* 加号图标 */
+.icon-plus {
+  width: 40rpx;
+  height: 40rpx;
+  position: relative;
+}
+
+/* 横线 */
+.icon-plus::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 28rpx;
+  height: 4rpx;
+  background: #fff;
+  border-radius: 2rpx;
+}
+
+/* 竖线 */
+.icon-plus::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 4rpx;
+  height: 28rpx;
+  background: #fff;
+  border-radius: 2rpx;
+}

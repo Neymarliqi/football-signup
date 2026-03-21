@@ -8,10 +8,11 @@
     "pages/admin/admin"
   ],
   "tabBar": {
+    "custom": true,
     "color": "#999999",
-    "selectedColor": "#2ecc71",
-    "backgroundColor": "#ffffff",
-    "borderStyle": "black",
+    "selectedColor": "#07c160",
+    "backgroundColor": "#f7f7f7",
+    "borderStyle": "white",
     "list": [
       {
         "pagePath": "pages/index/index",

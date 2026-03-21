@@ -1,0 +1,23 @@
+<!-- custom-tab-bar/index.wxml - 自定义底部TabBar（微信风格） -->
+<view class="custom-tab-bar {{isIPX ? 'ipx' : ''}}">
+  <!-- 左侧Tab：首页 -->
+  <view class="tab-item {{selected === 0 ? 'active' : ''}}" bindtap="switchTab" data-index="0">
+    <view class="tab-icon">
+      <view class="icon-home {{selected === 0 ? 'active' : ''}}"></view>
+    </view>
+    <text class="tab-text">约球</text>
+  </view>
+
+  <!-- 中间发布按钮（纯圆形） -->
+  <view class="publish-btn" bindtap="goToPublish">
+    <view class="icon-plus"></view>
+  </view>
+
+  <!-- 右侧Tab：我的 -->
+  <view class="tab-item {{selected === 1 ? 'active' : ''}}" bindtap="switchTab" data-index="1">
+    <view class="tab-icon">
+      <view class="icon-user {{selected === 1 ? 'active' : ''}}"></view>
+    </view>
+    <text class="tab-text">我的</text>
+  </view>
+</view>

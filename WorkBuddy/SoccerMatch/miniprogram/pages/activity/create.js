@@ -9,8 +9,9 @@ Page({
     form: {
       title: '',
       description: '',
-      matchType: '',
+      matchType: '友谊赛',
       customMatchType: false,
+      customMatchTypeText: '',
       date: '',
       startTime: '',
       endTime: '',
@@ -27,29 +28,32 @@ Page({
       notice: '',
       status: 'open'
     },
-    matchTypes: [
-      { value: '11人制', label: '11人制' },
-      { value: '9人制', label: '9人制' },
-      { value: '8人制', label: '8人制' },
-      { value: '7人制', label: '7人制' },
-      { value: '5人制', label: '5人制' },
-      { value: '友谊赛', label: '友谊赛' }
-    ],
+    // 预设赛制类型
+    presetMatchTypes: ['友谊赛', '11人制', '9人制', '8人制', '7人制', '5人制'],
+    // 当前活动的自定义赛制类型（每个活动独立）
+    customMatchTypes: [],
+    // 是否显示自定义输入框
+    showCustomInput: false,
+    // 正在编辑的自定义类型索引
+    editingCustomIndex: -1,
     fieldTypes: [
       { value: '人工草', label: '⬜ 人工草' },
       { value: '天然草', label: '🌿 天然草' },
       { value: '硬地', label: '🏢 硬地' },
       { value: '沙滩', label: '🏖 沙滩' }
     ],
-    // 截止时间选择器数据
-    deadlineRange: [],
-    deadlineIndex: [0, 0, 0, 0]
+    // 截止时间预设选项
+    deadlineOptions: [
+      { value: '1day', label: '报名前1天', hours: 24 },
+      { value: '6hours', label: '报名前6小时', hours: 6 },
+      { value: '1hour', label: '报名前1小时', hours: 1 },
+      { value: '30min', label: '报名前0.5小时', hours: 0.5 },
+      { value: 'none', label: '不限制', hours: 0 }
+    ],
+    selectedDeadline: '1day'
   },
 
   onLoad(options) {
-    // 初始化截止时间选择器
-    this.initDeadlinePicker()
-
     if (options.id) {
       this.setData({ isEdit: true, activityId: options.id })
       this.loadActivity(options.id)
@@ -64,35 +68,52 @@ Page({
     wx.setNavigationBarTitle({ title: options.id ? '编辑活动' : '发布活动' })
   },
 
-  // 初始化截止时间选择器
-  initDeadlinePicker() {
-    const now = new Date()
-    const days = []
-    const hours = []
-    const minutes = []
 
-    // 生成未来7天的日期选项
-    for (let i = 0; i < 7; i++) {
-      const d = new Date(now)
-      d.setDate(d.getDate() + i)
-      const month = d.getMonth() + 1
-      const date = d.getDate()
-      const weekdays = ['日', '一', '二', '三', '四', '五', '六']
-      const week = weekdays[d.getDay()]
-      days.push(`${month}月${date}日(周${week})`)
+
+  // 保存自定义赛制类型（仅更新当前页面状态）
+  saveCustomMatchTypes(types) {
+    this.setData({ customMatchTypes: types })
+  },
+
+  // 选择截止时间
+  selectDeadline(e) {
+    const value = e.currentTarget.dataset.value
+    this.setData({ selectedDeadline: value })
+    this.calculateDeadline(value)
+  },
+
+  // 计算截止时间
+  calculateDeadline(optionValue) {
+    const option = this.data.deadlineOptions.find(item => item.value === optionValue)
+    if (!option || option.value === 'none') {
+      this.setData({ 
+        'form.deadline': null,
+        'form.deadlineDisplay': '不限制'
+      })
+      return
     }
 
-    // 生成小时选项 (0-23)
-    for (let i = 0; i < 24; i++) {
-      hours.push(`${i.toString().padStart(2, '0')}时`)
+    const { form } = this.data
+    if (!form.date || !form.startTime) {
+      this.setData({ 
+        'form.deadline': null,
+        'form.deadlineDisplay': option.label
+      })
+      return
     }
 
-    // 生成分钟选项 (00, 15, 30, 45)
-    const minuteOpts = ['00分', '15分', '30分', '45分']
+    // 根据活动时间计算截止时间
+    const activityTime = new Date(`${form.date} ${form.startTime}`)
+    const deadline = new Date(activityTime.getTime() - option.hours * 60 * 60 * 1000)
+    
+    const month = deadline.getMonth() + 1
+    const date = deadline.getDate()
+    const hours = deadline.getHours().toString().padStart(2, '0')
+    const minutes = deadline.getMinutes().toString().padStart(2, '0')
 
     this.setData({
-      deadlineRange: [days, hours, minuteOpts],
-      deadlineIndex: [0, now.getHours(), Math.floor(now.getMinutes() / 15)]
+      'form.deadline': deadline,
+      'form.deadlineDisplay': `${month}月${date}日 ${hours}:${minutes}`
     })
   },
 
@@ -120,20 +141,28 @@ Page({
       
       const actDateStr = act.activityDate instanceof Date ? act.activityDate : new Date(act.activityDate)
 
-      // 判断是否是预设的赛制类型
-      const presetTypes = ['11人制', '7人制', '5人制', '3人制', '友谊赛']
+      // 加载该活动的自定义赛制类型
+      const activityCustomTypes = act.customMatchTypes || []
+      
+      // 判断当前赛制类型是否是自定义的
+      const presetTypes = ['友谊赛', '11人制', '9人制', '8人制', '7人制', '5人制']
       const isCustomMatchType = act.matchType && !presetTypes.includes(act.matchType)
 
       // 处理截止时间显示
       let deadlineDisplay = ''
-      let deadlineIndex = [0, 0, 0]
+      let selectedDeadline = '1day'
       if (act.deadline) {
         const deadline = act.deadline instanceof Date ? act.deadline : new Date(act.deadline)
-        const now = new Date()
-        const diffDays = Math.floor((deadline - now) / (1000 * 60 * 60 * 24))
-        if (diffDays >= 0 && diffDays < 7) {
-          deadlineIndex = [diffDays, deadline.getHours(), Math.floor(deadline.getMinutes() / 15)]
-        }
+        const activityTime = actDateStr
+        const diffHours = (activityTime - deadline) / (1000 * 60 * 60)
+        
+        // 根据时间差匹配预设选项
+        if (diffHours >= 23 && diffHours <= 25) selectedDeadline = '1day'
+        else if (diffHours >= 5.5 && diffHours <= 6.5) selectedDeadline = '6hours'
+        else if (diffHours >= 0.8 && diffHours <= 1.2) selectedDeadline = '1hour'
+        else if (diffHours >= 0.4 && diffHours <= 0.6) selectedDeadline = '30min'
+        else selectedDeadline = 'none'
+        
         const month = deadline.getMonth() + 1
         const date = deadline.getDate()
         const hours = deadline.getHours().toString().padStart(2, '0')
@@ -163,7 +192,7 @@ Page({
         status: act.status || 'open'
       }
 
-      this.setData({ form, deadlineIndex: deadlineIndex.length === 3 ? deadlineIndex : this.data.deadlineIndex })
+      this.setData({ form, selectedDeadline, customMatchTypes: activityCustomTypes })
     } catch (e) {
       console.error('加载活动失败', e)
       wx.showToast({ title: '加载失败', icon: 'none' })
@@ -175,30 +204,129 @@ Page({
     this.setData({ [`form.${key}`]: e.detail.value })
   },
 
-  onDateChange(e) { this.setData({ 'form.date': e.detail.value }) },
-  onStartTimeChange(e) { this.setData({ 'form.startTime': e.detail.value }) },
+  onDateChange(e) { 
+    this.setData({ 'form.date': e.detail.value })
+    // 重新计算截止时间
+    setTimeout(() => this.calculateDeadline(this.data.selectedDeadline), 0)
+  },
+  onStartTimeChange(e) { 
+    this.setData({ 'form.startTime': e.detail.value })
+    // 重新计算截止时间
+    setTimeout(() => this.calculateDeadline(this.data.selectedDeadline), 0)
+  },
   onEndTimeChange(e) { this.setData({ 'form.endTime': e.detail.value }) },
   onAllowPendingChange(e) { this.setData({ 'form.allowPending': e.detail.value }) },
 
   // 赛制类型选择
   selectMatchType(e) {
+    const value = e.currentTarget.dataset.value
     this.setData({
-      'form.matchType': e.currentTarget.dataset.value,
-      'form.customMatchType': false
+      'form.matchType': value,
+      showCustomInput: false,
+      editingCustomIndex: -1
     })
   },
 
-  // 启用自定义赛制
-  enableCustomMatchType() {
+  // 显示添加自定义赛制输入框
+  showAddCustomMatchType() {
     this.setData({
-      'form.customMatchType': true,
-      'form.matchType': ''
+      showCustomInput: true,
+      'form.customMatchTypeText': '',
+      editingCustomIndex: -1
+    })
+  },
+
+  // 编辑自定义赛制
+  editCustomMatchType(e) {
+    const index = e.currentTarget.dataset.index
+    const value = this.data.customMatchTypes[index]
+    this.setData({
+      showCustomInput: true,
+      'form.customMatchTypeText': value,
+      editingCustomIndex: index
+    })
+  },
+
+  // 保存自定义赛制
+  saveCustomMatchType() {
+    const text = this.data.form.customMatchTypeText.trim()
+    if (!text) {
+      wx.showToast({ title: '请输入赛制名称', icon: 'none' })
+      return
+    }
+    if (text.length > 10) {
+      wx.showToast({ title: '赛制名称不能超过10个字', icon: 'none' })
+      return
+    }
+
+    const { customMatchTypes, editingCustomIndex, presetMatchTypes } = this.data
+    
+    // 检查是否与预设重复
+    if (presetMatchTypes.includes(text)) {
+      wx.showToast({ title: '该赛制已存在', icon: 'none' })
+      return
+    }
+
+    let newTypes = [...customMatchTypes]
+    
+    if (editingCustomIndex >= 0) {
+      // 编辑模式
+      newTypes[editingCustomIndex] = text
+    } else {
+      // 新增模式
+      // 检查是否已存在
+      if (newTypes.includes(text)) {
+        wx.showToast({ title: '该赛制已存在', icon: 'none' })
+        return
+      }
+      newTypes.push(text)
+    }
+
+    this.saveCustomMatchTypes(newTypes)
+    this.setData({
+      'form.matchType': text,
+      showCustomInput: false,
+      'form.customMatchTypeText': '',
+      editingCustomIndex: -1
+    })
+  },
+
+  // 删除自定义赛制
+  deleteCustomMatchType(e) {
+    const index = e.currentTarget.dataset.index
+    const { customMatchTypes, form } = this.data
+    const deletedType = customMatchTypes[index]
+    
+    wx.showModal({
+      title: '确认删除',
+      content: `删除后"${deletedType}"将不再显示，是否确认删除？`,
+      confirmColor: '#e74c3c',
+      success: (res) => {
+        if (res.confirm) {
+          const newTypes = customMatchTypes.filter((_, i) => i !== index)
+          this.saveCustomMatchTypes(newTypes)
+          
+          // 如果当前选中的是被删除的，切换到友谊赛
+          if (form.matchType === deletedType) {
+            this.setData({ 'form.matchType': '友谊赛' })
+          }
+        }
+      }
+    })
+  },
+
+  // 取消自定义输入
+  cancelCustomInput() {
+    this.setData({
+      showCustomInput: false,
+      'form.customMatchTypeText': '',
+      editingCustomIndex: -1
     })
   },
 
   // 自定义赛制输入
   onCustomMatchTypeInput(e) {
-    this.setData({ 'form.matchType': e.detail.value })
+    this.setData({ 'form.customMatchTypeText': e.detail.value })
   },
 
   selectFieldType(e) { this.setData({ 'form.fieldType': e.currentTarget.dataset.value }) },
@@ -310,7 +438,7 @@ Page({
     if (!this.validate()) return
 
     wx.showLoading({ title: '发布中...' })
-    const { form, isEdit, activityId } = this.data
+    const { form, isEdit, activityId, customMatchTypes } = this.data
 
     // 构建活动时间
     const timeStr = form.endTime ? `${form.startTime} - ${form.endTime}` : form.startTime
@@ -335,7 +463,9 @@ Page({
       allowPending: form.allowPending,
       notice: form.notice.trim(),
       status: 'open',
-      updatedAt: db.serverDate()
+      updatedAt: db.serverDate(),
+      // 保存该活动的自定义赛制类型
+      customMatchTypes: customMatchTypes || []
     }
 
     try {

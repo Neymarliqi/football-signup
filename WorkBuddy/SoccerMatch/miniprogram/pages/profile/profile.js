@@ -41,6 +41,10 @@ Page({
     this.setData({ isAdmin: app.globalData.isAdmin })
     this.loadUserInfo()
     this.loadHistory()
+    // 更新TabBar选中状态
+    if (typeof this.getTabBar === 'function' && this.getTabBar()) {
+      this.getTabBar().setData({ selected: 1 })
+    }
   },
 
   loadUserInfo() {

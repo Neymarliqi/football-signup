@@ -40,10 +40,10 @@
   </view>
 
   <!-- 活动列表 -->
-  <view wx:if="{{activities.length === 0}}" class="empty-state" bindtap="goCreate">
+  <view wx:if="{{activities.length === 0}}" class="empty-state">
     <text style="font-size: 100rpx;">⚽</text>
     <text>暂无活动</text>
-    <text class="empty-sub">点击右下角「发布活动」开始约球！</text>
+    <text class="empty-sub">点击底部「+」按钮发布活动开始约球！</text>
   </view>
 
   <view wx:for="{{activities}}" wx:key="_id" class="activity-card" bindtap="goDetail" data-id="{{item._id}}">
@@ -146,10 +146,4 @@
 
   <!-- 底部安全区 -->
   <view style="height: 120rpx;"></view>
-</view>
-
-<!-- 悬浮发布按钮（所有人可见） -->
-<view class="fab-btn" bindtap="goCreate">
-  <text class="fab-icon">＋</text>
-  <text class="fab-text">发布活动</text>
 </view>

@@ -21,12 +21,50 @@
     </view>
 
     <view class="form-item">
-      <view class="form-label">赛制类型 <text class="required">*</text></view>
-      <view class="radio-group">
-        <view wx:for="{{matchTypes}}" wx:key="value"
-              class="radio-item {{form.matchType === item.value ? 'radio-active' : ''}}"
-              bindtap="selectMatchType" data-value="{{item.value}}">
-          {{item.label}}
+      <view class="form-label">赛制类型</view>
+      <view class="match-type-wrap">
+        <!-- 预设赛制类型 -->
+        <view class="radio-group">
+          <view wx:for="{{presetMatchTypes}}" wx:key="*this"
+                class="radio-item {{form.matchType === item ? 'radio-active' : ''}}"
+                bindtap="selectMatchType" data-value="{{item}}">
+            {{item}}
+          </view>
+        </view>
+        
+        <!-- 自定义赛制类型 -->
+        <view wx:if="{{customMatchTypes.length > 0}}" class="custom-types-section">
+          <view class="custom-types-label">我的自定义</view>
+          <view class="radio-group">
+            <view wx:for="{{customMatchTypes}}" wx:key="*this" wx:for-index="idx"
+                  class="radio-item custom-type-item {{form.matchType === item ? 'radio-active' : ''}}">
+              <text bindtap="selectMatchType" data-value="{{item}}">{{item}}</text>
+              <view class="custom-type-actions">
+                <text class="action-icon" bindtap="editCustomMatchType" data-index="{{idx}}">✏️</text>
+                <text class="action-icon" bindtap="deleteCustomMatchType" data-index="{{idx}}">🗑️</text>
+              </view>
+            </view>
+          </view>
+        </view>
+        
+        <!-- 添加自定义按钮 -->
+        <view wx:if="{{!showCustomInput}}" class="add-custom-btn" bindtap="showAddCustomMatchType">
+          <text class="add-icon">+</text>
+          <text>添加自定义赛制</text>
+        </view>
+        
+        <!-- 自定义输入框 -->
+        <view wx:if="{{showCustomInput}}" class="custom-input-wrap">
+          <input class="form-input custom-input" 
+                 value="{{form.customMatchTypeText}}"
+                 bindinput="onCustomMatchTypeInput"
+                 placeholder="请输入自定义赛制名称"
+                 maxlength="10"
+                 focus/>
+          <view class="custom-input-actions">
+            <view class="btn-confirm" bindtap="saveCustomMatchType">{{editingCustomIndex >= 0 ? '保存' : '添加'}}</view>
+            <view class="btn-cancel-text" bindtap="cancelCustomInput">取消</view>
+          </view>
         </view>
       </view>
     </view>
@@ -78,12 +116,15 @@
     </view>
 
     <view class="form-item">
-      <view class="form-label">详细地址 <text class="required">*</text></view>
-      <view class="location-row">
-        <input class="form-input flex-1" value="{{form.location}}" bindinput="onInput" data-key="location"
-               placeholder="例：XX市XX区XX路XX号"/>
-        <view class="pick-location-btn" bindtap="pickLocation">📍选点</view>
+      <view class="form-label">导航地址</view>
+      <view class="nav-address-wrap">
+        <view class="nav-address-display {{form.location ? '' : 'placeholder'}}" bindtap="pickLocation">
+          <text class="nav-address-text">{{form.location || '点击选择导航地址（可选）'}}</text>
+          <text class="picker-arrow">›</text>
+        </view>
+        <text wx:if="{{form.location}}" class="clear-location" bindtap="clearLocation">清除</text>
       </view>
+      <view class="form-hint" wx:if="{{form.location}}">已选择导航地址，用户可直接导航前往</view>
     </view>
 
     <view class="form-item">
@@ -104,31 +145,44 @@
 
     <view class="form-item">
       <view class="form-label">最大人数 <text class="required">*</text></view>
-      <view class="number-input-row">
-        <view class="num-btn" bindtap="decreaseMax">－</view>
-        <text class="num-display">{{form.maxPlayers}}人</text>
-        <view class="num-btn" bindtap="increaseMax">＋</view>
+      <view class="max-players-wrap">
+        <!-- 不限/限制切换 -->
+        <view class="unlimited-toggle">
+          <view class="toggle-item {{form.maxPlayers === 999 ? 'toggle-active' : ''}}" bindtap="setUnlimitedPlayers">不限人数</view>
+          <view class="toggle-item {{form.maxPlayers !== 999 ? 'toggle-active' : ''}}" bindtap="setLimitedPlayers">限制人数</view>
+        </view>
+        <!-- 人数选择器（仅限制人数时显示） -->
+        <view class="number-input-row" wx:if="{{form.maxPlayers !== 999}}">
+          <view class="num-btn {{form.maxPlayers <= 2 ? 'num-btn-disabled' : ''}}" bindtap="decreaseMax">－</view>
+          <text class="num-display">{{form.maxPlayers}}人</text>
+          <view class="num-btn {{form.maxPlayers >= 50 ? 'num-btn-disabled' : ''}}" bindtap="increaseMax">＋</view>
+        </view>
       </view>
-      <view class="form-hint">当前设置：{{form.maxPlayers}}人（超出后可待定候补）</view>
+      <view class="form-hint">{{form.maxPlayers === 999 ? '不限人数，所有人都可以报名' : '当前设置：' + form.maxPlayers + '人（超出后可待定候补）'}}</view>
     </view>
 
     <view class="form-item">
       <view class="form-label">费用（元/人）</view>
-      <view class="number-input-row">
-        <view class="num-btn" bindtap="decreaseFee">－</view>
-        <text class="num-display">{{form.fee === 0 ? '免费' : form.fee + '元'}}</text>
-        <view class="num-btn" bindtap="increaseFee">＋</view>
+      <view class="number-input-row disabled">
+        <view class="num-btn num-btn-disabled">－</view>
+        <text class="num-display disabled-text">{{form.fee === 0 ? '免费' : form.fee + '元'}}</text>
+        <view class="num-btn num-btn-disabled">＋</view>
       </view>
+      <view class="form-hint">费用功能暂未开放，默认免费</view>
     </view>
 
     <view class="form-item">
       <view class="form-label">报名截止时间</view>
-      <picker mode="dateTime" value="{{form.deadline}}" bindchange="onDeadlineChange">
-        <view class="form-picker {{form.deadline ? '' : 'placeholder'}}">
-          <text>{{form.deadline || '截止报名时间（可选）'}}</text>
-          <text class="picker-arrow">›</text>
+      <view class="deadline-options">
+        <view wx:for="{{deadlineOptions}}" wx:key="value"
+              class="deadline-option {{selectedDeadline === item.value ? 'deadline-active' : ''}}"
+              bindtap="selectDeadline" data-value="{{item.value}}">
+          {{item.label}}
         </view>
-      </picker>
+      </view>
+      <view class="form-hint" wx:if="{{form.deadlineDisplay && form.deadlineDisplay !== '不限制'}}">
+        截止时间：{{form.deadlineDisplay}}
+      </view>
     </view>
 
     <view class="form-item">
@@ -148,13 +202,21 @@
     <view class="char-count">{{form.notice.length}}/500</view>
   </view>
 
-  <!-- 提交按钮 -->
-  <view class="submit-area">
-    <view class="submit-btn" bindtap="submit">
-      {{isEdit ? '💾 保存修改' : '🚀 发布活动'}}
-    </view>
-    <view class="cancel-btn" wx:if="{{isEdit}}" bindtap="cancelActivity">❌ 取消活动</view>
-  </view>
+  <!-- 底部占位，防止被固定栏遮挡 -->
+  <view style="height: 180rpx;"></view>
+</view>
 
-  <view style="height: 60rpx;"></view>
+<!-- 底部固定提交栏 -->
+<view class="fixed-submit-bar">
+  <!-- 编辑模式：保存修改 + 取消活动 -->
+  <view wx:if="{{isEdit}}" class="edit-actions-row">
+    <view class="submit-btn btn-primary flex-1" bindtap="submit">保存修改</view>
+    <view class="action-divider"></view>
+    <view class="action-link-secondary" bindtap="cancelActivityInEdit">取消活动</view>
+  </view>
+  
+  <!-- 创建模式：发布活动 -->
+  <view wx:if="{{!isEdit}}" class="submit-btn btn-primary" bindtap="submit">
+  发布活动
+  </view>
 </view>

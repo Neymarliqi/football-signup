@@ -21,6 +21,10 @@ Page({
     this.loadActivities()
     // 刷新管理员状态
     this.setData({ isAdmin: app.globalData.isAdmin })
+    // 更新TabBar选中状态
+    if (typeof this.getTabBar === 'function' && this.getTabBar()) {
+      this.getTabBar().setData({ selected: 0 })
+    }
   },
 
   // 加载公告
@@ -184,13 +188,32 @@ Page({
 
   // 取消活动
   async cancelActivity(e) {
+    // 阻止事件冒泡，防止触发卡片点击
+    e.stopPropagation && e.stopPropagation()
+    
     const id = e.currentTarget.dataset.id
     const activity = this.data.activities.find(a => a._id === id)
     const openid = app.globalData.openid || wx.getStorageSync('openid')
     
+    console.log('取消活动 - 活动ID:', id)
+    console.log('取消活动 - 当前用户:', openid)
+    console.log('取消活动 - 活动创建者:', activity?.createdBy)
+    console.log('取消活动 - 是否创建者:', activity?.createdBy === openid)
+    
     // 权限检查：只有创建者可取消
-    if (!activity || activity.createdBy !== openid) {
-      wx.showToast({ title: '无权操作', icon: 'none' })
+    if (!activity) {
+      wx.showToast({ title: '活动不存在', icon: 'none' })
+      return
+    }
+    
+    if (activity.createdBy !== openid) {
+      wx.showToast({ title: '只有发布者可取消活动', icon: 'none' })
+      return
+    }
+    
+    // 状态检查：只有报名中的活动可取消
+    if (activity.status !== 'open') {
+      wx.showToast({ title: '该状态无法取消', icon: 'none' })
       return
     }
     
@@ -205,18 +228,19 @@ Page({
     wx.showLoading({ title: '取消中...' })
     
     try {
-      await db.collection('activities').doc(id).update({
+      const updateRes = await db.collection('activities').doc(id).update({
         data: {
           status: 'cancelled',
           updatedAt: db.serverDate()
         }
       })
+      console.log('取消活动成功:', updateRes)
       wx.showToast({ title: '活动已取消', icon: 'success' })
       // 刷新列表
       this.loadActivities()
     } catch (e) {
       console.error('取消活动失败', e)
-      wx.showToast({ title: '取消失败', icon: 'none' })
+      wx.showToast({ title: '取消失败: ' + (e.message || '未知错误'), icon: 'none' })
     } finally {
       wx.hideLoading()
     }
