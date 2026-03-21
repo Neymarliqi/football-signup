@@ -5,7 +5,12 @@
   <view class="detail-header-card">
     <view class="flex-between mb-10">
       <view class="tag {{activity.statusClass}}">{{activity.statusText}}</view>
-      <view wx:if="{{isAdmin}}" class="edit-btn" bindtap="editActivity">✏ 编辑</view>
+      <!-- 管理操作区（仅发布者可见） -->
+      <view class="header-actions" wx:if="{{isCreator || isAdmin}}">
+        <view class="action-link" wx:if="{{canEdit}}" bindtap="editActivity">编辑</view>
+        <view class="action-link" wx:if="{{canEdit}}" bindtap="cancelActivity">取消</view>
+        <view class="action-link delete" wx:if="{{isCreator && (activity.status === 'cancelled' || activity.status === 'finished')}}" bindtap="deleteActivity">删除</view>
+      </view>
     </view>
     <view class="detail-title">{{activity.title}}</view>
     <view class="detail-desc" wx:if="{{activity.description}}">{{activity.description}}</view>
@@ -119,7 +124,7 @@
     <view class="player-list">
       <view wx:for="{{confirmedPlayers}}" wx:key="openid" class="player-item">
         <view class="player-rank">{{index + 1}}</view>
-        <image class="player-avatar" src="{{item.avatarUrl || '/assets/default_avatar.png'}}" mode="aspectFill"></image>
+        <image class="player-avatar" src="{{item.avatarUrl || placeholderAvatar}}" mode="aspectFill"></image>
         <view class="player-info">
           <view class="player-name">{{item.nickName}}</view>
           <view class="player-position" wx:if="{{item.position}}">
@@ -136,7 +141,7 @@
     <view class="section-title">⏳ 待定 ({{pendingCount}})</view>
     <view class="player-list">
       <view wx:for="{{pendingPlayers}}" wx:key="openid" class="player-item pending-item">
-        <image class="player-avatar" src="{{item.avatarUrl || '/assets/default_avatar.png'}}" mode="aspectFill"></image>
+        <image class="player-avatar" src="{{item.avatarUrl || placeholderAvatar}}" mode="aspectFill"></image>
         <view class="player-info">
           <view class="player-name">{{item.nickName}}</view>
         </view>
@@ -149,7 +154,7 @@
     <view class="section-title">🙅 请假 ({{leaveCount}})</view>
     <view class="player-list">
       <view wx:for="{{leavePlayers}}" wx:key="openid" class="player-item leave-item">
-        <image class="player-avatar" src="{{item.avatarUrl || '/assets/default_avatar.png'}}" mode="aspectFill"></image>
+        <image class="player-avatar" src="{{item.avatarUrl || placeholderAvatar}}" mode="aspectFill"></image>
         <view class="player-info">
           <view class="player-name">{{item.nickName}}</view>
           <view class="leave-reason" wx:if="{{item.leaveReason}}">{{item.leaveReason}}</view>

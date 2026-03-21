@@ -8,7 +8,8 @@ Page({
     announcements: [],
     activeFilter: 'all',
     isAdmin: false,
-    loading: true
+    loading: true,
+    placeholderAvatar: 'https://mmbiz.qpic.cn/mmbiz/icTdbqWNOwNRna42FI242Lcia07jQodd2FJGIYQfG0LAJGFxM4FbnQP6yfMxBgJ0F3YRqJCJ1aPAK2dQagdusBZg/0'
   },
 
   onLoad() {
@@ -55,7 +56,7 @@ Page({
       }
 
       const res = await query
-        .orderBy('activityDate', 'asc')
+        .orderBy('createdAt', 'desc')
         .limit(20)
         .get()
 
@@ -83,17 +84,24 @@ Page({
     const actDate = act.activityDate instanceof Date ? act.activityDate : new Date(act.activityDate)
     const displayDate = this.formatDate(actDate)
 
+    // 判断是否是发布者
+    const isCreator = act.createdBy === openid
+
     // 状态
     const now = new Date()
-    let statusText, statusClass
+    let statusText, statusClass, canEdit, canCancel, canDelete
     if (act.status === 'finished' || actDate < now) {
       statusText = '已结束'; statusClass = 'tag-gray'
+      canEdit = false; canCancel = false; canDelete = isCreator
     } else if (act.status === 'ongoing') {
       statusText = '进行中'; statusClass = 'tag-blue'
+      canEdit = false; canCancel = false; canDelete = false
     } else if (act.status === 'cancelled') {
       statusText = '已取消'; statusClass = 'tag-red'
+      canEdit = false; canCancel = false; canDelete = isCreator
     } else {
       statusText = '报名中'; statusClass = 'tag-green'
+      canEdit = isCreator; canCancel = isCreator; canDelete = false
     }
 
     // 我的状态
@@ -109,8 +117,8 @@ Page({
       myStatusClass = statusMap[myReg.status]?.cls || ''
     }
 
-    // 显示前8人头像
-    const confirmedPlayers = confirmed.slice(0, 8).map(r => ({
+    // 显示前6人头像（首页卡片空间有限）
+    const confirmedPlayers = confirmed.slice(0, 6).map(r => ({
       ...r,
       shortName: r.nickName ? r.nickName.slice(0, 3) : '队员'
     }))
@@ -125,6 +133,10 @@ Page({
       displayDate,
       statusText,
       statusClass,
+      isCreator,
+      canEdit,
+      canCancel,
+      canDelete,
       myStatus,
       myStatusText,
       myStatusClass
@@ -162,5 +174,100 @@ Page({
 
   goCreate() {
     wx.navigateTo({ url: '/pages/activity/create' })
+  },
+
+  // 编辑活动
+  goEdit(e) {
+    const id = e.currentTarget.dataset.id
+    wx.navigateTo({ url: `/pages/activity/create?id=${id}&mode=edit` })
+  },
+
+  // 取消活动
+  async cancelActivity(e) {
+    const id = e.currentTarget.dataset.id
+    const activity = this.data.activities.find(a => a._id === id)
+    const openid = app.globalData.openid || wx.getStorageSync('openid')
+    
+    // 权限检查：只有创建者可取消
+    if (!activity || activity.createdBy !== openid) {
+      wx.showToast({ title: '无权操作', icon: 'none' })
+      return
+    }
+    
+    const res = await wx.showModal({
+      title: '确认取消',
+      content: '取消后其他成员将无法报名，是否确认取消该活动？',
+      confirmColor: '#ff9500'
+    })
+    
+    if (!res.confirm) return
+
+    wx.showLoading({ title: '取消中...' })
+    
+    try {
+      await db.collection('activities').doc(id).update({
+        data: {
+          status: 'cancelled',
+          updatedAt: db.serverDate()
+        }
+      })
+      wx.showToast({ title: '活动已取消', icon: 'success' })
+      // 刷新列表
+      this.loadActivities()
+    } catch (e) {
+      console.error('取消活动失败', e)
+      wx.showToast({ title: '取消失败', icon: 'none' })
+    } finally {
+      wx.hideLoading()
+    }
+  },
+
+  // 删除活动
+  async deleteActivity(e) {
+    const id = e.currentTarget.dataset.id
+    const activity = this.data.activities.find(a => a._id === id)
+    const openid = app.globalData.openid || wx.getStorageSync('openid')
+    
+    // 权限检查：只有创建者可删除
+    if (!activity || activity.createdBy !== openid) {
+      wx.showToast({ title: '无权操作', icon: 'none' })
+      return
+    }
+    
+    const res = await wx.showModal({
+      title: '确认删除',
+      content: '删除后无法恢复，是否确认删除该活动？',
+      confirmColor: '#ff4444'
+    })
+    
+    if (!res.confirm) return
+
+    wx.showLoading({ title: '删除中...' })
+    
+    try {
+      await db.collection('activities').doc(id).remove()
+      wx.showToast({ title: '删除成功', icon: 'success' })
+      // 刷新列表
+      this.loadActivities()
+    } catch (e) {
+      console.error('删除活动失败', e)
+      wx.showToast({ title: '删除失败', icon: 'none' })
+    } finally {
+      wx.hideLoading()
+    }
+  },
+
+  // 显示公告详情
+  showAnnounceDetail(e) {
+    const index = e.currentTarget.dataset.index || 0
+    const announce = this.data.announcements[index]
+    if (announce) {
+      wx.showModal({
+        title: '公告详情',
+        content: announce.content,
+        showCancel: false,
+        confirmText: '知道了'
+      })
+    }
   }
 })

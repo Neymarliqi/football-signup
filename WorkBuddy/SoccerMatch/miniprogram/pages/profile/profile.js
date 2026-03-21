@@ -8,6 +8,7 @@ Page({
     shortOpenid: '',
     editingName: false,
     tempName: '',
+    placeholderAvatar: 'https://mmbiz.qpic.cn/mmbiz/icTdbqWNOwNRna42FI242Lcia07jQodd2FJGIYQfG0LAJGFxM4FbnQP6yfMxBgJ0F3YRqJCJ1aPAK2dQagdusBZg/0',
     positions: [
       { value: 'GK', label: '守门员', emoji: '🧤' },
       { value: 'CB', label: '中后卫', emoji: '🛡' },
@@ -25,11 +26,15 @@ Page({
       leaveCount: 0
     },
     history: [],
-    isAdmin: false
+    isAdmin: false,
+    isDev: false
   },
 
   onLoad() {
     this.loadUserInfo()
+    // 判断是否是开发环境（可以通过配置或特定条件判断）
+    const isDev = wx.getAccountInfoSync().miniProgram.envVersion === 'develop'
+    this.setData({ isDev })
   },
 
   onShow() {
@@ -233,5 +238,45 @@ Page({
 
   goAdmin() {
     wx.navigateTo({ url: '/pages/admin/admin' })
+  },
+
+  // 生成测试数据
+  async seedTestData() {
+    const openid = app.globalData.openid || wx.getStorageSync('openid')
+    if (!openid) {
+      wx.showToast({ title: '请先登录', icon: 'none' })
+      return
+    }
+
+    wx.showModal({
+      title: '生成测试数据',
+      content: '将生成10条测试数据（4条我发布的 + 4条我报名的 + 2条其他人的），是否继续？',
+      success: async (res) => {
+        if (!res.confirm) return
+
+        wx.showLoading({ title: '生成中...' })
+        try {
+          const result = await wx.cloud.callFunction({
+            name: 'seedTestData',
+            data: { myOpenid: openid }
+          })
+          
+          wx.hideLoading()
+          if (result.result.success) {
+            wx.showModal({
+              title: '生成成功',
+              content: `已生成 ${result.result.data.total} 条测试数据：\n• 我发布的：${result.result.data.myPublished} 条\n• 我报名的：${result.result.data.myRegistered} 条\n• 其他人的：${result.result.data.others} 条\n\n请返回首页查看效果`,
+              showCancel: false
+            })
+          } else {
+            wx.showToast({ title: result.result.message || '生成失败', icon: 'none' })
+          }
+        } catch (e) {
+          wx.hideLoading()
+          console.error('生成测试数据失败', e)
+          wx.showToast({ title: '生成失败', icon: 'none' })
+        }
+      }
+    })
   }
 })

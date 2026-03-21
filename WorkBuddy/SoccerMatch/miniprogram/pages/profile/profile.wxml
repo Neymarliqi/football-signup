@@ -5,7 +5,7 @@
   <view class="profile-header">
     <!-- 头像 -->
     <view class="avatar-wrap" bindtap="chooseAvatar">
-      <image class="profile-avatar" src="{{userInfo.avatarUrl || '/assets/default_avatar.png'}}" mode="aspectFill"></image>
+      <image class="profile-avatar" src="{{userInfo.avatarUrl || placeholderAvatar}}" mode="aspectFill"></image>
       <view class="avatar-edit-badge">📷</view>
     </view>
 

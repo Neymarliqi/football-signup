@@ -63,7 +63,7 @@
             data-openid="{{item.openid}}"
             bindtouchstart="onTokenTouchStart"
             data-index="{{index}}">
-        <image class="token-avatar" src="{{item.avatarUrl || '/assets/default_avatar.png'}}" mode="aspectFill"></image>
+        <image class="token-avatar" src="{{item.avatarUrl || placeholderAvatar}}" mode="aspectFill"></image>
         <view class="token-name">{{item.shortName}}</view>
         <view class="token-pos-badge" wx:if="{{item.posLabel}}">{{item.posLabel}}</view>
       </view>
@@ -78,7 +78,7 @@
   <view class="assign-panel" wx:if="{{editMode && selectedPlayerInfo}}">
     <view class="assign-header flex-between">
       <view class="assign-player-info">
-        <image class="assign-avatar" src="{{selectedPlayerInfo.avatarUrl || '/assets/default_avatar.png'}}" mode="aspectFill"></image>
+        <image class="assign-avatar" src="{{selectedPlayerInfo.avatarUrl || placeholderAvatar}}" mode="aspectFill"></image>
         <text class="assign-name">{{selectedPlayerInfo.nickName}}</text>
       </view>
       <view class="assign-close" bindtap="closeAssignPanel">×</view>
@@ -103,7 +103,7 @@
         <view wx:for="{{playerTokens}}" wx:key="openid"
               class="bench-item {{selectedPlayer === item.openid ? 'bench-selected' : ''}}"
               bindtap="selectPlayerToken" data-openid="{{item.openid}}">
-          <image class="bench-avatar" src="{{item.avatarUrl || '/assets/default_avatar.png'}}" mode="aspectFill"></image>
+          <image class="bench-avatar" src="{{item.avatarUrl || placeholderAvatar}}" mode="aspectFill"></image>
           <view class="bench-name">{{item.shortName}}</view>
           <view class="bench-pos-badge {{item.posLabel ? 'pos-assigned' : 'pos-unassigned'}}">
             {{item.posLabel || '未定'}}

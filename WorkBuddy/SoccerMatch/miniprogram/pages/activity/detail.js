@@ -18,11 +18,15 @@ Page({
     myStatusText: '',
     myStatusClass: '',
     isAdmin: false,
-    // 头像昵称弹窗相关
+    isCreator: false,
+    canEdit: false,
+    // 头像昵称弹窗
     showUserInfoModal: false,
     tempAvatarUrl: '',
     tempNickName: '',
-    defaultAvatarUrl: 'https://mmbiz.qpic.cn/mmbiz/icTdbqWNOwNRna42FI242Lcia07jQodd2FJGIYQfG0LAJGFxM4FbnQP6yfMxBgJ0F3YRqJCJ1aPAK2dQagdusBZg/0'
+    defaultAvatarUrl: 'https://mmbiz.qpic.cn/mmbiz/icTdbqWNOwNRna42FI242Lcia07jQodd2FJGIYQfG0LAJGFxM4FbnQP6yfMxBgJ0F3YRqJCJ1aPAK2dQagdusBZg/0',
+    // 本地默认头像不存在，使用网络默认头像
+    placeholderAvatar: 'https://mmbiz.qpic.cn/mmbiz/icTdbqWNOwNRna42FI242Lcia07jQodd2FJGIYQfG0LAJGFxM4FbnQP6yfMxBgJ0F3YRqJCJ1aPAK2dQagdusBZg/0'
   },
 
   onLoad(options) {
@@ -70,9 +74,11 @@ Page({
       return `${d.getMonth() + 1}/${d.getDate()} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`
     }
 
-    const confirmedPlayers = confirmed.map(r => ({ ...r, registerTimeText: fmtTime(r.registerTime) }))
-    const pendingPlayers = pending.map(r => ({ ...r, registerTimeText: fmtTime(r.registerTime) }))
-    const leavePlayers = leave.map(r => ({ ...r, registerTimeText: fmtTime(r.registerTime) }))
+    // 详情页最多显示30人，防止数据过多影响性能
+    const MAX_DISPLAY = 30
+    const confirmedPlayers = confirmed.slice(0, MAX_DISPLAY).map(r => ({ ...r, registerTimeText: fmtTime(r.registerTime) }))
+    const pendingPlayers = pending.slice(0, MAX_DISPLAY).map(r => ({ ...r, registerTimeText: fmtTime(r.registerTime) }))
+    const leavePlayers = leave.slice(0, MAX_DISPLAY).map(r => ({ ...r, registerTimeText: fmtTime(r.registerTime) }))
 
     // 活动状态
     const now = new Date()
@@ -99,6 +105,10 @@ Page({
       myStatusClass = statusMap[myReg.status]?.cls || ''
     }
 
+    // 判断是否是发布者且活动未开始（可以编辑）
+    const isCreator = act.createdBy === openid
+    const canEdit = isCreator && act.status === 'open' && actDate > now
+
     // 格式化日期
     const displayDate = this.formatDate(actDate)
 
@@ -114,7 +124,9 @@ Page({
       progressPercent,
       myStatus,
       myStatusText,
-      myStatusClass
+      myStatusClass,
+      isCreator,
+      canEdit
     })
 
     wx.setNavigationBarTitle({ title: act.title || '活动详情' })
@@ -129,33 +141,22 @@ Page({
     return `${y}年${m}月${d}日 周${w}`
   },
 
-  // 报名
+  // ==================== 报名相关逻辑 ====================
+
+  /**
+   * 报名/状态变更（旧版本逻辑）
+   */
   async register(e) {
     const status = e.currentTarget.dataset.status
     const userInfo = app.globalData.userInfo
 
-    // 检查是否有头像昵称
+    // 检查用户信息是否完整
     if (!userInfo || !userInfo.avatarUrl || !userInfo.nickName) {
-      // 显示弹窗，引导用户填写头像昵称
+      // 显示头像昵称弹窗
       this.setData({
         showUserInfoModal: true,
-        tempAvatarUrl: userInfo?.avatarUrl || this.data.defaultAvatarUrl,
-        tempNickName: userInfo?.nickName || ''
-      })
-      return
-    }
-
-    // 请假需要填写原因
-    if (status === 'leave') {
-      wx.showModal({
-        title: '请假原因（可选）',
-        editable: true,
-        placeholderText: '请输入请假原因...',
-        success: async (res) => {
-          if (res.confirm) {
-            await this.doRegister(status, res.content || '')
-          }
-        }
+        tempAvatarUrl: '',
+        tempNickName: ''
       })
       return
     }
@@ -163,12 +164,55 @@ Page({
     await this.doRegister(status, '')
   },
 
+  /**
+   * 改变状态（已报名/待定/请假之间切换）
+   */
+  async changeStatus(e) {
+    const status = e.currentTarget.dataset.status
+    await this.doRegister(status, '')
+  },
+
+  /**
+   * 取消报名
+   */
+  async cancelRegister() {
+    const { activityId } = this.data
+    const openid = app.globalData.openid || wx.getStorageSync('openid')
+
+    wx.showModal({
+      title: '确认取消',
+      content: '确定要取消报名吗？',
+      success: async (res) => {
+        if (res.confirm) {
+          wx.showLoading({ title: '取消中...' })
+          try {
+            await wx.cloud.callFunction({
+              name: 'cancelRegistration',
+              data: { activityId, openid }
+            })
+            wx.hideLoading()
+            wx.showToast({ title: '已取消报名', icon: 'success' })
+            this.loadActivity()
+          } catch (e) {
+            wx.hideLoading()
+            console.error('取消报名失败', e)
+            wx.showToast({ title: '操作失败', icon: 'error' })
+          }
+        }
+      }
+    })
+  },
+
+  /**
+   * 执行报名/状态变更
+   */
   async doRegister(status, leaveReason) {
-    const { activityId, confirmedCount } = this.data
+    const { activityId, confirmedCount, activity } = this.data
     const openid = app.globalData.openid || wx.getStorageSync('openid')
     const userInfo = app.globalData.userInfo
 
-    if (status === 'confirmed' && confirmedCount >= this.data.activity.maxPlayers) {
+    // 检查是否已满员（报名状态时）
+    if (status === 'confirmed' && confirmedCount >= activity.maxPlayers) {
       wx.showToast({ title: '报名人数已满！', icon: 'none' })
       return
     }
@@ -203,49 +247,96 @@ Page({
     }
   },
 
-  changeStatus(e) {
-    const status = e.currentTarget.dataset.status
-    if (status === 'leave') {
-      wx.showModal({
-        title: '请假原因（可选）',
-        editable: true,
-        placeholderText: '请输入请假原因...',
-        success: async (res) => {
-          if (res.confirm) {
-            await this.doRegister(status, res.content || '')
-          }
-        }
-      })
-      return
-    }
-    this.doRegister(status, '')
+  // ==================== 头像昵称弹窗 ====================
+
+  /**
+   * 选择头像
+   */
+  onChooseAvatar(e) {
+    this.setData({ tempAvatarUrl: e.detail.avatarUrl })
   },
 
-  async cancelRegister() {
-    wx.showModal({
-      title: '确认取消',
-      content: '确定要取消报名吗？',
-      success: async (res) => {
-        if (res.confirm) {
-          const { activityId } = this.data
-          const openid = app.globalData.openid || wx.getStorageSync('openid')
-          wx.showLoading({ title: '取消中...' })
-          try {
-            await wx.cloud.callFunction({
-              name: 'cancelRegistration',
-              data: { activityId, openid }
-            })
-            wx.hideLoading()
-            wx.showToast({ title: '已取消报名', icon: 'success' })
-            this.loadActivity()
-          } catch (e) {
-            wx.hideLoading()
-            wx.showToast({ title: '操作失败', icon: 'error' })
-          }
+  /**
+   * 输入昵称
+   */
+  onNickNameInput(e) {
+    this.setData({ tempNickName: e.detail.value })
+  },
+
+  /**
+   * 关闭头像昵称弹窗
+   */
+  closeUserInfoModal() {
+    this.setData({ showUserInfoModal: false })
+  },
+
+  /**
+   * 保存用户信息
+   */
+  async saveUserInfo() {
+    const { tempAvatarUrl, tempNickName } = this.data
+
+    if (!tempNickName.trim()) {
+      wx.showToast({ title: '请输入昵称', icon: 'none' })
+      return
+    }
+
+    wx.showLoading({ title: '保存中...' })
+
+    try {
+      let finalAvatarUrl = tempAvatarUrl
+
+      // 如果选择了头像，上传到云存储
+      if (tempAvatarUrl && !tempAvatarUrl.startsWith('cloud://') && !tempAvatarUrl.startsWith('http')) {
+        try {
+          const uploadRes = await wx.cloud.uploadFile({
+            cloudPath: `avatars/${Date.now()}.jpg`,
+            filePath: tempAvatarUrl
+          })
+          finalAvatarUrl = uploadRes.fileID
+        } catch (e) {
+          console.error('上传头像失败', e)
+          finalAvatarUrl = this.data.defaultAvatarUrl
         }
       }
-    })
+
+      // 如果没有头像，使用默认头像
+      if (!finalAvatarUrl) {
+        finalAvatarUrl = this.data.defaultAvatarUrl
+      }
+
+      const openid = app.globalData.openid || wx.getStorageSync('openid')
+
+      // 保存到数据库
+      await db.collection('users').doc(openid).set({
+        data: {
+          nickName: tempNickName,
+          avatarUrl: finalAvatarUrl,
+          position: '',
+          updatedAt: new Date()
+        }
+      })
+
+      // 更新全局数据
+      app.globalData.userInfo = {
+        nickName: tempNickName,
+        avatarUrl: finalAvatarUrl,
+        position: ''
+      }
+
+      wx.hideLoading()
+      wx.showToast({ title: '保存成功', icon: 'success' })
+
+      this.setData({ showUserInfoModal: false })
+      this.loadActivity()
+    } catch (e) {
+      wx.hideLoading()
+      console.error('保存用户信息失败', e)
+      wx.showToast({ title: '保存失败', icon: 'error' })
+    }
   },
+
+  // ==================== 其他功能 ====================
 
   // 打开地图导航（调用腾讯地图）
   openMap() {
@@ -277,7 +368,105 @@ Page({
   },
 
   editActivity() {
-    wx.navigateTo({ url: `/pages/activity/create?id=${this.data.activityId}` })
+    const { activityId, canEdit } = this.data
+    
+    if (!canEdit) {
+      wx.showToast({ title: '无权编辑该活动', icon: 'none' })
+      return
+    }
+    
+    if (!activityId) {
+      wx.showToast({ title: '活动ID缺失', icon: 'none' })
+      return
+    }
+    
+    wx.navigateTo({ 
+      url: `/pages/activity/create?id=${activityId}&mode=edit`
+    })
+  },
+
+  // 取消活动（发布者权限）
+  async cancelActivity() {
+    const { activity, isCreator, canEdit } = this.data
+    
+    if (!isCreator) {
+      wx.showToast({ title: '无权取消该活动', icon: 'none' })
+      return
+    }
+    
+    if (!canEdit) {
+      wx.showToast({ title: '活动状态不允许取消', icon: 'none' })
+      return
+    }
+
+    const res = await wx.showModal({
+      title: '确认取消',
+      content: '取消后其他成员将无法报名，是否确认取消该活动？',
+      confirmColor: '#ff9500'
+    })
+
+    if (!res.confirm) return
+
+    wx.showLoading({ title: '取消中...' })
+
+    try {
+      await db.collection('activities').doc(activity._id).update({
+        data: {
+          status: 'cancelled',
+          updatedAt: db.serverDate()
+        }
+      })
+      wx.hideLoading()
+      wx.showToast({ title: '活动已取消', icon: 'success' })
+      this.loadActivity()
+    } catch (e) {
+      wx.hideLoading()
+      console.error('取消活动失败', e)
+      wx.showToast({ title: '取消失败', icon: 'none' })
+    }
+  },
+
+  // 删除活动（发布者权限，仅取消/结束状态可删除）
+  async deleteActivity() {
+    const { activity, isCreator } = this.data
+    const canDelete = isCreator && (activity.status === 'cancelled' || activity.status === 'finished')
+    
+    if (!canDelete) {
+      wx.showToast({ title: '无权删除该活动', icon: 'none' })
+      return
+    }
+
+    const res = await wx.showModal({
+      title: '确认删除',
+      content: '删除后无法恢复，是否确认删除该活动？',
+      confirmColor: '#ff4444'
+    })
+
+    if (!res.confirm) return
+
+    wx.showLoading({ title: '删除中...' })
+
+    try {
+      await db.collection('activities').doc(activity._id).remove()
+      wx.hideLoading()
+      wx.showToast({ title: '删除成功', icon: 'success' })
+      // 返回首页
+      setTimeout(() => {
+        wx.navigateBack()
+      }, 1500)
+    } catch (e) {
+      wx.hideLoading()
+      console.error('删除活动失败', e)
+      wx.showToast({ title: '删除失败', icon: 'none' })
+    }
+  },
+
+  // 分享
+  onShare() {
+    wx.showShareMenu({
+      withShareTicket: true,
+      menus: ['shareAppMessage', 'shareTimeline']
+    })
   },
 
   // 分享
@@ -287,83 +476,6 @@ Page({
       title: `⚽ ${activity.title} - 快来报名！`,
       path: `/pages/activity/detail?id=${activityId}`,
       imageUrl: ''
-    }
-  },
-
-  // ====== 头像昵称弹窗相关 ======
-
-  // 选择头像
-  onChooseAvatar(e) {
-    const { avatarUrl } = e.detail
-    this.setData({ tempAvatarUrl: avatarUrl })
-  },
-
-  // 输入昵称
-  onNickNameInput(e) {
-    this.setData({ tempNickName: e.detail.value })
-  },
-
-  // 关闭弹窗
-  closeUserInfoModal() {
-    this.setData({ showUserInfoModal: false })
-  },
-
-  // 保存用户信息
-  async saveUserInfo() {
-    const { tempAvatarUrl, tempNickName } = this.data
-
-    if (!tempNickName || tempNickName.trim() === '') {
-      wx.showToast({ title: '请输入昵称', icon: 'none' })
-      return
-    }
-
-    // 上传头像到云存储
-    let avatarUrl = tempAvatarUrl
-    if (!tempAvatarUrl.startsWith('cloud://') && !tempAvatarUrl.startsWith('http')) {
-      // 临时文件路径，需要上传到云存储
-      try {
-        wx.showLoading({ title: '上传头像...' })
-        const uploadRes = await wx.cloud.uploadFile({
-          cloudPath: `avatars/${Date.now()}.jpg`,
-          filePath: tempAvatarUrl
-        })
-        avatarUrl = uploadRes.fileID
-        wx.hideLoading()
-      } catch (e) {
-        wx.hideLoading()
-        console.error('上传头像失败', e)
-        wx.showToast({ title: '上传头像失败', icon: 'none' })
-        return
-      }
-    }
-
-    // 更新用户信息到数据库
-    try {
-      const openid = app.globalData.openid || wx.getStorageSync('openid')
-      await db.collection('users').doc(openid).set({
-        data: {
-          nickName: tempNickName,
-          avatarUrl: avatarUrl,
-          position: '',
-          updatedAt: new Date()
-        }
-      })
-
-      // 更新全局数据
-      app.globalData.userInfo = {
-        nickName: tempNickName,
-        avatarUrl: avatarUrl,
-        position: ''
-      }
-
-      this.setData({ showUserInfoModal: false })
-      wx.showToast({ title: '保存成功！', icon: 'success' })
-
-      // 重新加载活动，显示报名状态
-      this.loadActivity()
-    } catch (e) {
-      console.error('保存用户信息失败', e)
-      wx.showToast({ title: '保存失败，请重试', icon: 'none' })
     }
   }
 })

@@ -110,11 +110,11 @@
       </view>
       <view class="avatar-list">
         <view wx:for="{{item.confirmedPlayers}}" wx:for-item="player" wx:key="openid" class="avatar-item">
-          <image class="avatar-sm" src="{{player.avatarUrl || '/assets/default_avatar.png'}}" mode="aspectFill"></image>
+          <image class="avatar-sm" src="{{player.avatarUrl || placeholderAvatar}}" mode="aspectFill"></image>
           <text class="avatar-name">{{player.shortName}}</text>
         </view>
-        <view wx:if="{{item.confirmedCount > 8}}" class="avatar-more">
-          <view class="more-circle">+{{item.confirmedCount - 8}}</view>
+        <view wx:if="{{item.confirmedCount > 6}}" class="avatar-more">
+          <view class="more-circle">+{{item.confirmedCount - 6}}</view>
         </view>
       </view>
     </view>
@@ -125,11 +125,22 @@
       <view class="tag {{item.myStatusClass}}">{{item.myStatusText}}</view>
     </view>
 
-    <!-- 操作按钮 -->
+    <!-- 操作按钮区 -->
     <view class="card-btns">
-      <view class="card-btn btn-view">查看详情</view>
+      <!-- 主操作 -->
+      <view class="card-btn btn-view" catchtap="goDetail" data-id="{{item._id}}">查看详情</view>
+      
+      <!-- 功能操作 -->
       <view class="card-btn btn-tactics" wx:if="{{item.myStatus === 'confirmed'}}" 
             catchtap="goTactics" data-id="{{item._id}}">战术板</view>
+      
+      <!-- 分隔线（有管理操作时显示） -->
+      <view class="action-divider" wx:if="{{item.canEdit || item.canCancel || item.canDelete}}"></view>
+      
+      <!-- 管理操作（弱化） -->
+      <view class="action-link" wx:if="{{item.canEdit}}" catchtap="goEdit" data-id="{{item._id}}">编辑</view>
+      <view class="action-link" wx:if="{{item.canCancel}}" catchtap="cancelActivity" data-id="{{item._id}}">取消</view>
+      <view class="action-link delete" wx:if="{{item.canDelete}}" catchtap="deleteActivity" data-id="{{item._id}}">删除</view>
     </view>
   </view>
 

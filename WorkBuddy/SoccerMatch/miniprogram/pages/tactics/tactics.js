@@ -53,6 +53,7 @@ Page({
     editMode: false,
     isAdmin: false,
     fieldHeight: 500,
+    placeholderAvatar: 'https://mmbiz.qpic.cn/mmbiz/icTdbqWNOwNRna42FI242Lcia07jQodd2FJGIYQfG0LAJGFxM4FbnQP6yfMxBgJ0F3YRqJCJ1aPAK2dQagdusBZg/0',
     formations: [
       { label: '4-3-3', value: '4-3-3' },
       { label: '4-4-2', value: '4-4-2' },

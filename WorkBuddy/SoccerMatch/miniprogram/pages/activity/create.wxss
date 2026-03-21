@@ -39,11 +39,13 @@
   width: 100%;
   background: #f8f9fa;
   border-radius: 12rpx;
-  padding: 22rpx 24rpx;
-  font-size: 28rpx;
+  padding: 28rpx 24rpx;
+  font-size: 30rpx;
   color: #333;
   border: 2rpx solid #e8e8e8;
   box-sizing: border-box;
+  min-height: 88rpx;
+  line-height: 1.4;
 }
 
 .form-textarea {
@@ -62,13 +64,15 @@
 .form-picker {
   background: #f8f9fa;
   border-radius: 12rpx;
-  padding: 22rpx 24rpx;
-  font-size: 28rpx;
+  padding: 28rpx 24rpx;
+  font-size: 30rpx;
   color: #333;
   border: 2rpx solid #e8e8e8;
   display: flex;
   align-items: center;
   justify-content: space-between;
+  min-height: 88rpx;
+  box-sizing: border-box;
 }
 
 .form-picker.placeholder { color: #bbb; }
@@ -110,21 +114,48 @@
   font-weight: bold;
 }
 
-/* 地址行 */
-.location-row {
+/* 导航地址 */
+.nav-address-wrap {
   display: flex;
   align-items: center;
   gap: 16rpx;
 }
 
-.pick-location-btn {
-  background: linear-gradient(135deg, #3498db, #2980b9);
-  color: #fff;
-  padding: 18rpx 24rpx;
+.nav-address-display {
+  flex: 1;
+  background: #f8f9fa;
   border-radius: 12rpx;
-  font-size: 24rpx;
+  padding: 28rpx 24rpx;
+  font-size: 30rpx;
+  color: #333;
+  border: 2rpx solid #e8e8e8;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 88rpx;
+  box-sizing: border-box;
+}
+
+.nav-address-display.placeholder {
+  color: #bbb;
+}
+
+.nav-address-text {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
   white-space: nowrap;
-  flex-shrink: 0;
+}
+
+.clear-location {
+  font-size: 26rpx;
+  color: #999;
+  padding: 8rpx 16rpx;
+  white-space: nowrap;
+}
+
+.clear-location:active {
+  color: #666;
 }
 
 /* 数字输入 */
@@ -156,6 +187,15 @@
   text-align: center;
 }
 
+.num-display.disabled-text {
+  color: #999;
+  font-weight: normal;
+}
+
+.number-input-row.disabled {
+  opacity: 0.7;
+}
+
 /* 开关行 */
 .switch-row {
   display: flex;
@@ -165,31 +205,119 @@
 
 .switch-label { font-size: 28rpx; color: #333; }
 
-/* 提交区 */
-.submit-area {
-  margin-top: 10rpx;
+/* 赛制类型自定义输入 */
+.match-type-wrap {
   display: flex;
   flex-direction: column;
   gap: 16rpx;
 }
 
-.submit-btn {
-  background: linear-gradient(135deg, #2ecc71, #27ae60);
-  color: #fff;
+.custom-input {
+  margin-top: 8rpx;
+}
+
+/* 最大人数选择 */
+.max-players-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 20rpx;
+}
+
+/* 截止时间行 */
+.deadline-row {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+}
+
+.deadline-row .form-picker {
+  flex: 1;
+  min-height: 88rpx;
+  padding: 28rpx 24rpx;
+  font-size: 30rpx;
+}
+
+.clear-deadline {
+  font-size: 26rpx;
+  color: #999;
+  padding: 8rpx 16rpx;
+  white-space: nowrap;
+}
+
+.clear-deadline:active {
+  color: #666;
+}
+
+/* 底部固定提交栏 */
+.fixed-submit-bar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: #fff;
+  padding: 24rpx 30rpx;
+  padding-bottom: calc(24rpx + env(safe-area-inset-bottom));
+  box-shadow: 0 -4rpx 20rpx rgba(0,0,0,0.08);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16rpx;
+  z-index: 100;
+}
+
+.fixed-submit-bar .submit-btn {
+  width: 100%;
   text-align: center;
   padding: 28rpx 0;
   border-radius: 50rpx;
   font-size: 32rpx;
   font-weight: bold;
-  box-shadow: 0 8rpx 24rpx rgba(46,204,113,0.35);
 }
 
-.cancel-btn {
-  background: #fdecea;
-  color: #e74c3c;
-  text-align: center;
-  padding: 24rpx 0;
-  border-radius: 50rpx;
+.btn-primary {
+  background: #07c160;
+  color: #fff;
+  box-shadow: 0 8rpx 24rpx rgba(7,193,96,0.35);
+}
+
+.btn-primary:active {
+  opacity: 0.9;
+  transform: scale(0.995);
+}
+
+.fixed-submit-bar .action-link {
   font-size: 28rpx;
-  font-weight: bold;
+  color: #999;
+  padding: 12rpx 24rpx;
+}
+
+.fixed-submit-bar .action-link.delete {
+  color: #e74c3c;
+}
+
+.fixed-submit-bar .action-link:active {
+  opacity: 0.7;
+}
+
+/* 编辑模式下的按钮行 */
+.edit-actions-row {
+  display: flex;
+  align-items: center;
+  gap: 24rpx;
+  width: 100%;
+}
+
+.edit-actions-row .flex-1 {
+  flex: 1;
+}
+
+.btn-cancel {
+  padding: 28rpx 40rpx;
+  font-size: 28rpx;
+  color: #999;
+  background: transparent;
+}
+
+.btn-cancel:active {
+  opacity: 0.6;
 }
