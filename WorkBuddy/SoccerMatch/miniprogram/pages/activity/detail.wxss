@@ -357,8 +357,8 @@
   font-weight: bold;
 }
 
-/* 底部操作区 */
-.bottom-action {
+/* 底部操作栏 */
+.bottom-action-bar {
   position: fixed;
   bottom: 0;
   left: 0;
@@ -368,6 +368,7 @@
   padding-bottom: calc(20rpx + env(safe-area-inset-bottom));
   box-shadow: 0 -4rpx 20rpx rgba(0,0,0,0.08);
   z-index: 100;
+  pointer-events: auto;
 }
 
 .my-status-bar {
@@ -379,65 +380,110 @@
 
 .my-status-text { font-size: 26rpx; color: #666; }
 
-/* 底部操作按钮区 */
-.action-btns {
+/* 底部操作按钮区 - UI规范：主操作→功能操作→分隔线→管理操作 */
+.action-bar-content {
   display: flex;
-  gap: 16rpx;
+  align-items: center;
+  gap: 12rpx;
 }
 
-/* 操作按钮基础样式 */
-.action-btn {
-  flex: 1;
-  text-align: center;
-  padding: 24rpx 0;
-  border-radius: 40rpx;
-  font-size: 28rpx;
-  font-weight: 500;
-  white-space: nowrap;
+/* 左侧主操作（绿色高亮）- 与创建页面统一 */
+.action-bar-left {
+  flex: 1.2;
+  min-width: 0;
 }
 
-/* 确认报名按钮 */
-.btn-confirmed {
+.btn-primary {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 28rpx 16rpx;
   background: #07c160;
   color: #fff;
-  box-shadow: 0 6rpx 20rpx rgba(7,193,96,0.3);
+  border-radius: 50rpx;
+  font-size: 32rpx;
+  font-weight: bold;
+  white-space: nowrap;
+  box-shadow: 0 8rpx 24rpx rgba(7,193,96,0.35);
 }
 
-.btn-confirmed:active {
+.btn-primary:active {
   opacity: 0.9;
-  transform: scale(0.98);
+  transform: scale(0.995);
 }
 
-/* 待定按钮 */
-.btn-pending {
-  background: #f5f5f5;
-  color: #333;
-  border: 2rpx solid #e8e8e8;
+/* 中间功能操作（浅红色）- 与主操作统一高度 */
+.action-bar-center {
+  flex: 1;
+  min-width: 0;
 }
 
-.btn-pending:active {
-  background: #e8e8e8;
-}
-
-/* 请假按钮 */
-.btn-leave {
+.btn-secondary {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 28rpx 16rpx;
   background: #fff5f5;
   color: #ff6b6b;
   border: 2rpx solid #ffe0e0;
+  border-radius: 50rpx;
+  font-size: 28rpx;
+  font-weight: bold;
+  white-space: nowrap;
 }
 
-.btn-leave:active {
+.btn-secondary:active {
   background: #ffe8e8;
+  transform: scale(0.995);
 }
 
-/* 取消按钮（弱化） */
-.btn-cancel {
-  background: transparent;
+/* 次要按钮禁用状态 */
+.btn-secondary-disabled {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 28rpx 16rpx;
+  background: #f5f5f5;
   color: #999;
+  border: 2rpx solid #e5e5e5;
+  border-radius: 50rpx;
+  font-size: 28rpx;
+  font-weight: bold;
+  white-space: nowrap;
 }
 
-.btn-cancel:active {
+/* 分隔线 */
+.action-bar-divider {
+  width: 1rpx;
+  height: 48rpx;
+  background: #e5e5e5;
+  margin: 0 8rpx;
+}
+
+/* 右侧分享（灰色弱化，纯文字）- 与主操作统一高度 */
+.action-bar-right {
+  width: 80rpx;
+}
+
+.btn-share {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 28rpx 0;
+  margin: 0;
+  background: transparent;
+  border: none;
+  font-size: 28rpx;
+  font-weight: bold;
   color: #666;
+}
+
+.btn-share::after {
+  border: none;
+}
+
+.btn-share:active {
+  color: #333;
 }
 
 /* 禁用状态 */
@@ -445,26 +491,6 @@
   background: #ccc !important;
   color: #fff !important;
   box-shadow: none !important;
-}
-
-/* 分享按钮 */
-.btn-share {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 8rpx 16rpx;
-  font-size: 22rpx;
-  color: #999;
-}
-
-.share-icon {
-  font-size: 36rpx;
-  margin-bottom: 2rpx;
-}
-
-.btn-share:active {
-  color: #666;
 }
 
 .full-tip {
@@ -546,7 +572,32 @@
   background: #f0f0f0;
 }
 
+/* 请假原因弹窗 */
+.leave-reason-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 1000;
+}
 
+.reason-input {
+  width: 100%;
+  height: 200rpx;
+  padding: 20rpx;
+  background: #f5f5f5;
+  border-radius: 16rpx;
+  font-size: 30rpx;
+  box-sizing: border-box;
+}
+
+.reason-tip {
+  text-align: right;
+  font-size: 24rpx;
+  color: #999;
+  margin-top: 10rpx;
+}
 
 /* ====== 头像昵称弹窗 ====== */
 .user-info-modal {

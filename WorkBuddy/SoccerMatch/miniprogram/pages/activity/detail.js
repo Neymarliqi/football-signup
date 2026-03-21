@@ -26,7 +26,13 @@ Page({
     tempNickName: '',
     defaultAvatarUrl: 'https://mmbiz.qpic.cn/mmbiz/icTdbqWNOwNRna42FI242Lcia07jQodd2FJGIYQfG0LAJGFxM4FbnQP6yfMxBgJ0F3YRqJCJ1aPAK2dQagdusBZg/0',
     // 本地默认头像不存在，使用网络默认头像
-    placeholderAvatar: 'https://mmbiz.qpic.cn/mmbiz/icTdbqWNOwNRna42FI242Lcia07jQodd2FJGIYQfG0LAJGFxM4FbnQP6yfMxBgJ0F3YRqJCJ1aPAK2dQagdusBZg/0'
+    placeholderAvatar: 'https://mmbiz.qpic.cn/mmbiz/icTdbqWNOwNRna42FI242Lcia07jQodd2FJGIYQfG0LAJGFxM4FbnQP6yfMxBgJ0F3YRqJCJ1aPAK2dQagdusBZg/0',
+    // 操作选择弹窗
+    showActionSheet: false,
+    // 请假原因弹窗
+    showLeaveReasonModal: false,
+    leaveReason: '',
+    pendingAction: null
   },
 
   onLoad(options) {
@@ -141,18 +147,17 @@ Page({
     return `${y}年${m}月${d}日 周${w}`
   },
 
-  // ==================== 报名相关逻辑 ====================
+  // ==================== 底部操作栏新逻辑 ====================
 
   /**
-   * 报名/状态变更（旧版本逻辑）
+   * 主操作按钮点击
    */
-  async register(e) {
-    const status = e.currentTarget.dataset.status
+  async onMainAction(e) {
+    const action = e.currentTarget.dataset.action
     const userInfo = app.globalData.userInfo
 
     // 检查用户信息是否完整
     if (!userInfo || !userInfo.avatarUrl || !userInfo.nickName) {
-      // 显示头像昵称弹窗
       this.setData({
         showUserInfoModal: true,
         tempAvatarUrl: '',
@@ -161,16 +166,83 @@ Page({
       return
     }
 
-    await this.doRegister(status, '')
+    await this.doRegister(action, '')
   },
 
   /**
-   * 改变状态（已报名/待定/请假之间切换）
+   * 显示操作选择弹窗
    */
-  async changeStatus(e) {
-    const status = e.currentTarget.dataset.status
-    await this.doRegister(status, '')
+  showActionSheet() {
+    this.setData({ showActionSheet: true })
   },
+
+  /**
+   * 关闭操作选择弹窗
+   */
+  closeActionSheet() {
+    this.setData({ showActionSheet: false })
+  },
+
+  /**
+   * 选择操作
+   */
+  async onSheetSelect(e) {
+    const action = e.currentTarget.dataset.action
+    this.closeActionSheet()
+
+    const userInfo = app.globalData.userInfo
+
+    // 检查用户信息是否完整
+    if (!userInfo || !userInfo.avatarUrl || !userInfo.nickName) {
+      this.setData({
+        showUserInfoModal: true,
+        tempAvatarUrl: '',
+        tempNickName: ''
+      })
+      return
+    }
+
+    // 所有操作直接执行，无需确认弹窗
+    await this.doRegister(action, '')
+  },
+
+  /**
+   * 阻止滚动穿透
+   */
+  preventScroll() {
+    return
+  },
+
+  // ==================== 请假原因弹窗 ====================
+
+  /**
+   * 输入请假原因
+   */
+  onLeaveReasonInput(e) {
+    this.setData({ leaveReason: e.detail.value })
+  },
+
+  /**
+   * 关闭请假原因弹窗
+   */
+  closeLeaveReasonModal() {
+    this.setData({
+      showLeaveReasonModal: false,
+      leaveReason: '',
+      pendingAction: null
+    })
+  },
+
+  /**
+   * 确认请假
+   */
+  async confirmLeave() {
+    const { leaveReason, pendingAction } = this.data
+    this.closeLeaveReasonModal()
+    await this.doRegister(pendingAction, leaveReason.trim())
+  },
+
+  // ==================== 报名相关逻辑 ====================
 
   /**
    * 取消报名
@@ -179,28 +251,28 @@ Page({
     const { activityId } = this.data
     const openid = app.globalData.openid || wx.getStorageSync('openid')
 
-    wx.showModal({
+    const res = await wx.showModal({
       title: '确认取消',
       content: '确定要取消报名吗？',
-      success: async (res) => {
-        if (res.confirm) {
-          wx.showLoading({ title: '取消中...' })
-          try {
-            await wx.cloud.callFunction({
-              name: 'cancelRegistration',
-              data: { activityId, openid }
-            })
-            wx.hideLoading()
-            wx.showToast({ title: '已取消报名', icon: 'success' })
-            this.loadActivity()
-          } catch (e) {
-            wx.hideLoading()
-            console.error('取消报名失败', e)
-            wx.showToast({ title: '操作失败', icon: 'error' })
-          }
-        }
-      }
+      confirmColor: '#ff6b6b'
     })
+
+    if (!res.confirm) return
+
+    wx.showLoading({ title: '取消中...' })
+    try {
+      await wx.cloud.callFunction({
+        name: 'cancelRegistration',
+        data: { activityId, openid }
+      })
+      wx.hideLoading()
+      wx.showToast({ title: '已取消报名', icon: 'success' })
+      this.loadActivity()
+    } catch (e) {
+      wx.hideLoading()
+      console.error('取消报名失败', e)
+      wx.showToast({ title: '操作失败', icon: 'error' })
+    }
   },
 
   /**

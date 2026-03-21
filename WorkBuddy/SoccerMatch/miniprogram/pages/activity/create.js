@@ -473,17 +473,25 @@ Page({
         await db.collection('activities').doc(activityId).update({ data })
         wx.hideLoading()
         wx.showToast({ title: '修改成功 ✅', icon: 'success' })
-        setTimeout(() => wx.navigateBack(), 1500)
+        // 跳转到活动详情页
+        setTimeout(() => {
+          wx.redirectTo({
+            url: `/pages/activity/detail?id=${activityId}`
+          })
+        }, 1500)
       } else {
         data.registrations = []
         data.createdAt = db.serverDate()
         data.createdBy = app.globalData.openid || wx.getStorageSync('openid')
 
-        await db.collection('activities').add({ data })
+        const addRes = await db.collection('activities').add({ data })
         wx.hideLoading()
         wx.showToast({ title: '活动发布成功 🎉', icon: 'success' })
+        // 跳转到活动详情页
         setTimeout(() => {
-          wx.switchTab({ url: '/pages/index/index' })
+          wx.redirectTo({
+            url: `/pages/activity/detail?id=${addRes._id}`
+          })
         }, 1500)
       }
     } catch (e) {
@@ -511,8 +519,11 @@ Page({
             })
             wx.hideLoading()
             wx.showToast({ title: '活动已取消', icon: 'success' })
+            // 跳转到活动详情页查看取消后的状态
             setTimeout(() => {
-              wx.switchTab({ url: '/pages/index/index' })
+              wx.redirectTo({
+                url: `/pages/activity/detail?id=${activityId}`
+              })
             }, 1500)
           } catch (e) {
             wx.hideLoading()

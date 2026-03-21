@@ -175,68 +175,75 @@
     <view class="tactics-arrow">›</view>
   </view>
 
-  <!-- 底部报名操作区 -->
-  <view class="bottom-action" wx:if="{{activity.status !== 'finished' && activity.status !== 'cancelled'}}">
+  <!-- 底部操作栏 -->
+  <view class="bottom-action-bar" wx:if="{{activity.status !== 'finished' && activity.status !== 'cancelled'}}">
+    <!-- 当前状态显示 -->
     <view class="my-status-bar" wx:if="{{myStatus}}">
       <text class="my-status-text">当前状态：</text>
       <view class="tag {{myStatusClass}}">{{myStatusText}}</view>
     </view>
 
-    <view class="action-btns">
-      <!-- 未报名时 -->
-      <block wx:if="{{!myStatus}}">
-        <view class="action-btn btn-confirmed {{confirmedCount >= activity.maxPlayers ? 'btn-disabled' : ''}}"
-              bindtap="{{confirmedCount >= activity.maxPlayers ? '' : 'register'}}" data-status="confirmed">
-          ✅ 报名参加
+    <!-- 底部操作按钮区 - 符合UI规范：主操作→功能操作→分隔线→管理操作 -->
+    <view class="action-bar-content">
+      <!-- 左侧：主操作按钮（报名）-->
+      <view class="action-bar-left">
+        <!-- 未报名/待定/请假 -> 报名（高亮可点击） -->
+        <view wx:if="{{!myStatus || myStatus === 'pending' || myStatus === 'leave'}}" 
+              class="btn-primary {{confirmedCount >= activity.maxPlayers ? 'btn-disabled' : ''}}"
+              bindtap="{{confirmedCount >= activity.maxPlayers ? '' : 'onMainAction'}}" data-action="confirmed">
+          报名
         </view>
-        <view class="action-btn btn-pending" bindtap="register" data-status="pending">
-          ⏳ 暂时待定
+        <!-- 已报名 -> 报名（置灰不可点击） -->
+        <view wx:if="{{myStatus === 'confirmed'}}" class="btn-primary btn-disabled">
+          报名
         </view>
-        <view class="action-btn btn-leave" bindtap="register" data-status="leave">
-          🙅 我要请假
-        </view>
-      </block>
+      </view>
 
-      <!-- 已报名 -->
-      <block wx:if="{{myStatus === 'confirmed'}}">
-        <view class="action-btn btn-pending" bindtap="changeStatus" data-status="pending">改为待定</view>
-        <view class="action-btn btn-leave" bindtap="changeStatus" data-status="leave">请假</view>
-        <view class="action-btn btn-cancel" bindtap="cancelRegister">取消报名</view>
-      </block>
-
-      <!-- 待定 -->
-      <block wx:if="{{myStatus === 'pending'}}">
-        <view class="action-btn btn-confirmed {{confirmedCount >= activity.maxPlayers ? 'btn-disabled' : ''}}"
-              bindtap="{{confirmedCount >= activity.maxPlayers ? '' : 'changeStatus'}}" data-status="confirmed">
-          ✅ 确认报名
+      <!-- 中间：功能操作按钮（待定/请假）-->
+      <view class="action-bar-center">
+        <!-- 未报名/已报名 -> 待定/请假（正常可点击） -->
+        <view wx:if="{{!myStatus || myStatus === 'confirmed'}}" class="btn-secondary" bindtap="showActionSheet">
+          待定/请假
         </view>
-        <view class="action-btn btn-leave" bindtap="changeStatus" data-status="leave">请假</view>
-        <view class="action-btn btn-cancel" bindtap="cancelRegister">取消</view>
-      </block>
-
-      <!-- 请假 -->
-      <block wx:if="{{myStatus === 'leave'}}">
-        <view class="action-btn btn-confirmed {{confirmedCount >= activity.maxPlayers ? 'btn-disabled' : ''}}"
-              bindtap="{{confirmedCount >= activity.maxPlayers ? '' : 'changeStatus'}}" data-status="confirmed">
-          ✅ 改为报名
+        <!-- 待定/请假 -> 待定/请假（置灰但可点击） -->
+        <view wx:if="{{myStatus === 'pending' || myStatus === 'leave'}}" class="btn-secondary btn-secondary-disabled" bindtap="showActionSheet">
+          待定/请假
         </view>
-        <view class="action-btn btn-pending" bindtap="changeStatus" data-status="pending">改为待定</view>
-        <view class="action-btn btn-cancel" bindtap="cancelRegister">取消</view>
-      </block>
+      </view>
+
+      <!-- 分隔线 -->
+      <view class="action-bar-divider"></view>
+
+      <!-- 右侧：分享按钮（灰色弱化） -->
+      <view class="action-bar-right">
+        <button class="btn-share" open-type="share">
+          <text>分享</text>
+        </button>
+      </view>
     </view>
 
     <!-- 满员提示 -->
     <view class="full-tip" wx:if="{{confirmedCount >= activity.maxPlayers && myStatus !== 'confirmed'}}">
-      ⚠️ 当前人数已满！可选择待定，候补排队
+      ⚠️ 当前人数已满！可选择待定候补
     </view>
   </view>
 
-  <!-- 弱化的分享按钮 -->
-  <view class="share-weak">
-    <button class="share-weak-btn" open-type="share">📤 分享给队友</button>
-  </view>
+  <!-- 底部安全区 - 确保内容不被固定操作栏遮挡（战术板显示时需要更多空间） -->
+  <view style="height: 360rpx;"></view>
+</view>
 
-  <view style="height: 180rpx;"></view>
+<!-- 操作选择弹窗 -->
+<view class="action-sheet" wx:if="{{showActionSheet}}" catchtouchmove="preventScroll">
+  <view class="sheet-mask" bindtap="closeActionSheet"></view>
+  <view class="sheet-content">
+    <view class="sheet-title">选择操作</view>
+    <view class="sheet-options">
+      <!-- 统一显示待定和请假两个选项 -->
+      <view class="sheet-item" bindtap="onSheetSelect" data-action="pending">待定</view>
+      <view class="sheet-item danger" bindtap="onSheetSelect" data-action="leave">请假</view>
+    </view>
+    <view class="sheet-cancel" bindtap="closeActionSheet">取消</view>
+  </view>
 </view>
 
 <!-- 头像昵称弹窗 -->
