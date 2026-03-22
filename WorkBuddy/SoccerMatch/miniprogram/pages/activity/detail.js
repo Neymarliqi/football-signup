@@ -150,8 +150,22 @@ Page({
         ...posInfo
       }
     })
-    const pendingPlayers = pending.slice(0, MAX_DISPLAY).map(r => ({ ...r, registerTimeText: fmtTime(r.registerTime) }))
-    const leavePlayers = leave.slice(0, MAX_DISPLAY).map(r => ({ ...r, registerTimeText: fmtTime(r.registerTime) }))
+    const pendingPlayers = pending.slice(0, MAX_DISPLAY).map(r => {
+      const posInfo = processPosition(r.position)
+      return { 
+        ...r, 
+        registerTimeText: fmtTime(r.registerTime),
+        ...posInfo
+      }
+    })
+    const leavePlayers = leave.slice(0, MAX_DISPLAY).map(r => {
+      const posInfo = processPosition(r.position)
+      return { 
+        ...r, 
+        registerTimeText: fmtTime(r.registerTime),
+        ...posInfo
+      }
+    })
 
     // 活动状态
     const now = new Date()

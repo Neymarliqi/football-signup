@@ -139,29 +139,34 @@
     </view>
   </view>
 
-  <!-- 待定球员 -->
-  <view class="card" wx:if="{{pendingPlayers.length > 0}}">
+  <!-- 待定球员 - 使用与已报名相同的网格布局 -->
+  <view class="card" wx:if="{{pendingCount > 0}}">
     <view class="section-title">⏳ 待定 ({{pendingCount}})</view>
-    <view class="player-list">
-      <view wx:for="{{pendingPlayers}}" wx:key="openid" class="player-item pending-item">
-        <image class="player-avatar" src="{{item.avatarUrl || placeholderAvatar}}" mode="aspectFill"></image>
-        <view class="player-info">
-          <view class="player-name">{{item.nickName}}</view>
+    <view wx:if="{{pendingPlayers.length === 0}}" class="empty-tip">暂无待定人员</view>
+    <view class="player-avatar-grid" wx:if="{{pendingPlayers.length > 0}}">
+      <view wx:for="{{pendingPlayers}}" wx:key="openid" class="avatar-grid-item">
+        <view class="avatar-with-position">
+          <image class="grid-avatar" src="{{item.avatarUrl || placeholderAvatar}}" mode="aspectFill"></image>
+          <!-- 首选位置标签（位置1）-->
+          <view class="position-tag-on-avatar" wx:if="{{item.firstPosition}}">{{item.firstPosition}}</view>
         </view>
+        <view class="grid-nickname">{{item.nickName}}</view>
       </view>
     </view>
   </view>
 
-  <!-- 请假球员 -->
-  <view class="card" wx:if="{{leavePlayers.length > 0}}">
+  <!-- 请假球员 - 使用与已报名相同的网格布局 -->
+  <view class="card" wx:if="{{leaveCount > 0}}">
     <view class="section-title">🙅 请假 ({{leaveCount}})</view>
-    <view class="player-list">
-      <view wx:for="{{leavePlayers}}" wx:key="openid" class="player-item leave-item">
-        <image class="player-avatar" src="{{item.avatarUrl || placeholderAvatar}}" mode="aspectFill"></image>
-        <view class="player-info">
-          <view class="player-name">{{item.nickName}}</view>
-          <view class="leave-reason" wx:if="{{item.leaveReason}}">{{item.leaveReason}}</view>
+    <view wx:if="{{leavePlayers.length === 0}}" class="empty-tip">暂无请假人员</view>
+    <view class="player-avatar-grid" wx:if="{{leavePlayers.length > 0}}">
+      <view wx:for="{{leavePlayers}}" wx:key="openid" class="avatar-grid-item">
+        <view class="avatar-with-position">
+          <image class="grid-avatar" src="{{item.avatarUrl || placeholderAvatar}}" mode="aspectFill"></image>
+          <!-- 首选位置标签（位置1）-->
+          <view class="position-tag-on-avatar" wx:if="{{item.firstPosition}}">{{item.firstPosition}}</view>
         </view>
+        <view class="grid-nickname">{{item.nickName}}</view>
       </view>
     </view>
   </view>
