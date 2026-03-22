@@ -8,6 +8,9 @@ Page({
     shortOpenid: '',
     editingName: false,
     tempName: '',
+    showAvatarSheet: false,
+    showNameSheet: false,
+    wechatUserInfo: {},
     placeholderAvatar: 'https://mmbiz.qpic.cn/mmbiz/icTdbqWNOwNRna42FI242Lcia07jQodd2FJGIYQfG0LAJGFxM4FbnQP6yfMxBgJ0F3YRqJCJ1aPAK2dQagdusBZg/0',
     positions: [
       { value: 'GK', label: '守门员', emoji: '🧤' },
@@ -26,19 +29,18 @@ Page({
       leaveCount: 0
     },
     history: [],
-    isAdmin: false,
-    isDev: false
+    version: '1.0.0'
   },
 
   onLoad() {
     this.loadUserInfo()
-    // 判断是否是开发环境（可以通过配置或特定条件判断）
-    const isDev = wx.getAccountInfoSync().miniProgram.envVersion === 'develop'
-    this.setData({ isDev })
+    // 获取小程序版本号
+    const accountInfo = wx.getAccountInfoSync()
+    const version = accountInfo.miniProgram.version || '1.0.0'
+    this.setData({ version })
   },
 
   onShow() {
-    this.setData({ isAdmin: app.globalData.isAdmin })
     this.loadUserInfo()
     this.loadHistory()
     // 更新TabBar选中状态
@@ -54,12 +56,80 @@ Page({
     this.setData({ userInfo, shortOpenid })
   },
 
-  // 选择头像
-  chooseAvatar() {
+  // ==================== 头像选择 ====================
+  
+  // 显示头像选项弹窗
+  showAvatarOptions() {
+    // 先显示弹窗
+    this.setData({ showAvatarSheet: true })
+    
+    // 异步获取微信用户信息用于展示
+    wx.getUserProfile({
+      desc: '用于展示微信头像和昵称',
+      success: (res) => {
+        this.setData({ wechatUserInfo: res.userInfo })
+      },
+      fail: () => {
+        // 获取失败，尝试用全局数据
+        const userInfo = app.globalData.userInfo || {}
+        this.setData({ wechatUserInfo: userInfo })
+      }
+    })
+  },
+
+  // 关闭头像选项弹窗
+  closeAvatarSheet() {
+    this.setData({ showAvatarSheet: false })
+  },
+
+  // 使用微信头像
+  chooseWechatAvatar() {
+    // 直接使用已获取的微信用户信息
+    const { wechatUserInfo } = this.data
+    
+    if (wechatUserInfo && wechatUserInfo.avatarUrl) {
+      // 已有微信用户信息，直接使用
+      const userInfo = { ...this.data.userInfo, avatarUrl: wechatUserInfo.avatarUrl }
+      this.saveUserInfo(userInfo)
+      this.closeAvatarSheet()
+      wx.showToast({ title: '头像更新成功', icon: 'success' })
+    } else {
+      // 如果没有获取到，再尝试获取一次
+      wx.getUserProfile({
+        desc: '用于完善用户资料',
+        success: (res) => {
+          const { avatarUrl } = res.userInfo
+          const userInfo = { ...this.data.userInfo, avatarUrl }
+          this.setData({ wechatUserInfo: res.userInfo })
+          this.saveUserInfo(userInfo)
+          this.closeAvatarSheet()
+          wx.showToast({ title: '头像更新成功', icon: 'success' })
+        },
+        fail: () => {
+          wx.showToast({ title: '获取微信头像失败，请重试', icon: 'none' })
+        }
+      })
+    }
+  },
+
+  // 从相册选择头像
+  chooseAlbumAvatar() {
+    this.closeAvatarSheet()
+    this.chooseImageAvatar(['album'])
+  },
+
+  // 拍照选择头像
+  chooseCameraAvatar() {
+    this.closeAvatarSheet()
+    this.chooseImageAvatar(['camera'])
+  },
+
+  // 选择图片头像（相册/拍照）
+  chooseImageAvatar(sourceType) {
     wx.chooseMedia({
       count: 1,
       mediaType: ['image'],
-      sourceType: ['album', 'camera'],
+      sourceType: sourceType,
       sizeType: ['compressed'],
       success: async (res) => {
         const tempPath = res.tempFiles[0].tempFilePath
@@ -67,8 +137,8 @@ Page({
         try {
           // 上传到云存储
           const openid = app.globalData.openid || wx.getStorageSync('openid')
-          const ext = tempPath.split('.').pop()
-          const cloudPath = `avatars/${openid}.${ext}`
+          const ext = tempPath.match(/\.([^.]+)$/) ? tempPath.match(/\.([^.]+)$/)[1] : 'jpg'
+          const cloudPath = `avatars/${openid}_${Date.now()}.${ext}`
           
           const uploadRes = await wx.cloud.uploadFile({
             cloudPath,
@@ -83,12 +153,84 @@ Page({
         } catch (e) {
           wx.hideLoading()
           console.error('上传头像失败', e)
-          // 降级：直接使用临时路径
-          const userInfo = { ...this.data.userInfo, avatarUrl: tempPath }
-          this.saveUserInfo(userInfo)
+          wx.showToast({ title: '上传失败，请重试', icon: 'none' })
         }
+      },
+      fail: (err) => {
+        console.error('选择图片失败', err)
+        wx.showToast({ title: '选择图片失败', icon: 'none' })
       }
     })
+  },
+
+  // ==================== 昵称选择 ====================
+  
+  // 显示昵称选项弹窗
+  showNameOptions() {
+    // 先显示弹窗
+    this.setData({ showNameSheet: true })
+    
+    // 异步获取微信用户信息用于展示
+    wx.getUserProfile({
+      desc: '用于展示微信头像和昵称',
+      success: (res) => {
+        this.setData({ wechatUserInfo: res.userInfo })
+      },
+      fail: () => {
+        // 获取失败，尝试用全局数据
+        const userInfo = app.globalData.userInfo || {}
+        this.setData({ wechatUserInfo: userInfo })
+      }
+    })
+  },
+
+  // 关闭昵称选项弹窗
+  closeNameSheet() {
+    this.setData({ showNameSheet: false })
+  },
+
+  // 使用微信昵称
+  chooseWechatName() {
+    // 直接使用已获取的微信用户信息
+    const { wechatUserInfo } = this.data
+    
+    if (wechatUserInfo && wechatUserInfo.nickName) {
+      // 已有微信用户信息，直接使用
+      const userInfo = { ...this.data.userInfo, nickName: wechatUserInfo.nickName }
+      this.saveUserInfo(userInfo)
+      this.closeNameSheet()
+      wx.showToast({ title: '昵称更新成功', icon: 'success' })
+    } else {
+      // 如果没有获取到，再尝试获取一次
+      wx.getUserProfile({
+        desc: '用于完善用户资料',
+        success: (res) => {
+          const { nickName } = res.userInfo
+          const userInfo = { ...this.data.userInfo, nickName }
+          this.setData({ wechatUserInfo: res.userInfo })
+          this.saveUserInfo(userInfo)
+          this.closeNameSheet()
+          wx.showToast({ title: '昵称更新成功', icon: 'success' })
+        },
+        fail: () => {
+          wx.showToast({ title: '获取微信昵称失败，请重试', icon: 'none' })
+        }
+      })
+    }
+  },
+
+  // 手动输入昵称
+  chooseManualName() {
+    this.closeNameSheet()
+    // 延迟一下再显示输入框，避免弹窗动画冲突
+    setTimeout(() => {
+      this.startEditName()
+    }, 300)
+  },
+
+  // 阻止滚动穿透
+  preventScroll() {
+    return false
   },
 
   startEditName() {
@@ -207,80 +349,12 @@ Page({
     wx.navigateTo({ url: `/pages/activity/detail?id=${id}` })
   },
 
-  clearCache() {
-    wx.showModal({
-      title: '确认清除',
-      content: '清除缓存后需重新登录',
-      success: (res) => {
-        if (res.confirm) {
-          wx.clearStorageSync()
-          wx.showToast({ title: '已清除缓存', icon: 'success' })
-        }
-      }
-    })
-  },
-
-  contactAdmin() {
-    wx.showToast({ title: '请联系队长', icon: 'none' })
-  },
-
   about() {
+    const { version } = this.data
     wx.showModal({
-      title: '约球助手 v1.0',
+      title: `约球助手 v${version}`,
       content: '⚽ 专为足球队设计的约球报名小程序\n功能：活动报名、战术板、队员管理\n\n有建议欢迎联系管理员',
       showCancel: false
-    })
-  },
-
-  applyAdmin() {
-    wx.showModal({
-      title: '申请管理员',
-      content: '申请成为管理员后可发布活动和安排战术，请联系当前管理员审核',
-      showCancel: false
-    })
-  },
-
-  goAdmin() {
-    wx.navigateTo({ url: '/pages/admin/admin' })
-  },
-
-  // 生成测试数据
-  async seedTestData() {
-    const openid = app.globalData.openid || wx.getStorageSync('openid')
-    if (!openid) {
-      wx.showToast({ title: '请先登录', icon: 'none' })
-      return
-    }
-
-    wx.showModal({
-      title: '生成测试数据',
-      content: '将生成10条测试数据（4条我发布的 + 4条我报名的 + 2条其他人的），是否继续？',
-      success: async (res) => {
-        if (!res.confirm) return
-
-        wx.showLoading({ title: '生成中...' })
-        try {
-          const result = await wx.cloud.callFunction({
-            name: 'seedTestData',
-            data: { myOpenid: openid }
-          })
-          
-          wx.hideLoading()
-          if (result.result.success) {
-            wx.showModal({
-              title: '生成成功',
-              content: `已生成 ${result.result.data.total} 条测试数据：\n• 我发布的：${result.result.data.myPublished} 条\n• 我报名的：${result.result.data.myRegistered} 条\n• 其他人的：${result.result.data.others} 条\n\n请返回首页查看效果`,
-              showCancel: false
-            })
-          } else {
-            wx.showToast({ title: result.result.message || '生成失败', icon: 'none' })
-          }
-        } catch (e) {
-          wx.hideLoading()
-          console.error('生成测试数据失败', e)
-          wx.showToast({ title: '生成失败', icon: 'none' })
-        }
-      }
     })
   }
 })

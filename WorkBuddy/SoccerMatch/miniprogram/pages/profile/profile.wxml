@@ -4,14 +4,14 @@
   <!-- 头部用户信息卡 -->
   <view class="profile-header">
     <!-- 头像 -->
-    <view class="avatar-wrap" bindtap="chooseAvatar">
+    <view class="avatar-wrap" bindtap="showAvatarOptions">
       <image class="profile-avatar" src="{{userInfo.avatarUrl || placeholderAvatar}}" mode="aspectFill"></image>
       <view class="avatar-edit-badge">📷</view>
     </view>
 
     <!-- 用户名 -->
     <view class="name-wrap">
-      <view wx:if="{{!editingName}}" class="display-name" bindtap="startEditName">
+      <view wx:if="{{!editingName}}" class="display-name" bindtap="showNameOptions">
         <text class="name-text">{{userInfo.nickName || '点击设置昵称'}}</text>
         <text class="name-edit-icon">✏</text>
       </view>
@@ -74,47 +74,55 @@
     </view>
   </view>
 
-  <!-- 设置项 -->
+  <!-- 关于 -->
   <view class="card">
-    <view class="section-title">⚙ 设置</view>
-    <view class="setting-item" bindtap="clearCache">
-      <view class="setting-left">
-        <text class="setting-icon">🗑</text>
-        <text class="setting-label">清除缓存</text>
-      </view>
-      <text class="setting-arrow">›</text>
-    </view>
-    <view class="setting-item" bindtap="contactAdmin">
-      <view class="setting-left">
-        <text class="setting-icon">💬</text>
-        <text class="setting-label">联系管理员</text>
-      </view>
-      <text class="setting-arrow">›</text>
-    </view>
-    <view class="setting-item" bindtap="about">
-      <view class="setting-left">
-        <text class="setting-icon">ℹ</text>
-        <text class="setting-label">关于约球助手</text>
-      </view>
-      <text class="setting-version">v1.0.0</text>
+    <view class="section-title">关于我们</view>
+    <view class="about-item" bindtap="about">
+      <text class="about-name">约球助手</text>
+      <text class="about-version">v{{version}}</text>
     </view>
   </view>
 
-  <!-- 管理员申请（非管理员显示） -->
-  <view class="card admin-apply" wx:if="{{!isAdmin}}" bindtap="applyAdmin">
-    <text class="apply-icon">🔑</text>
-    <view class="apply-info">
-      <view class="apply-title">申请成为管理员</view>
-      <view class="apply-sub">管理员可发布活动、安排战术</view>
+  <view style="height: 160rpx;"></view>
+</view>
+
+<!-- 头像选择弹窗 -->
+<view class="action-sheet" wx:if="{{showAvatarSheet}}" catchtouchmove="preventScroll">
+  <view class="sheet-mask" bindtap="closeAvatarSheet"></view>
+  <view class="sheet-content">
+    <view class="sheet-title">选择头像</view>
+    <view class="sheet-options">
+      <!-- 微信头像选项 -->
+      <view class="sheet-item-with-icon" bindtap="chooseWechatAvatar">
+        <image class="sheet-item-avatar" src="{{wechatUserInfo.avatarUrl || placeholderAvatar}}" mode="aspectFill"></image>
+        <view class="sheet-item-info">
+          <text class="sheet-item-title">使用微信头像</text>
+          <text class="sheet-item-desc">{{wechatUserInfo.nickName || '微信用户'}}</text>
+        </view>
+      </view>
+      <view class="sheet-item" bindtap="chooseAlbumAvatar">📷 从相册选择</view>
+      <view class="sheet-item" bindtap="chooseCameraAvatar">📸 拍照</view>
     </view>
-    <text class="apply-arrow">›</text>
+    <view class="sheet-cancel" bindtap="closeAvatarSheet">取消</view>
   </view>
+</view>
 
-  <!-- 管理员标识 -->
-  <view class="admin-badge-wrap" wx:if="{{isAdmin}}">
-    <view class="admin-badge">⚙ 管理员身份</view>
-    <view class="admin-go-btn" bindtap="goAdmin">进入管理后台</view>
+<!-- 昵称选择弹窗 -->
+<view class="action-sheet" wx:if="{{showNameSheet}}" catchtouchmove="preventScroll">
+  <view class="sheet-mask" bindtap="closeNameSheet"></view>
+  <view class="sheet-content">
+    <view class="sheet-title">选择昵称</view>
+    <view class="sheet-options">
+      <!-- 微信昵称选项 -->
+      <view class="sheet-item-with-icon" bindtap="chooseWechatName">
+        <image class="sheet-item-avatar" src="{{wechatUserInfo.avatarUrl || placeholderAvatar}}" mode="aspectFill"></image>
+        <view class="sheet-item-info">
+          <text class="sheet-item-title">使用微信昵称</text>
+          <text class="sheet-item-desc">{{wechatUserInfo.nickName || '微信用户'}}</text>
+        </view>
+      </view>
+      <view class="sheet-item" bindtap="chooseManualName">✏️ 手动输入</view>
+    </view>
+    <view class="sheet-cancel" bindtap="closeNameSheet">取消</view>
   </view>
-
-  <view style="height: 60rpx;"></view>
 </view>
