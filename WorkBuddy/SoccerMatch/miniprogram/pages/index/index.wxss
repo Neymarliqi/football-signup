@@ -121,9 +121,6 @@
 
 .filter-item.active {
   background: linear-gradient(135deg, #2ecc71, #27ae60);
-  color: #fff;
-  font-weight: bold;
-  box-shadow: 0 4rpx 12rpx rgba(46,204,113,0.3);
 }
 
 /* 活动卡片 */

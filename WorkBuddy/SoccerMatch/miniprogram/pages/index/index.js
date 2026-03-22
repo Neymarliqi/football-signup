@@ -41,7 +41,7 @@ Page({
     }
   },
 
-  // 加载活动列表 - 只显示我参与的和我发布的活动
+  // 加载活动列表 - 显示全部活动（测试模式）
   async loadActivities() {
     this.setData({ loading: true })
     try {
@@ -49,62 +49,27 @@ Page({
       const filter = this.data.activeFilter
       const now = new Date()
 
-      // 获取我发布的活动
-      const createdQuery = db.collection('activities').where({
-        createdBy: openid
-      })
-
-      // 获取我参与的活动（在registrations中有我的记录）
-      const joinedQuery = db.collection('activities').where({
-        'registrations.openid': openid
-      })
-
-      // 并行查询
-      const [createdRes, joinedRes] = await Promise.all([
-        createdQuery.orderBy('createdAt', 'desc').get(),
-        joinedQuery.orderBy('createdAt', 'desc').get()
-      ])
-
-      // 合并结果并去重（一个活动可能既是发布的又是参与的）
-      const activityMap = new Map()
+      // 获取全部活动
+      let query = db.collection('activities').orderBy('createdAt', 'desc')
       
-      // 添加我发布的活动
-      createdRes.data.forEach(act => {
-        activityMap.set(act._id, act)
-      })
-      
-      // 添加我参与的活动
-      joinedRes.data.forEach(act => {
-        activityMap.set(act._id, act)
-      })
-
-      // 转换为数组并过滤
-      let activities = Array.from(activityMap.values())
-
       // 根据筛选条件过滤
       if (filter === 'upcoming') {
-        activities = activities.filter(act => {
-          const actDate = act.activityDate instanceof Date ? act.activityDate : new Date(act.activityDate)
-          return actDate > now && act.status === 'open'
-        })
+        query = db.collection('activities').where({
+          status: 'open',
+          activityDate: db.command.gt(now)
+        }).orderBy('createdAt', 'desc')
       } else if (filter === 'ongoing') {
-        activities = activities.filter(act => act.status === 'ongoing')
+        query = db.collection('activities').where({
+          status: 'ongoing'
+        }).orderBy('createdAt', 'desc')
       } else if (filter === 'finished') {
-        activities = activities.filter(act => {
-          const actDate = act.activityDate instanceof Date ? act.activityDate : new Date(act.activityDate)
-          return act.status === 'finished' || actDate < now
-        })
+        query = db.collection('activities').where({
+          status: db.command.in(['finished', 'cancelled'])
+        }).orderBy('createdAt', 'desc')
       }
 
-      // 按创建时间排序
-      activities.sort((a, b) => {
-        const timeA = a.createdAt instanceof Date ? a.createdAt : new Date(a.createdAt)
-        const timeB = b.createdAt instanceof Date ? b.createdAt : new Date(b.createdAt)
-        return timeB - timeA
-      })
-
-      // 限制数量
-      activities = activities.slice(0, 20)
+      const res = await query.limit(50).get()
+      let activities = res.data
 
       const formattedActivities = activities.map(act => this.formatActivity(act, openid))
       this.setData({ activities: formattedActivities, loading: false })

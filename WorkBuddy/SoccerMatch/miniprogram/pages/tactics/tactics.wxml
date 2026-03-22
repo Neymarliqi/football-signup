@@ -35,7 +35,10 @@
         data-index="{{index}}"
         data-type="onField"
       >
-        <image class="player-avatar" src="{{item.avatarUrl || '/images/default-avatar.png'}}" mode="aspectFill"></image>
+        <view class="player-avatar-wrap">
+          <image class="player-avatar" src="{{item.avatarUrl || '/images/default-avatar.png'}}" mode="aspectFill"></image>
+          <view wx:if="{{item.positionLabel}}" class="position-badge">{{item.positionLabel}}</view>
+        </view>
         <text class="player-name">{{item.shortName}}</text>
       </view>
 
@@ -45,7 +48,10 @@
         class="player dragging"
         style="left: {{dragInfo.x}}px; top: {{dragInfo.y}}px; position: fixed; z-index: 999; pointer-events: none;"
       >
-        <image class="player-avatar" src="{{dragInfo.avatarUrl || '/images/default-avatar.png'}}" mode="aspectFill"></image>
+        <view class="player-avatar-wrap">
+          <image class="player-avatar" src="{{dragInfo.avatarUrl || '/images/default-avatar.png'}}" mode="aspectFill"></image>
+          <view wx:if="{{dragInfo.positionLabel}}" class="position-badge">{{dragInfo.positionLabel}}</view>
+        </view>
         <text class="player-name">{{dragInfo.shortName}}</text>
       </view>
     </view>
@@ -69,7 +75,10 @@
       data-index="{{index}}"
       data-type="bench"
     >
-      <image class="bench-avatar" src="{{item.avatarUrl || '/images/default-avatar.png'}}" mode="aspectFill"></image>
+      <view class="player-avatar-wrap">
+        <image class="bench-avatar" src="{{item.avatarUrl || '/images/default-avatar.png'}}" mode="aspectFill"></image>
+        <view wx:if="{{item.positionLabel}}" class="position-badge">{{item.positionLabel}}</view>
+      </view>
       <text class="bench-name">{{item.shortName}}</text>
     </view>
   </view>

@@ -84,6 +84,10 @@ Page({
   },
 
   processActivity(act, openid) {
+    // 调试：打印活动数据
+    console.log('活动数据:', act)
+    console.log('description:', act.description)
+    
     const registrations = act.registrations || []
     const confirmed = registrations.filter(r => r.status === 'confirmed')
     const pending = registrations.filter(r => r.status === 'pending')

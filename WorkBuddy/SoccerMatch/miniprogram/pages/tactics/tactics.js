@@ -60,6 +60,38 @@ Page({
         activity 
       })
       
+      // 位置代码映射表 - 用于显示位置标签
+      const posMap = {
+        'ALL': '全能',
+        'GK': '门将', 'LB': '左后', 'CB': '中后', 'RB': '右后',
+        'LWB': '左翼', 'RWB': '右翼',
+        'CDM': '后腰', 'CM': '中场', 'LM': '左中', 'RM': '右中',
+        'CAM': '前腰', 'LW': '左锋', 'RW': '右锋',
+        'ST': '中锋', 'CF': '前锋'
+      }
+      
+      // 获取球员首选位置（取前2个字）
+      const getPositionLabel = (position) => {
+        if (!position) return ''
+        
+        let firstPosCode = ''
+        if (typeof position === 'string') {
+          const positions = position.split(/[,，\/\s]+/).filter(p => p.trim())
+          firstPosCode = positions[0]
+        } else if (Array.isArray(position)) {
+          const firstPosItem = position.find(p => 
+            typeof p === 'object' ? p.order === 1 : position.indexOf(p) === 0
+          )
+          firstPosCode = typeof firstPosItem === 'object' 
+            ? firstPosItem.value 
+            : firstPosItem
+        }
+        
+        if (!firstPosCode) return ''
+        const label = posMap[firstPosCode.trim().toUpperCase()] || firstPosCode.trim()
+        return label.substring(0, 2) // 只显示前2个字
+      }
+      
       // 获取已确认的球员
       const confirmedPlayers = registrations
         .filter(r => r.status === 'confirmed')
@@ -68,6 +100,7 @@ Page({
           nickName: r.nickName,
           shortName: this.getShortName(r.nickName),
           avatarUrl: r.avatarUrl,
+          positionLabel: getPositionLabel(r.position),
           isOnField: false,
           x: 50,
           y: 80
@@ -319,6 +352,7 @@ Page({
             openid: player.openid,
             shortName: player.shortName,
             avatarUrl: player.avatarUrl,
+            positionLabel: player.positionLabel,
             x: e.touches[0].clientX - 40,
             y: e.touches[0].clientY - 40
           }
