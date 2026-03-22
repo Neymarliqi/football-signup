@@ -8,7 +8,14 @@ Page({
     activityId: '',
     form: {
       title: '',
-      description: '',
+      description: `【免责声明】
+足球比赛包含大量身体对抗，存在不可预见的身体伤害，请确认您本人身体情况适合参加本次活动。强烈建议参赛前购买运动安全保险!
+在正常活动中，包括但不限于下列原因造成的人身损害或其他任何不良后果，均由您本人承担全部责任，活动组织者免责:
+1.自身健康原因;
+2.对可产生的伤害存在认识性错误;
+3.与他人争吵斗殴。
+4.踢球前喝酒。
+报名参加活动（或者直接过来）即视为知晓并同意以上声明！`,
       matchType: '友谊赛',
       customMatchType: false,
       customMatchTypeText: '',
@@ -185,6 +192,9 @@ Page({
         deadlineDisplay = `${month}月${date}日 ${hours}:${minutes}`
       }
 
+      // 调试：打印活动描述
+      console.log('加载活动 - description:', act.description)
+      
       const form = {
         title: act.title || '',
         description: act.description || '',
@@ -217,6 +227,11 @@ Page({
   onInput(e) {
     const key = e.currentTarget.dataset.key
     this.setData({ [`form.${key}`]: e.detail.value })
+  },
+
+  // 活动描述输入
+  onDescriptionInput(e) {
+    this.setData({ 'form.description': e.detail.value })
   },
 
   onDateChange(e) { 
@@ -459,9 +474,12 @@ Page({
     const timeStr = form.endTime ? `${form.startTime} - ${form.endTime}` : form.startTime
     const activityDate = new Date(`${form.date} ${form.startTime}`)
 
+    // 调试：打印表单描述
+    console.log('保存活动 - form.description:', form.description)
+    
     const data = {
       title: form.title.trim(),
-      description: form.description.trim(),
+      description: form.description ? form.description.trim() : '',
       matchType: form.matchType,
       activityDate,
       time: timeStr,
@@ -485,15 +503,32 @@ Page({
 
     try {
       if (isEdit) {
-        await db.collection('activities').doc(activityId).update({ data })
-        wx.hideLoading()
-        wx.showToast({ title: '修改成功 ✅', icon: 'success' })
-        // 跳转到活动详情页
-        setTimeout(() => {
-          wx.redirectTo({
-            url: `/pages/activity/detail?id=${activityId}`
-          })
-        }, 1500)
+        // 调试：打印要更新的数据
+        console.log('更新活动数据:', JSON.stringify(data))
+        
+        // 使用云函数更新活动，确保新字段能被正确添加
+        const updateRes = await wx.cloud.callFunction({
+          name: 'updateActivity',
+          data: {
+            activityId: activityId,
+            data: data
+          }
+        })
+        
+        console.log('云函数更新结果:', updateRes)
+        
+        if (updateRes.result && updateRes.result.success) {
+          wx.hideLoading()
+          wx.showToast({ title: '修改成功 ✅', icon: 'success' })
+          // 跳转到活动详情页
+          setTimeout(() => {
+            wx.redirectTo({
+              url: `/pages/activity/detail?id=${activityId}`
+            })
+          }, 1500)
+        } else {
+          throw new Error(updateRes.result?.error || '更新失败')
+        }
       } else {
         data.registrations = []
         data.createdAt = db.serverDate()

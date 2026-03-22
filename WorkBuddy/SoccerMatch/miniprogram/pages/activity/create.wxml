@@ -16,7 +16,7 @@
 
     <view class="form-item">
       <view class="form-label">活动描述</view>
-      <textarea class="form-textarea" value="{{form.description}}" bindinput="onInput" data-key="description"
+      <textarea class="form-textarea" value="{{form.description}}" bindinput="onDescriptionInput"
                 placeholder="简短描述本次活动...（可选）" maxlength="200"/>
     </view>
 

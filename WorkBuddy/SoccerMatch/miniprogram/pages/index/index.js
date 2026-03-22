@@ -170,8 +170,24 @@ Page({
       firstPosition: getFirstPosition(r.position) // 首选位置（前2个字）
     }))
 
+    // 确保所有字段都有默认值
+    const actWithDefaults = {
+      title: '',
+      description: '',
+      matchType: '',
+      time: '',
+      locationName: '',
+      location: '',
+      fieldType: '人工草',
+      maxPlayers: 16,
+      fee: 0,
+      notice: '',
+      allowPending: true,
+      ...act
+    }
+
     return {
-      ...act,
+      ...actWithDefaults,
       confirmedCount: confirmed.length,
       pendingCount: pending.length,
       leaveCount: leave.length,

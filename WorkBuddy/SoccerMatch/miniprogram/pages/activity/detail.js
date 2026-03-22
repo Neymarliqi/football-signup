@@ -204,8 +204,28 @@ Page({
     // 格式化日期
     const displayDate = this.formatDate(actDate)
 
+    // 确保所有字段都有默认值，避免 undefined 显示问题
+    const activityWithDefaults = {
+      title: '',
+      description: '',
+      matchType: '',
+      time: '',
+      locationName: '',
+      location: '',
+      fieldType: '人工草',
+      maxPlayers: 16,
+      fee: 0,
+      notice: '',
+      allowPending: true,
+      ...act,
+      statusText,
+      statusClass,
+      displayDate,
+      effectiveStatus
+    }
+
     this.setData({
-      activity: { ...act, statusText, statusClass, displayDate, effectiveStatus },
+      activity: activityWithDefaults,
       confirmedPlayers,
       pendingPlayers,
       leavePlayers,
