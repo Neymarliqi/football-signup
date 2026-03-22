@@ -32,7 +32,12 @@ Page({
     // 请假原因弹窗
     showLeaveReasonModal: false,
     leaveReason: '',
-    pendingAction: null
+    pendingAction: null,
+    // 阅读活动描述确认弹窗
+    showConfirmModal: false,
+    confirmCountdown: 3,
+    confirmBtnEnabled: false,
+    confirmTimer: null
   },
 
   onLoad(options) {
@@ -172,7 +177,9 @@ Page({
       return
     }
 
-    await this.doRegister(action, '')
+    // 已有头像，显示阅读确认弹窗
+    this.pendingAction = action
+    this.showConfirmModal()
   },
 
   /**
@@ -210,8 +217,9 @@ Page({
       return
     }
 
-    // 所有操作直接执行，无需确认弹窗
-    await this.doRegister(action, '')
+    // 已有头像，显示阅读确认弹窗
+    this.pendingAction = action
+    this.showConfirmModal()
   },
 
   /**
@@ -219,6 +227,71 @@ Page({
    */
   preventScroll() {
     return
+  },
+
+  // ==================== 阅读确认弹窗 ====================
+
+  /**
+   * 显示阅读确认弹窗
+   */
+  showConfirmModal() {
+    this.setData({
+      showConfirmModal: true,
+      confirmCountdown: 3,
+      confirmBtnEnabled: false
+    })
+    this.startConfirmCountdown()
+  },
+
+  /**
+   * 关闭阅读确认弹窗
+   */
+  closeConfirmModal() {
+    // 清除定时器
+    if (this.data.confirmTimer) {
+      clearInterval(this.data.confirmTimer)
+    }
+    this.setData({
+      showConfirmModal: false,
+      confirmTimer: null,
+      pendingAction: null
+    })
+  },
+
+  /**
+   * 开始倒计时
+   */
+  startConfirmCountdown() {
+    const timer = setInterval(() => {
+      const countdown = this.data.confirmCountdown - 1
+      if (countdown <= 0) {
+        clearInterval(timer)
+        this.setData({
+          confirmCountdown: 0,
+          confirmBtnEnabled: true,
+          confirmTimer: null
+        })
+      } else {
+        this.setData({
+          confirmCountdown: countdown,
+          confirmTimer: timer
+        })
+      }
+    }, 1000)
+    this.setData({ confirmTimer: timer })
+  },
+
+  /**
+   * 确认报名
+   */
+  async confirmRegister() {
+    if (!this.data.confirmBtnEnabled) return
+    
+    const action = this.pendingAction
+    this.closeConfirmModal()
+    
+    wx.showLoading({ title: '报名中...' })
+    await this.doRegister(action, '')
   },
 
   // ==================== 请假原因弹窗 ====================
@@ -410,11 +483,9 @@ Page({
       wx.hideLoading()
       this.setData({ showUserInfoModal: false })
       
-      // 如果有待执行的操作，自动执行报名
+      // 如果有待执行的操作，显示阅读确认弹窗
       if (this.pendingAction) {
-        wx.showLoading({ title: '报名中...' })
-        await this.doRegister(this.pendingAction, '')
-        this.pendingAction = null
+        this.showConfirmModal()
       } else {
         wx.showToast({ title: '保存成功', icon: 'success' })
         this.loadActivity()

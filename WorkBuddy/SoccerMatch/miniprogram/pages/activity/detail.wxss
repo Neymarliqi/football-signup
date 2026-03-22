@@ -742,3 +742,66 @@
 .modal-btn-confirm::after {
   border: none;
 }
+
+/* ====== 阅读确认弹窗 ====== */
+.confirm-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 1000;
+}
+
+.confirm-content {
+  max-height: 80vh;
+}
+
+.confirm-notice {
+  background: #fff9e6;
+  border-radius: 16rpx;
+  padding: 30rpx;
+  border-left: 6rpx solid #f39c12;
+}
+
+.notice-title {
+  font-size: 32rpx;
+  font-weight: bold;
+  color: #333;
+  margin-bottom: 20rpx;
+}
+
+.notice-desc {
+  font-size: 28rpx;
+  color: #555;
+  line-height: 1.8;
+  margin-bottom: 20rpx;
+  max-height: 400rpx;
+  overflow-y: auto;
+}
+
+.notice-tips {
+  display: flex;
+  align-items: center;
+  gap: 10rpx;
+  font-size: 26rpx;
+  color: #e74c3c;
+  font-weight: 500;
+  padding-top: 20rpx;
+  border-top: 1rpx dashed #f39c12;
+}
+
+.tip-icon {
+  font-size: 32rpx;
+}
+
+.confirm-footer {
+  padding-top: 20rpx;
+  border-top: 1rpx solid #f0f0f0;
+}
+
+.confirm-footer .btn-disabled {
+  background: #ccc !important;
+  color: #fff !important;
+  opacity: 0.6;
+}

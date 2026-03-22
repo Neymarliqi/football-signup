@@ -272,3 +272,32 @@
     </view>
   </view>
 </view>
+
+<!-- 阅读活动描述确认弹窗 -->
+<view class="confirm-modal" wx:if="{{showConfirmModal}}" catchtouchmove="preventScroll">
+  <view class="modal-mask" bindtap="closeConfirmModal"></view>
+  <view class="modal-content confirm-content">
+    <view class="modal-header">
+      <text class="modal-title">📋 请阅读活动描述</text>
+      <view class="modal-close" bindtap="closeConfirmModal">✕</view>
+    </view>
+    <view class="modal-body">
+      <view class="confirm-notice">
+        <view class="notice-title">活动：{{activity.title}}</view>
+        <view class="notice-desc" wx:if="{{activity.description}}">{{activity.description}}</view>
+        <view class="notice-desc" wx:else>暂无活动描述</view>
+        <view class="notice-tips">
+          <text class="tip-icon">⚠️</text>
+          <text>请仔细阅读以上内容，确认无误后再报名</text>
+        </view>
+      </view>
+    </view>
+    <view class="modal-footer confirm-footer">
+      <view class="modal-btn modal-btn-cancel" bindtap="closeConfirmModal">取消</view>
+      <view class="modal-btn modal-btn-confirm {{confirmBtnEnabled ? '' : 'btn-disabled'}}" bindtap="confirmRegister">
+        <text wx:if="{{confirmBtnEnabled}}">我已确认</text>
+        <text wx:else>我已确认 ({{confirmCountdown}}s)</text>
+      </view>
+    </view>
+  </view>
+</view>
