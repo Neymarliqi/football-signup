@@ -63,7 +63,21 @@ Page({
       const tomorrow = new Date()
       tomorrow.setDate(tomorrow.getDate() + 1)
       const defaultDate = `${tomorrow.getFullYear()}-${String(tomorrow.getMonth() + 1).padStart(2,'0')}-${String(tomorrow.getDate()).padStart(2,'0')}`
-      this.setData({ 'form.date': defaultDate, 'form.startTime': '19:00', 'form.endTime': '21:00' })
+      // 创建模式：设置默认免责声明
+      const defaultDescription = `【免责声明】
+足球比赛包含大量身体对抗，存在不可预见的身体伤害，请确认您本人身体情况适合参加本次活动。强烈建议参赛前购买运动安全保险!
+在正常活动中，包括但不限于下列原因造成的人身损害或其他任何不良后果，均由您本人承担全部责任，活动组织者免责:
+1.自身健康原因;
+2.对可产生的伤害存在认识性错误;
+3.与他人争吵斗殴。
+4.踢球前喝酒。
+报名参加活动（或者直接过来）即视为知晓并同意以上声明！`
+      this.setData({ 
+        'form.date': defaultDate, 
+        'form.startTime': '19:00', 
+        'form.endTime': '21:00',
+        'form.description': defaultDescription
+      })
     }
 
     wx.setNavigationBarTitle({ title: options.id ? '编辑活动' : '发布活动' })
