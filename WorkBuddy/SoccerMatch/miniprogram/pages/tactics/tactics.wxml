@@ -7,15 +7,18 @@
       <text class="toolbar-title">⚽ 战术板</text>
     </view>
     <view class="toolbar-right">
-      <view class="tool-btn {{editMode ? 'tool-active' : ''}}" bindtap="toggleEdit">
+      <!-- 发布者或参与者显示编辑按钮 -->
+      <view class="tool-btn {{editMode ? 'tool-active' : ''}}" bindtap="toggleEdit" wx:if="{{canEdit}}">
         {{editMode ? '✅ 保存布阵' : '✏ 编辑布阵'}}
       </view>
-      <view class="tool-btn" bindtap="resetPositions" wx:if="{{isAdmin}}">重置</view>
+      <!-- 游客显示提示 -->
+      <view class="tool-btn tool-disabled" wx:if="{{!canEdit}}">仅查看</view>
+      <view class="tool-btn" bindtap="resetPositions" wx:if="{{canEdit && editMode}}">重置</view>
     </view>
   </view>
 
   <!-- 阵型选择 -->
-  <view class="formation-bar" wx:if="{{editMode && isAdmin}}">
+  <view class="formation-bar" wx:if="{{editMode && canEdit}}">
     <text class="formation-label">阵型：</text>
     <view class="formation-list">
       <view wx:for="{{formations}}" wx:key="value" 

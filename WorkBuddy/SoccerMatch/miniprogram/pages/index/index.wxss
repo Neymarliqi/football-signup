@@ -357,8 +357,9 @@
 
 /* 功能操作按钮 - 战术板 */
 .btn-tactics {
-  background: #27ae60;
-  color: #fff;
+  background: #fff;
+  color: #27ae60;
+  border: 2rpx solid #27ae60;
 }
 
 /* 分隔线 - 区分主操作和管理操作 */

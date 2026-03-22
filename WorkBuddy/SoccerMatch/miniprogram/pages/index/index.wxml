@@ -134,8 +134,7 @@
       <view class="card-btn btn-view" catchtap="goDetail" data-id="{{item._id}}">查看详情</view>
       
       <!-- 功能操作 -->
-      <view class="card-btn btn-tactics" wx:if="{{item.myStatus === 'confirmed'}}" 
-            catchtap="goTactics" data-id="{{item._id}}">战术板</view>
+      <view class="card-btn btn-tactics" catchtap="goTactics" data-id="{{item._id}}">战术板</view>
       
       <!-- 分隔线（有管理操作时显示） -->
       <view class="action-divider" wx:if="{{item.canEdit || item.canCancel || item.canDelete}}"></view>

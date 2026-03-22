@@ -171,8 +171,8 @@
     </view>
   </view>
 
-  <!-- 战术板入口（已报名才显示） -->
-  <view class="card tactics-entry" wx:if="{{myStatus === 'confirmed'}}" bindtap="goTactics">
+  <!-- 战术板入口（所有用户可见） -->
+  <view class="card tactics-entry" bindtap="goTactics">
     <view class="tactics-left">
       <view class="tactics-icon">🗺</view>
       <view class="tactics-info">

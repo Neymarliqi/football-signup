@@ -52,6 +52,9 @@ Page({
     selectedPlayerInfo: null,
     editMode: false,
     isAdmin: false,
+    isCreator: false, // 是否是发布者
+    isParticipant: false, // 是否是参与者（已报名）
+    canEdit: false, // 是否可以编辑（发布者或参与者）
     fieldHeight: 500,
     placeholderAvatar: 'https://mmbiz.qpic.cn/mmbiz/icTdbqWNOwNRna42FI242Lcia07jQodd2FJGIYQfG0LAJGFxM4FbnQP6yfMxBgJ0F3YRqJCJ1aPAK2dQagdusBZg/0',
     formations: [
@@ -98,11 +101,25 @@ Page({
 
   async loadTactics() {
     const { activityId } = this.data
+    const openid = app.globalData.openid || wx.getStorageSync('openid')
     try {
       // 获取活动数据
       const res = await db.collection('activities').doc(activityId).get()
       const act = res.data
-      const registrations = (act.registrations || []).filter(r => r.status === 'confirmed')
+      
+      // 判断是否是发布者
+      const isCreator = act.createdBy === openid
+      
+      // 判断是否是参与者（已报名）
+      const registrations = act.registrations || []
+      const isParticipant = registrations.some(r => r.openid === openid && r.status === 'confirmed')
+      
+      // 发布者或参与者都可以编辑
+      const canEdit = isCreator || isParticipant
+      
+      this.setData({ isCreator, isParticipant, canEdit })
+      
+      const confirmedRegistrations = registrations.filter(r => r.status === 'confirmed')
 
       // 获取战术数据
       let tacticPositions = {}
@@ -115,10 +132,10 @@ Page({
       } catch (e) {}
 
       // 获取所有报名用户的位置偏好数据
-      const userPositions = await this.loadUserPositions(registrations)
+      const userPositions = await this.loadUserPositions(confirmedRegistrations)
 
       // 合并球员和位置数据
-      const playerTokens = registrations.map((r, index) => {
+      const playerTokens = confirmedRegistrations.map((r, index) => {
         const saved = tacticPositions[r.openid]
         // 默认位置：均匀分布在下半场
         const defaultX = ((index % 5) + 1) * (100 / 6)
@@ -173,6 +190,11 @@ Page({
   },
 
   toggleEdit() {
+    // 发布者或参与者才能编辑
+    if (!this.data.canEdit) {
+      wx.showToast({ title: '仅参与者可编辑', icon: 'none' })
+      return
+    }
     if (this.data.editMode) {
       // 保存
       this.saveTactics()
@@ -181,7 +203,7 @@ Page({
   },
 
   async saveTactics() {
-    if (!this.data.isAdmin) return
+    if (!this.data.canEdit) return
     const { activityId, playerTokens, selectedFormation } = this.data
     const positions = {}
     playerTokens.forEach(p => {
