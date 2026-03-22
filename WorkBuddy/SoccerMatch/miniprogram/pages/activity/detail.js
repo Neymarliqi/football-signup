@@ -206,7 +206,8 @@ Page({
   },
 
   /**
-   * 选择操作
+   * 选择操作（待定/请假）
+   * 注意：待定和请假不需要阅读确认弹窗，直接执行
    */
   async onSheetSelect(e) {
     const action = e.currentTarget.dataset.action
@@ -226,9 +227,9 @@ Page({
       return
     }
 
-    // 已有头像，显示阅读确认弹窗
-    this.pendingAction = action
-    this.showConfirmModal()
+    // 已有头像，待定/请假直接执行，不需要阅读确认弹窗
+    wx.showLoading({ title: '处理中...' })
+    await this.doRegister(action, '')
   },
 
   /**
@@ -492,9 +493,15 @@ Page({
       wx.hideLoading()
       this.setData({ showUserInfoModal: false })
       
-      // 如果有待执行的操作，显示阅读确认弹窗
+      // 如果有待执行的操作
       if (this.pendingAction) {
-        this.showConfirmModal()
+        // 只有报名操作需要阅读确认弹窗，待定/请假直接执行
+        if (this.pendingAction === 'confirmed') {
+          this.showConfirmModal()
+        } else {
+          wx.showLoading({ title: '处理中...' })
+          await this.doRegister(this.pendingAction, '')
+        }
       } else {
         wx.showToast({ title: '保存成功', icon: 'success' })
         this.loadActivity()
