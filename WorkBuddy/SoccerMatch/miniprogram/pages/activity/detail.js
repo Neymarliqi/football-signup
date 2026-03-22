@@ -20,6 +20,7 @@ Page({
     isAdmin: false,
     isCreator: false,
     canEdit: false,
+    loading: true,
     // 头像昵称弹窗
     showUserInfoModal: false,
     tempAvatarUrl: '',
@@ -40,6 +41,23 @@ Page({
     confirmTimer: null,
     // 活动描述展开状态
     isDescExpanded: false
+  },
+
+  // 带重试机制的通用请求方法
+  async requestWithRetry(requestFn, maxRetries = 3, delay = 1000) {
+    let lastError
+    for (let i = 0; i < maxRetries; i++) {
+      try {
+        return await requestFn()
+      } catch (e) {
+        lastError = e
+        console.log(`请求失败，第${i + 1}次重试...`, e)
+        if (i < maxRetries - 1) {
+          await new Promise(resolve => setTimeout(resolve, delay * (i + 1)))
+        }
+      }
+    }
+    throw lastError
   },
 
   // 切换活动描述展开/收起
@@ -68,9 +86,11 @@ Page({
     const { activityId } = this.data
     if (!activityId) return
 
+    this.setData({ loading: true })
     wx.showNavigationBarLoading()
     try {
-      const res = await db.collection('activities').doc(activityId).get()
+      // 使用重试机制获取活动数据
+      const res = await this.requestWithRetry(() => db.collection('activities').doc(activityId).get())
       const act = res.data
       const openid = app.globalData.openid || wx.getStorageSync('openid')
 
@@ -78,7 +98,7 @@ Page({
       const registrations = act.registrations || []
       const userIds = registrations.map(r => r.openid).filter(id => id)
 
-      // 批量获取最新用户信息
+      // 批量获取最新用户信息（带重试）
       let latestUsers = {}
       if (userIds.length > 0) {
         try {
@@ -86,9 +106,9 @@ Page({
           const batchSize = 20
           for (let i = 0; i < userIds.length; i += batchSize) {
             const batch = userIds.slice(i, i + batchSize)
-            const usersRes = await db.collection('users').where({
-              _id: db.command.in(batch)
-            }).get()
+            const usersRes = await this.requestWithRetry(() => 
+              db.collection('users').where({ _id: db.command.in(batch) }).get()
+            )
             usersRes.data.forEach(u => {
               latestUsers[u._id] = u
             })
@@ -99,9 +119,11 @@ Page({
       }
 
       this.processActivity(act, openid, latestUsers)
+      this.setData({ loading: false })
     } catch (e) {
       console.error('加载活动详情失败', e)
-      wx.showToast({ title: '加载失败', icon: 'error' })
+      this.setData({ loading: false })
+      wx.showToast({ title: '网络异常，请下拉刷新重试', icon: 'none', duration: 3000 })
     } finally {
       wx.hideNavigationBarLoading()
     }

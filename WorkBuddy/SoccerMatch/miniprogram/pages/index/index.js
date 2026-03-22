@@ -41,6 +41,23 @@ Page({
     }
   },
 
+  // 带重试机制的通用请求方法
+  async requestWithRetry(requestFn, maxRetries = 3, delay = 1000) {
+    let lastError
+    for (let i = 0; i < maxRetries; i++) {
+      try {
+        return await requestFn()
+      } catch (e) {
+        lastError = e
+        console.log(`请求失败，第${i + 1}次重试...`, e)
+        if (i < maxRetries - 1) {
+          await new Promise(resolve => setTimeout(resolve, delay * (i + 1)))
+        }
+      }
+    }
+    throw lastError
+  },
+
   // 加载活动列表 - 显示全部活动（测试模式）
   async loadActivities() {
     this.setData({ loading: true })
@@ -49,7 +66,7 @@ Page({
       const filter = this.data.activeFilter
       const now = new Date()
 
-      // 获取全部活动
+      // 获取全部活动（带重试）
       let query = db.collection('activities').orderBy('createdAt', 'desc')
       
       // 根据筛选条件过滤
@@ -68,7 +85,7 @@ Page({
         }).orderBy('createdAt', 'desc')
       }
 
-      const res = await query.limit(50).get()
+      const res = await this.requestWithRetry(() => query.limit(50).get())
       let activities = res.data
 
       // 收集所有需要查询的用户ID
@@ -80,7 +97,7 @@ Page({
         })
       })
 
-      // 批量获取最新用户信息
+      // 批量获取最新用户信息（带重试）
       let latestUsers = {}
       if (allUserIds.size > 0) {
         try {
@@ -89,9 +106,9 @@ Page({
           const batchSize = 20
           for (let i = 0; i < userIdsArray.length; i += batchSize) {
             const batch = userIdsArray.slice(i, i + batchSize)
-            const usersRes = await db.collection('users').where({
-              _id: db.command.in(batch)
-            }).get()
+            const usersRes = await this.requestWithRetry(() => 
+              db.collection('users').where({ _id: db.command.in(batch) }).get()
+            )
             usersRes.data.forEach(u => {
               latestUsers[u._id] = u
             })
@@ -106,7 +123,7 @@ Page({
     } catch (e) {
       console.error('加载活动失败', e)
       this.setData({ loading: false })
-      wx.showToast({ title: '加载失败，请重试', icon: 'none' })
+      wx.showToast({ title: '网络异常，请下拉刷新重试', icon: 'none', duration: 3000 })
     }
   },
 

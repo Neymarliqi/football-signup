@@ -1,243 +1,293 @@
 <!-- pages/activity/detail.wxml - 活动详情页 -->
 <view class="container">
 
-  <!-- 活动头部信息卡 -->
-  <view class="detail-header-card">
-    <view class="flex-between mb-10">
-      <view class="tag {{activity.statusClass}}">{{activity.statusText}}</view>
-      <!-- 管理操作区（仅发布者可见） -->
-      <view class="header-actions" wx:if="{{isCreator}}">
-        <view class="action-link" wx:if="{{activity.effectiveStatus === 'open'}}" catchtap="editActivity">编辑</view>
-        <view class="action-link" wx:if="{{activity.effectiveStatus === 'open'}}" catchtap="cancelActivity">取消</view>
-        <view class="action-link delete" wx:if="{{activity.effectiveStatus === 'cancelled' || activity.effectiveStatus === 'finished'}}" catchtap="deleteActivity">删除</view>
+  <!-- 骨架屏 - 加载中显示 -->
+  <view wx:if="{{loading}}" class="skeleton-container">
+    <!-- 头部信息骨架 -->
+    <view class="skeleton-header-card">
+      <view class="skeleton-flex-between">
+        <view class="skeleton-tag"></view>
+        <view class="skeleton-actions">
+          <view class="skeleton-link"></view>
+          <view class="skeleton-link"></view>
+        </view>
+      </view>
+      <view class="skeleton-title"></view>
+      <view class="skeleton-title short"></view>
+    </view>
+    
+    <!-- 信息网格骨架 -->
+    <view class="skeleton-card">
+      <view class="skeleton-section-title"></view>
+      <view class="skeleton-grid">
+        <view wx:for="{{[1,2,3,4,5,6]}}" wx:key="*this" class="skeleton-grid-item">
+          <view class="skeleton-icon"></view>
+          <view class="skeleton-text"></view>
+        </view>
       </view>
     </view>
-    <view class="detail-title">{{activity.title}}</view>
-    <view class="detail-desc-wrap" wx:if="{{activity.description}}">
-      <view class="detail-desc {{isDescExpanded ? 'desc-expanded' : 'desc-collapsed'}}">{{activity.description}}</view>
-      <view class="desc-expand-btn" bindtap="toggleDescExpand">
-        <text>{{isDescExpanded ? '收起' : '展开查看全部'}}</text>
-        <text class="expand-icon {{isDescExpanded ? 'icon-rotate' : ''}}">▼</text>
+    
+    <!-- 统计骨架 -->
+    <view class="skeleton-card">
+      <view class="skeleton-section-title"></view>
+      <view class="skeleton-stats">
+        <view wx:for="{{[1,2,3,4]}}" wx:key="*this" class="skeleton-stat"></view>
+      </view>
+      <view class="skeleton-progress"></view>
+    </view>
+    
+    <!-- 球员列表骨架 -->
+    <view class="skeleton-card">
+      <view class="skeleton-section-title"></view>
+      <view class="skeleton-avatar-grid">
+        <view wx:for="{{[1,2,3,4,5]}}" wx:key="*this" class="skeleton-avatar-item">
+          <view class="skeleton-circle"></view>
+          <view class="skeleton-name"></view>
+        </view>
       </view>
     </view>
   </view>
 
-  <!-- 活动信息卡 -->
-  <view class="card">
-    <view class="section-title">📋 活动信息</view>
-    <view class="info-grid">
-      <view class="info-grid-item">
-        <view class="info-grid-icon">📅</view>
-        <view class="info-grid-content">
-          <view class="info-grid-label">日期</view>
-          <view class="info-grid-value">{{activity.displayDate}}</view>
+  <!-- 内容区域 - 非加载状态显示 -->
+  <block wx:if="{{!loading}}">
+    <!-- 活动头部信息卡 -->
+    <view class="detail-header-card">
+      <view class="flex-between mb-10">
+        <view class="tag {{activity.statusClass}}">{{activity.statusText}}</view>
+        <!-- 管理操作区（仅发布者可见） -->
+        <view class="header-actions" wx:if="{{isCreator}}">
+          <view class="action-link" wx:if="{{activity.effectiveStatus === 'open'}}" catchtap="editActivity">编辑</view>
+          <view class="action-link" wx:if="{{activity.effectiveStatus === 'open'}}" catchtap="cancelActivity">取消</view>
+          <view class="action-link delete" wx:if="{{activity.effectiveStatus === 'cancelled' || activity.effectiveStatus === 'finished'}}" catchtap="deleteActivity">删除</view>
         </view>
       </view>
-      <view class="info-grid-item">
-        <view class="info-grid-icon">⏰</view>
-        <view class="info-grid-content">
-          <view class="info-grid-label">时间</view>
-          <view class="info-grid-value">{{activity.time}}</view>
+      <view class="detail-title">{{activity.title}}</view>
+      <view class="detail-desc-wrap" wx:if="{{activity.description}}">
+        <view class="detail-desc {{isDescExpanded ? 'desc-expanded' : 'desc-collapsed'}}">{{activity.description}}</view>
+        <view class="desc-expand-btn" bindtap="toggleDescExpand">
+          <text>{{isDescExpanded ? '收起' : '展开查看全部'}}</text>
+          <text class="expand-icon {{isDescExpanded ? 'icon-rotate' : ''}}">▼</text>
         </view>
       </view>
-      <view class="info-grid-item">
-        <view class="info-grid-icon">⚽</view>
-        <view class="info-grid-content">
-          <view class="info-grid-label">赛制</view>
-          <view class="info-grid-value">{{activity.matchType}}</view>
+    </view>
+
+    <!-- 活动信息卡 -->
+    <view class="card">
+      <view class="section-title">📋 活动信息</view>
+      <view class="info-grid">
+        <view class="info-grid-item">
+          <view class="info-grid-icon">📅</view>
+          <view class="info-grid-content">
+            <view class="info-grid-label">日期</view>
+            <view class="info-grid-value">{{activity.displayDate}}</view>
+          </view>
         </view>
-      </view>
-      <view class="info-grid-item">
-        <view class="info-grid-icon">💰</view>
-        <view class="info-grid-content">
-          <view class="info-grid-label">费用</view>
-          <view class="info-grid-value fee-value">{{activity.fee > 0 ? activity.fee + '元/人' : '免费'}}</view>
+        <view class="info-grid-item">
+          <view class="info-grid-icon">⏰</view>
+          <view class="info-grid-content">
+            <view class="info-grid-label">时间</view>
+            <view class="info-grid-value">{{activity.time}}</view>
+          </view>
         </view>
-      </view>
-      <view class="info-grid-item">
-        <view class="info-grid-icon">👥</view>
-        <view class="info-grid-content">
-          <view class="info-grid-label">人数</view>
-          <view class="info-grid-value">
-            <text class="{{confirmedCount >= activity.maxPlayers ? 'text-danger' : 'text-primary'}}">{{confirmedCount}}</text>
-            <text class="text-gray">/{{activity.maxPlayers}}人</text>
+        <view class="info-grid-item">
+          <view class="info-grid-icon">⚽</view>
+          <view class="info-grid-content">
+            <view class="info-grid-label">赛制</view>
+            <view class="info-grid-value">{{activity.matchType}}</view>
+          </view>
+        </view>
+        <view class="info-grid-item">
+          <view class="info-grid-icon">💰</view>
+          <view class="info-grid-content">
+            <view class="info-grid-label">费用</view>
+            <view class="info-grid-value fee-value">{{activity.fee > 0 ? activity.fee + '元/人' : '免费'}}</view>
+          </view>
+        </view>
+        <view class="info-grid-item">
+          <view class="info-grid-icon">👥</view>
+          <view class="info-grid-content">
+            <view class="info-grid-label">人数</view>
+            <view class="info-grid-value">
+              <text class="{{confirmedCount >= activity.maxPlayers ? 'text-danger' : 'text-primary'}}">{{confirmedCount}}</text>
+              <text class="text-gray">/{{activity.maxPlayers}}人</text>
+            </view>
+          </view>
+        </view>
+        <view class="info-grid-item">
+          <view class="info-grid-icon">🏟</view>
+          <view class="info-grid-content">
+            <view class="info-grid-label">场地</view>
+            <view class="info-grid-value">{{activity.fieldType || '待定'}}</view>
           </view>
         </view>
       </view>
-      <view class="info-grid-item">
-        <view class="info-grid-icon">🏟</view>
-        <view class="info-grid-content">
-          <view class="info-grid-label">场地</view>
-          <view class="info-grid-value">{{activity.fieldType || '待定'}}</view>
+
+      <!-- 地址 -->
+      <view class="divider"></view>
+      <view class="location-row" bindtap="openMap">
+        <view class="location-left">
+          <view class="location-icon">📍</view>
+          <view class="location-info">
+            <view class="location-name">{{activity.locationName}}</view>
+            <view class="location-addr">{{activity.location}}</view>
+          </view>
+        </view>
+        <view class="location-nav">导航 ›</view>
+      </view>
+    </view>
+
+    <!-- 公告/注意事项 -->
+    <view class="card" wx:if="{{activity.notice}}">
+      <view class="section-title">📢 注意事项</view>
+      <view class="notice-text">{{activity.notice}}</view>
+    </view>
+
+    <!-- 报名状态统计 -->
+    <view class="card">
+      <view class="section-title flex-between">
+        <text>📊 报名情况</text>
+        <text class="stat-detail">共{{totalCount}}人</text>
+      </view>
+      <view class="stat-row">
+        <view class="stat-item stat-green">
+          <view class="stat-num">{{confirmedCount}}</view>
+          <view class="stat-label">✅ 已报名</view>
+        </view>
+        <view class="stat-item stat-yellow">
+          <view class="stat-num">{{pendingCount}}</view>
+          <view class="stat-label">⏳ 待定</view>
+        </view>
+        <view class="stat-item stat-red">
+          <view class="stat-num">{{leaveCount}}</view>
+          <view class="stat-label">🙅 请假</view>
+        </view>
+        <view class="stat-item stat-gray">
+          <view class="stat-num">{{activity.maxPlayers - confirmedCount}}</view>
+          <view class="stat-label">🪑 空位</view>
+        </view>
+      </view>
+      <!-- 进度条 -->
+      <view class="progress-bar-bg mt-20">
+        <view class="progress-bar-fill {{confirmedCount >= activity.maxPlayers ? 'bar-full' : 'bar-normal'}}" style="width: {{progressPercent}}%"></view>
+      </view>
+    </view>
+
+    <!-- 已报名球员列表 - 头像网格布局 -->
+    <view class="card">
+      <view class="section-title">✅ 已报名 ({{confirmedCount}})</view>
+      <view wx:if="{{confirmedPlayers.length === 0}}" class="empty-tip">暂无人报名，快来第一个！</view>
+      <view class="player-avatar-grid" wx:if="{{confirmedPlayers.length > 0}}">
+        <view wx:for="{{confirmedPlayers}}" wx:key="openid" class="avatar-grid-item">
+          <view class="avatar-with-position">
+            <image class="grid-avatar" src="{{item.avatarUrl || placeholderAvatar}}" mode="aspectFill"></image>
+            <!-- 首选位置标签（位置1）-->
+            <view class="position-tag-on-avatar" wx:if="{{item.firstPosition}}">{{item.firstPosition}}</view>
+          </view>
+          <view class="grid-nickname">{{item.nickName}}</view>
         </view>
       </view>
     </view>
 
-    <!-- 地址 -->
-    <view class="divider"></view>
-    <view class="location-row" bindtap="openMap">
-      <view class="location-left">
-        <view class="location-icon">📍</view>
-        <view class="location-info">
-          <view class="location-name">{{activity.locationName}}</view>
-          <view class="location-addr">{{activity.location}}</view>
+    <!-- 待定球员 - 使用与已报名相同的网格布局 -->
+    <view class="card" wx:if="{{pendingCount > 0}}">
+      <view class="section-title">⏳ 待定 ({{pendingCount}})</view>
+      <view wx:if="{{pendingPlayers.length === 0}}" class="empty-tip">暂无待定人员</view>
+      <view class="player-avatar-grid" wx:if="{{pendingPlayers.length > 0}}">
+        <view wx:for="{{pendingPlayers}}" wx:key="openid" class="avatar-grid-item">
+          <view class="avatar-with-position">
+            <image class="grid-avatar" src="{{item.avatarUrl || placeholderAvatar}}" mode="aspectFill"></image>
+            <!-- 首选位置标签（位置1）-->
+            <view class="position-tag-on-avatar" wx:if="{{item.firstPosition}}">{{item.firstPosition}}</view>
+          </view>
+          <view class="grid-nickname">{{item.nickName}}</view>
         </view>
       </view>
-      <view class="location-nav">导航 ›</view>
     </view>
-  </view>
 
-  <!-- 公告/注意事项 -->
-  <view class="card" wx:if="{{activity.notice}}">
-    <view class="section-title">📢 注意事项</view>
-    <view class="notice-text">{{activity.notice}}</view>
-  </view>
-
-  <!-- 报名状态统计 -->
-  <view class="card">
-    <view class="section-title flex-between">
-      <text>📊 报名情况</text>
-      <text class="stat-detail">共{{totalCount}}人</text>
-    </view>
-    <view class="stat-row">
-      <view class="stat-item stat-green">
-        <view class="stat-num">{{confirmedCount}}</view>
-        <view class="stat-label">✅ 已报名</view>
-      </view>
-      <view class="stat-item stat-yellow">
-        <view class="stat-num">{{pendingCount}}</view>
-        <view class="stat-label">⏳ 待定</view>
-      </view>
-      <view class="stat-item stat-red">
-        <view class="stat-num">{{leaveCount}}</view>
-        <view class="stat-label">🙅 请假</view>
-      </view>
-      <view class="stat-item stat-gray">
-        <view class="stat-num">{{activity.maxPlayers - confirmedCount}}</view>
-        <view class="stat-label">🪑 空位</view>
-      </view>
-    </view>
-    <!-- 进度条 -->
-    <view class="progress-bar-bg mt-20">
-      <view class="progress-bar-fill {{confirmedCount >= activity.maxPlayers ? 'bar-full' : 'bar-normal'}}" style="width: {{progressPercent}}%"></view>
-    </view>
-  </view>
-
-  <!-- 已报名球员列表 - 头像网格布局 -->
-  <view class="card">
-    <view class="section-title">✅ 已报名 ({{confirmedCount}})</view>
-    <view wx:if="{{confirmedPlayers.length === 0}}" class="empty-tip">暂无人报名，快来第一个！</view>
-    <view class="player-avatar-grid" wx:if="{{confirmedPlayers.length > 0}}">
-      <view wx:for="{{confirmedPlayers}}" wx:key="openid" class="avatar-grid-item">
-        <view class="avatar-with-position">
-          <image class="grid-avatar" src="{{item.avatarUrl || placeholderAvatar}}" mode="aspectFill"></image>
-          <!-- 首选位置标签（位置1）-->
-          <view class="position-tag-on-avatar" wx:if="{{item.firstPosition}}">{{item.firstPosition}}</view>
+    <!-- 请假球员 - 使用与已报名相同的网格布局 -->
+    <view class="card" wx:if="{{leaveCount > 0}}">
+      <view class="section-title">🙅 请假 ({{leaveCount}})</view>
+      <view wx:if="{{leavePlayers.length === 0}}" class="empty-tip">暂无请假人员</view>
+      <view class="player-avatar-grid" wx:if="{{leavePlayers.length > 0}}">
+        <view wx:for="{{leavePlayers}}" wx:key="openid" class="avatar-grid-item">
+          <view class="avatar-with-position">
+            <image class="grid-avatar" src="{{item.avatarUrl || placeholderAvatar}}" mode="aspectFill"></image>
+            <!-- 首选位置标签（位置1）-->
+            <view class="position-tag-on-avatar" wx:if="{{item.firstPosition}}">{{item.firstPosition}}</view>
+          </view>
+          <view class="grid-nickname">{{item.nickName}}</view>
         </view>
-        <view class="grid-nickname">{{item.nickName}}</view>
       </view>
     </view>
-  </view>
 
-  <!-- 待定球员 - 使用与已报名相同的网格布局 -->
-  <view class="card" wx:if="{{pendingCount > 0}}">
-    <view class="section-title">⏳ 待定 ({{pendingCount}})</view>
-    <view wx:if="{{pendingPlayers.length === 0}}" class="empty-tip">暂无待定人员</view>
-    <view class="player-avatar-grid" wx:if="{{pendingPlayers.length > 0}}">
-      <view wx:for="{{pendingPlayers}}" wx:key="openid" class="avatar-grid-item">
-        <view class="avatar-with-position">
-          <image class="grid-avatar" src="{{item.avatarUrl || placeholderAvatar}}" mode="aspectFill"></image>
-          <!-- 首选位置标签（位置1）-->
-          <view class="position-tag-on-avatar" wx:if="{{item.firstPosition}}">{{item.firstPosition}}</view>
+    <!-- 战术板入口（所有用户可见） -->
+    <view class="card tactics-entry" bindtap="goTactics">
+      <view class="tactics-left">
+        <view class="tactics-icon">🗺</view>
+        <view class="tactics-info">
+          <view class="tactics-title">战术板</view>
+          <view class="tactics-sub">查看队员位置安排</view>
         </view>
-        <view class="grid-nickname">{{item.nickName}}</view>
       </view>
+      <view class="tactics-arrow">›</view>
     </view>
-  </view>
 
-  <!-- 请假球员 - 使用与已报名相同的网格布局 -->
-  <view class="card" wx:if="{{leaveCount > 0}}">
-    <view class="section-title">🙅 请假 ({{leaveCount}})</view>
-    <view wx:if="{{leavePlayers.length === 0}}" class="empty-tip">暂无请假人员</view>
-    <view class="player-avatar-grid" wx:if="{{leavePlayers.length > 0}}">
-      <view wx:for="{{leavePlayers}}" wx:key="openid" class="avatar-grid-item">
-        <view class="avatar-with-position">
-          <image class="grid-avatar" src="{{item.avatarUrl || placeholderAvatar}}" mode="aspectFill"></image>
-          <!-- 首选位置标签（位置1）-->
-          <view class="position-tag-on-avatar" wx:if="{{item.firstPosition}}">{{item.firstPosition}}</view>
+    <!-- 底部操作栏 -->
+    <view class="bottom-action-bar" wx:if="{{activity.status !== 'finished' && activity.status !== 'cancelled'}}">
+      <!-- 当前状态显示 -->
+      <view class="my-status-bar" wx:if="{{myStatus}}">
+        <text class="my-status-text">当前状态：</text>
+        <view class="tag {{myStatusClass}}">{{myStatusText}}</view>
+      </view>
+
+      <!-- 底部操作按钮区 - 符合UI规范：主操作→功能操作→分隔线→管理操作 -->
+      <view class="action-bar-content">
+        <!-- 左侧：主操作按钮（报名）-->
+        <view class="action-bar-left">
+          <!-- 未报名/待定/请假 -> 报名（高亮可点击） -->
+          <view wx:if="{{!myStatus || myStatus === 'pending' || myStatus === 'leave'}}" 
+                class="btn-primary {{confirmedCount >= activity.maxPlayers ? 'btn-disabled' : ''}}"
+                bindtap="{{confirmedCount >= activity.maxPlayers ? '' : 'onMainAction'}}" data-action="confirmed">
+            报名
+          </view>
+          <!-- 已报名 -> 报名（置灰不可点击） -->
+          <view wx:if="{{myStatus === 'confirmed'}}" class="btn-primary btn-disabled">
+            报名
+          </view>
         </view>
-        <view class="grid-nickname">{{item.nickName}}</view>
-      </view>
-    </view>
-  </view>
 
-  <!-- 战术板入口（所有用户可见） -->
-  <view class="card tactics-entry" bindtap="goTactics">
-    <view class="tactics-left">
-      <view class="tactics-icon">🗺</view>
-      <view class="tactics-info">
-        <view class="tactics-title">战术板</view>
-        <view class="tactics-sub">查看队员位置安排</view>
-      </view>
-    </view>
-    <view class="tactics-arrow">›</view>
-  </view>
-
-  <!-- 底部操作栏 -->
-  <view class="bottom-action-bar" wx:if="{{activity.status !== 'finished' && activity.status !== 'cancelled'}}">
-    <!-- 当前状态显示 -->
-    <view class="my-status-bar" wx:if="{{myStatus}}">
-      <text class="my-status-text">当前状态：</text>
-      <view class="tag {{myStatusClass}}">{{myStatusText}}</view>
-    </view>
-
-    <!-- 底部操作按钮区 - 符合UI规范：主操作→功能操作→分隔线→管理操作 -->
-    <view class="action-bar-content">
-      <!-- 左侧：主操作按钮（报名）-->
-      <view class="action-bar-left">
-        <!-- 未报名/待定/请假 -> 报名（高亮可点击） -->
-        <view wx:if="{{!myStatus || myStatus === 'pending' || myStatus === 'leave'}}" 
-              class="btn-primary {{confirmedCount >= activity.maxPlayers ? 'btn-disabled' : ''}}"
-              bindtap="{{confirmedCount >= activity.maxPlayers ? '' : 'onMainAction'}}" data-action="confirmed">
-          报名
+        <!-- 中间：功能操作按钮（待定/请假）-->
+        <view class="action-bar-center">
+          <!-- 未报名/已报名 -> 待定/请假（正常可点击） -->
+          <view wx:if="{{!myStatus || myStatus === 'confirmed'}}" class="btn-secondary" bindtap="showActionSheet">
+            待定/请假
+          </view>
+          <!-- 待定/请假 -> 待定/请假（置灰但可点击） -->
+          <view wx:if="{{myStatus === 'pending' || myStatus === 'leave'}}" class="btn-secondary btn-secondary-disabled" bindtap="showActionSheet">
+            待定/请假
+          </view>
         </view>
-        <!-- 已报名 -> 报名（置灰不可点击） -->
-        <view wx:if="{{myStatus === 'confirmed'}}" class="btn-primary btn-disabled">
-          报名
+
+        <!-- 分隔线 -->
+        <view class="action-bar-divider"></view>
+
+        <!-- 右侧：分享按钮（灰色弱化） -->
+        <view class="action-bar-right">
+          <button class="btn-share" open-type="share">
+            <text>分享</text>
+          </button>
         </view>
       </view>
 
-      <!-- 中间：功能操作按钮（待定/请假）-->
-      <view class="action-bar-center">
-        <!-- 未报名/已报名 -> 待定/请假（正常可点击） -->
-        <view wx:if="{{!myStatus || myStatus === 'confirmed'}}" class="btn-secondary" bindtap="showActionSheet">
-          待定/请假
-        </view>
-        <!-- 待定/请假 -> 待定/请假（置灰但可点击） -->
-        <view wx:if="{{myStatus === 'pending' || myStatus === 'leave'}}" class="btn-secondary btn-secondary-disabled" bindtap="showActionSheet">
-          待定/请假
-        </view>
-      </view>
-
-      <!-- 分隔线 -->
-      <view class="action-bar-divider"></view>
-
-      <!-- 右侧：分享按钮（灰色弱化） -->
-      <view class="action-bar-right">
-        <button class="btn-share" open-type="share">
-          <text>分享</text>
-        </button>
+      <!-- 满员提示 -->
+      <view class="full-tip" wx:if="{{confirmedCount >= activity.maxPlayers && myStatus !== 'confirmed'}}">
+        ⚠️ 当前人数已满！可选择待定候补
       </view>
     </view>
 
-    <!-- 满员提示 -->
-    <view class="full-tip" wx:if="{{confirmedCount >= activity.maxPlayers && myStatus !== 'confirmed'}}">
-      ⚠️ 当前人数已满！可选择待定候补
-    </view>
-  </view>
-
-  <!-- 底部安全区 - 确保内容不被固定操作栏遮挡（战术板显示时需要更多空间） -->
-  <view style="height: 360rpx;"></view>
+    <!-- 底部安全区 - 确保内容不被固定操作栏遮挡（战术板显示时需要更多空间） -->
+    <view style="height: 360rpx;"></view>
+  </block>
 </view>
 
 <!-- 操作选择弹窗 -->

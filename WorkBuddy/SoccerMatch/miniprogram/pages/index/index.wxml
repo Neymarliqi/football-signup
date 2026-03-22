@@ -39,8 +39,28 @@
     <view class="filter-item {{activeFilter === 'finished' ? 'active' : ''}}" bindtap="setFilter" data-type="finished">已结束</view>
   </view>
 
-  <!-- 活动列表 -->
-  <view wx:if="{{activities.length === 0}}" class="empty-state">
+  <!-- 骨架屏 - 加载中显示 -->
+  <view wx:if="{{loading}}" class="skeleton-container">
+    <view wx:for="{{[1,2,3]}}" wx:key="*this" class="skeleton-card">
+      <view class="skeleton-header">
+        <view class="skeleton-tag"></view>
+        <view class="skeleton-title"></view>
+      </view>
+      <view class="skeleton-info">
+        <view class="skeleton-row"></view>
+        <view class="skeleton-row short"></view>
+      </view>
+      <view class="skeleton-footer">
+        <view class="skeleton-avatars">
+          <view wx:for="{{[1,2,3]}}" wx:key="*this" class="skeleton-avatar"></view>
+        </view>
+        <view class="skeleton-btn"></view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 空状态 - 无数据时显示 -->
+  <view wx:elif="{{!loading && activities.length === 0}}" class="empty-state">
     <text style="font-size: 100rpx;">⚽</text>
     <text>暂无活动</text>
     <text class="empty-sub">点击底部「+」按钮发布活动开始约球！</text>
