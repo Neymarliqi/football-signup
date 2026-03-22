@@ -313,6 +313,12 @@
       <view class="modal-close" bindtap="closeUserInfoModal">✕</view>
     </view>
     <view class="modal-body">
+      <!-- 一键获取微信信息按钮 -->
+      <view class="wechat-info-btn" bindtap="quickFillWechatInfo">
+        <text class="wechat-icon">💬</text>
+        <text>一键获取微信头像和昵称</text>
+      </view>
+      <view class="divider-text">或手动填写</view>
       <view class="form-row">
         <view class="form-label">头像</view>
         <button class="avatar-btn" open-type="chooseAvatar" bind:chooseavatar="onChooseAvatar">

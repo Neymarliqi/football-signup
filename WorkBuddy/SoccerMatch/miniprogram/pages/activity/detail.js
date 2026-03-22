@@ -545,10 +545,42 @@ Page({
   // ==================== 头像昵称弹窗 ====================
 
   /**
-   * 选择头像
+   * 选择头像 - 使用新版 API
    */
   onChooseAvatar(e) {
-    this.setData({ tempAvatarUrl: e.detail.avatarUrl })
+    const { avatarUrl } = e.detail
+    this.setData({ tempAvatarUrl: avatarUrl })
+  },
+
+  /**
+   * 快速获取微信头像和昵称
+   */
+  async quickFillWechatInfo() {
+    wx.showLoading({ title: '获取中...' })
+    
+    try {
+      // 获取微信用户信息
+      const res = await new Promise((resolve, reject) => {
+        wx.getUserProfile({
+          desc: '用于完善用户资料',
+          success: resolve,
+          fail: reject
+        })
+      })
+      
+      const { avatarUrl, nickName } = res.userInfo
+      
+      this.setData({
+        tempAvatarUrl: avatarUrl,
+        tempNickName: nickName
+      })
+      
+      wx.hideLoading()
+      wx.showToast({ title: '已填充微信信息', icon: 'success' })
+    } catch (e) {
+      wx.hideLoading()
+      wx.showToast({ title: '获取失败，请手动填写', icon: 'none' })
+    }
   },
 
   /**
@@ -805,12 +837,23 @@ Page({
     }
   },
 
-  // 分享
+  // 分享到微信好友
   onShareAppMessage() {
     const { activity, activityId } = this.data
     return {
       title: `⚽ ${activity.title} - 快来报名！`,
       path: `/pages/activity/detail?id=${activityId}`,
+      imageUrl: '',
+      desc: `${activity.displayDate} ${activity.time} | ${activity.locationName}`
+    }
+  },
+
+  // 分享到朋友圈
+  onShareTimeline() {
+    const { activity, activityId } = this.data
+    return {
+      title: `⚽ ${activity.title} - 快来报名！`,
+      query: `id=${activityId}`,
       imageUrl: ''
     }
   }

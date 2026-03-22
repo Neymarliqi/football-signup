@@ -90,14 +90,20 @@ Page({
     // 先显示弹窗
     this.setData({ showAvatarSheet: true })
     
-    // 异步获取微信用户信息用于展示
+    // 尝试获取微信用户信息
+    this.fetchWechatUserInfo()
+  },
+
+  // 获取微信用户信息（兼容新旧版本）
+  fetchWechatUserInfo() {
+    // 首先尝试使用 wx.getUserProfile（需要用户点击触发）
     wx.getUserProfile({
       desc: '用于展示微信头像和昵称',
       success: (res) => {
         this.setData({ wechatUserInfo: res.userInfo })
       },
       fail: () => {
-        // 获取失败，尝试用全局数据
+        // 如果失败，尝试从全局数据获取
         const userInfo = app.globalData.userInfo || {}
         this.setData({ wechatUserInfo: userInfo })
       }
@@ -197,18 +203,8 @@ Page({
     // 先显示弹窗
     this.setData({ showNameSheet: true })
     
-    // 异步获取微信用户信息用于展示
-    wx.getUserProfile({
-      desc: '用于展示微信头像和昵称',
-      success: (res) => {
-        this.setData({ wechatUserInfo: res.userInfo })
-      },
-      fail: () => {
-        // 获取失败，尝试用全局数据
-        const userInfo = app.globalData.userInfo || {}
-        this.setData({ wechatUserInfo: userInfo })
-      }
-    })
+    // 尝试获取微信用户信息
+    this.fetchWechatUserInfo()
   },
 
   // 关闭昵称选项弹窗

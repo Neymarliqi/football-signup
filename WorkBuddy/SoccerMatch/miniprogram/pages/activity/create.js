@@ -2,6 +2,9 @@
 const app = getApp()
 const db = wx.cloud.database()
 
+// 引入腾讯地图选点插件
+const chooseLocation = requirePlugin('chooseLocation')
+
 Page({
   data: {
     isEdit: false,
@@ -408,24 +411,47 @@ Page({
     this.setData({ 'form.fee': fee })
   },
 
-  // 选择地点
+  // 选择地点 - 使用腾讯地图选点插件（支持搜索）
   pickLocation() {
-    wx.chooseLocation({
-      success: (res) => {
-        this.setData({
-          'form.locationName': res.name || '未命名场地',
-          'form.location': res.address,
-          'form.latitude': res.latitude,
-          'form.longitude': res.longitude
+    // 腾讯位置服务 Key（需要在腾讯位置服务平台申请）
+    const key = 'YOUR_TENCENT_MAP_KEY' // 请替换为您的Key
+    const referer = '约球助手'
+    
+    // 如果已有位置，以该位置为中心；否则使用当前位置
+    const location = this.data.form.latitude && this.data.form.longitude
+      ? JSON.stringify({
+          latitude: this.data.form.latitude,
+          longitude: this.data.form.longitude
         })
-      },
-      fail: (err) => {
-        console.log('选择地点失败', err)
-        // 用户取消不提示错误
-        if (err.errMsg && err.errMsg.includes('cancel')) return
-        wx.showToast({ title: '选择地点失败', icon: 'none' })
-      }
+      : ''
+    
+    // 分类关键词：体育场馆、运动健身
+    const category = '体育场馆,运动健身'
+    
+    // 跳转到地图选点插件页面
+    wx.navigateTo({
+      url: `plugin://chooseLocation/index?key=${key}&referer=${referer}&location=${location}&category=${category}`
     })
+  },
+
+  // 页面显示时获取选点结果
+  onShow() {
+    const location = chooseLocation.getLocation()
+    if (location) {
+      this.setData({
+        'form.locationName': location.name || '未命名场地',
+        'form.location': location.address,
+        'form.latitude': location.latitude,
+        'form.longitude': location.longitude
+      })
+      // 清除选点数据，防止再次进入页面时返回上次结果
+      chooseLocation.setLocation(null)
+    }
+  },
+
+  // 页面卸载时清理
+  onUnload() {
+    chooseLocation.setLocation(null)
   },
 
   // 清除导航地址
