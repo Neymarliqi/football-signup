@@ -71,7 +71,37 @@ Page({
       const res = await query.limit(50).get()
       let activities = res.data
 
-      const formattedActivities = activities.map(act => this.formatActivity(act, openid))
+      // 收集所有需要查询的用户ID
+      const allUserIds = new Set()
+      activities.forEach(act => {
+        const regs = act.registrations || []
+        regs.forEach(r => {
+          if (r.openid) allUserIds.add(r.openid)
+        })
+      })
+
+      // 批量获取最新用户信息
+      let latestUsers = {}
+      if (allUserIds.size > 0) {
+        try {
+          const userIdsArray = Array.from(allUserIds)
+          // 由于 in 查询最多支持 20 个，需要分批查询
+          const batchSize = 20
+          for (let i = 0; i < userIdsArray.length; i += batchSize) {
+            const batch = userIdsArray.slice(i, i + batchSize)
+            const usersRes = await db.collection('users').where({
+              _id: db.command.in(batch)
+            }).get()
+            usersRes.data.forEach(u => {
+              latestUsers[u._id] = u
+            })
+          }
+        } catch (e) {
+          console.log('获取用户信息失败', e)
+        }
+      }
+
+      const formattedActivities = activities.map(act => this.formatActivity(act, openid, latestUsers))
       this.setData({ activities: formattedActivities, loading: false })
     } catch (e) {
       console.error('加载活动失败', e)
@@ -81,7 +111,7 @@ Page({
   },
 
   // 格式化活动数据
-  formatActivity(act, openid) {
+  formatActivity(act, openid, latestUsers = {}) {
     const registrations = act.registrations || []
     const confirmed = registrations.filter(r => r.status === 'confirmed')
     const pending = registrations.filter(r => r.status === 'pending')
@@ -163,12 +193,17 @@ Page({
       return chinesePosition.substring(0, 2) // 只显示前2个字
     }
     
-    // 显示前6人头像（首页卡片空间有限）
-    const confirmedPlayers = confirmed.slice(0, 6).map(r => ({
-      ...r,
-      shortName: r.nickName ? r.nickName.slice(0, 3) : '队员',
-      firstPosition: getFirstPosition(r.position) // 首选位置（前2个字）
-    }))
+    // 显示前6人头像（首页卡片空间有限）- 使用最新用户信息
+    const confirmedPlayers = confirmed.slice(0, 6).map(r => {
+      const latestUser = latestUsers[r.openid]
+      return {
+        ...r,
+        nickName: latestUser?.nickName || r.nickName,
+        avatarUrl: latestUser?.avatarUrl || r.avatarUrl,
+        shortName: (latestUser?.nickName || r.nickName) ? (latestUser?.nickName || r.nickName).slice(0, 3) : '队员',
+        firstPosition: getFirstPosition(latestUser?.positions || r.position) // 首选位置（前2个字）
+      }
+    })
 
     // 确保所有字段都有默认值
     const actWithDefaults = {

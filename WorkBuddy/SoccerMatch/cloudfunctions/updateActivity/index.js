@@ -30,11 +30,14 @@ exports.main = async (event, context) => {
       return { success: false, error: '无权编辑此活动' }
     }
     
-    // 状态检查：只有open状态可编辑
+    // 状态检查：只有open或ongoing状态可编辑
     const now = new Date()
     const actDate = activity.activityDate instanceof Date ? activity.activityDate : new Date(activity.activityDate)
-    if (activity.status === 'finished' || actDate < now || activity.status === 'cancelled') {
-      return { success: false, error: '活动已结束或取消，无法编辑' }
+    if (activity.status === 'finished' || actDate < now) {
+      return { success: false, error: '活动已结束，无法编辑' }
+    }
+    if (activity.status === 'cancelled') {
+      return { success: false, error: '活动已取消，无法编辑' }
     }
     
     // 构建更新数据，处理特殊类型

@@ -18,6 +18,16 @@ exports.main = async (event, context) => {
     const activity = actRes.data
     const registrations = activity.registrations || []
 
+    // 检查活动状态是否允许报名
+    const now = new Date()
+    const actDate = activity.activityDate instanceof Date ? activity.activityDate : new Date(activity.activityDate)
+    if (activity.status === 'finished' || actDate < now) {
+      return { success: false, error: 'ACTIVITY_ENDED', message: '活动已结束，无法报名' }
+    }
+    if (activity.status === 'cancelled') {
+      return { success: false, error: 'ACTIVITY_CANCELLED', message: '活动已取消，无法报名' }
+    }
+
     // 检查是否已报名
     const existingIndex = registrations.findIndex(r => r.openid === openid)
 
@@ -54,6 +64,24 @@ exports.main = async (event, context) => {
     await db.collection('activities').doc(activityId).update({
       data: { registrations: newRegistrations, updatedAt: db.serverDate() }
     })
+
+    // 同步更新/创建 users 集合中的用户信息（确保头像昵称闭环）
+    try {
+      // 注意：set 方法的 data 中不能包含 _id，_id 在 doc() 中指定
+      await db.collection('users').doc(openid).set({
+        data: {
+          openid: openid,
+          nickName: nickName || '队员',
+          avatarUrl: avatarUrl || '',
+          positions: position || [],
+          updatedAt: db.serverDate()
+        }
+      })
+      console.log('[updateRegistration] 用户信息已同步到 users 集合')
+    } catch (userErr) {
+      console.error('[updateRegistration] 同步用户信息失败', userErr)
+      // 不影响报名主流程
+    }
 
     return { success: true, message: '操作成功' }
   } catch (err) {

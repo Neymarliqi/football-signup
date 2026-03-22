@@ -377,29 +377,26 @@ Page({
     // 2. 同步更新所有已报名活动中的位置信息
     this.updateActivityPositions(userInfo.positions)
 
-    // 3. 异步同步到云数据库（云端数据作为备份）
+    // 3. 异步同步到云数据库 - 使用 openid 作为 _id 确保一致性
     const db = wx.cloud.database()
-    db.collection('users').where({ openid }).get().then(res => {
-      if (res.data.length > 0) {
-        // 更新现有记录
-        db.collection('users').doc(res.data[0]._id).update({
-          data: { 
-            positions: userInfo.positions,
-            nickName: userInfo.nickName,
-            avatarUrl: userInfo.avatarUrl,
-            updatedAt: db.serverDate() 
-          }
-        }).then(() => {
-          console.log('[saveUserInfo] 云端同步成功')
-        }).catch(err => {
-          console.error('[saveUserInfo] 云端同步失败', err)
-        })
-      } else {
-        db.collection('users').add({
-          data: { ...userInfo, openid, createdAt: db.serverDate() }
-        })
-      }
-    })
+    const userData = {
+      openid: openid,
+      nickName: userInfo.nickName,
+      avatarUrl: userInfo.avatarUrl,
+      positions: userInfo.positions || [],
+      updatedAt: db.serverDate()
+    }
+    
+    try {
+      // 使用 set 方法，如果不存在则创建，存在则更新
+      // 注意：set 方法的 data 中不能包含 _id，_id 在 doc() 中指定
+      await db.collection('users').doc(openid).set({
+        data: userData
+      })
+      console.log('[saveUserInfo] 云端同步成功')
+    } catch (err) {
+      console.error('[saveUserInfo] 云端同步失败', err)
+    }
   },
 
   // 更新所有已报名活动中的位置信息

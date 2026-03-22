@@ -74,7 +74,31 @@ Page({
       const act = res.data
       const openid = app.globalData.openid || wx.getStorageSync('openid')
 
-      this.processActivity(act, openid)
+      // 收集所有报名用户ID
+      const registrations = act.registrations || []
+      const userIds = registrations.map(r => r.openid).filter(id => id)
+
+      // 批量获取最新用户信息
+      let latestUsers = {}
+      if (userIds.length > 0) {
+        try {
+          // 由于 in 查询最多支持 20 个，需要分批查询
+          const batchSize = 20
+          for (let i = 0; i < userIds.length; i += batchSize) {
+            const batch = userIds.slice(i, i + batchSize)
+            const usersRes = await db.collection('users').where({
+              _id: db.command.in(batch)
+            }).get()
+            usersRes.data.forEach(u => {
+              latestUsers[u._id] = u
+            })
+          }
+        } catch (e) {
+          console.log('获取用户信息失败', e)
+        }
+      }
+
+      this.processActivity(act, openid, latestUsers)
     } catch (e) {
       console.error('加载活动详情失败', e)
       wx.showToast({ title: '加载失败', icon: 'error' })
@@ -83,7 +107,7 @@ Page({
     }
   },
 
-  processActivity(act, openid) {
+  processActivity(act, openid, latestUsers = {}) {
     // 调试：打印活动数据
     console.log('活动数据:', act)
     console.log('description:', act.description)
@@ -146,30 +170,22 @@ Page({
       }
     }
     
-    const confirmedPlayers = confirmed.slice(0, MAX_DISPLAY).map(r => {
-      const posInfo = processPosition(r.position)
+    // 处理球员列表 - 使用最新用户信息
+    const processPlayer = (r) => {
+      const latestUser = latestUsers[r.openid]
+      const posInfo = processPosition(latestUser?.positions || r.position)
       return { 
         ...r, 
+        nickName: latestUser?.nickName || r.nickName,
+        avatarUrl: latestUser?.avatarUrl || r.avatarUrl,
         registerTimeText: fmtTime(r.registerTime),
         ...posInfo
       }
-    })
-    const pendingPlayers = pending.slice(0, MAX_DISPLAY).map(r => {
-      const posInfo = processPosition(r.position)
-      return { 
-        ...r, 
-        registerTimeText: fmtTime(r.registerTime),
-        ...posInfo
-      }
-    })
-    const leavePlayers = leave.slice(0, MAX_DISPLAY).map(r => {
-      const posInfo = processPosition(r.position)
-      return { 
-        ...r, 
-        registerTimeText: fmtTime(r.registerTime),
-        ...posInfo
-      }
-    })
+    }
+
+    const confirmedPlayers = confirmed.slice(0, MAX_DISPLAY).map(processPlayer)
+    const pendingPlayers = pending.slice(0, MAX_DISPLAY).map(processPlayer)
+    const leavePlayers = leave.slice(0, MAX_DISPLAY).map(processPlayer)
 
     // 活动状态
     const now = new Date()
@@ -179,6 +195,8 @@ Page({
       statusText = '已结束'; statusClass = 'tag-gray'; effectiveStatus = 'finished'
     } else if (act.status === 'cancelled') {
       statusText = '已取消'; statusClass = 'tag-red'; effectiveStatus = 'cancelled'
+    } else if (act.status === 'ongoing') {
+      statusText = '进行中'; statusClass = 'tag-blue'; effectiveStatus = 'ongoing'
     } else {
       statusText = '报名中'; statusClass = 'tag-green'; effectiveStatus = 'open'
     }
@@ -564,23 +582,28 @@ Page({
 
       const openid = app.globalData.openid || wx.getStorageSync('openid')
 
-      // 保存到数据库
+      // 保存到数据库 - 使用 openid 作为 _id，确保一致性
+      // 注意：set 方法的 data 中不能包含 _id，_id 在 doc() 中指定
       await db.collection('users').doc(openid).set({
         data: {
+          openid: openid,
           nickName: tempNickName,
           avatarUrl: finalAvatarUrl,
-          position: '',
+          positions: [],
           updatedAt: new Date()
         }
       })
 
-      // 更新全局数据
+      // 更新全局数据和本地存储
       const userInfo = {
+        _id: openid,
+        openid: openid,
         nickName: tempNickName,
         avatarUrl: finalAvatarUrl,
-        position: ''
+        positions: []
       }
       app.globalData.userInfo = userInfo
+      wx.setStorageSync('userInfo', userInfo)
 
       wx.hideLoading()
       this.setData({ showUserInfoModal: false })

@@ -103,19 +103,43 @@ Page({
         return labels.join('/')
       }
       
-      // 获取已确认的球员
-      const confirmedPlayers = registrations
-        .filter(r => r.status === 'confirmed')
-        .map(r => ({
+      // 获取所有报名用户的最新信息
+      const confirmedRegs = registrations.filter(r => r.status === 'confirmed')
+      const userIds = confirmedRegs.map(r => r.openid)
+      
+      // 批量获取最新用户信息（分批查询，每批最多20个）
+      let latestUsers = {}
+      if (userIds.length > 0) {
+        try {
+          const batchSize = 20
+          for (let i = 0; i < userIds.length; i += batchSize) {
+            const batch = userIds.slice(i, i + batchSize)
+            const usersRes = await db.collection('users').where({
+              _id: db.command.in(batch)
+            }).get()
+            usersRes.data.forEach(u => {
+              latestUsers[u._id] = u
+            })
+          }
+        } catch (e) {
+          console.log('获取用户信息失败', e)
+        }
+      }
+      
+      // 获取已确认的球员（使用最新用户信息）
+      const confirmedPlayers = confirmedRegs.map(r => {
+        const latestUser = latestUsers[r.openid]
+        return {
           openid: r.openid,
-          nickName: r.nickName,
-          shortName: this.getShortName(r.nickName),
-          avatarUrl: r.avatarUrl,
-          positionLabel: getPositionLabelString(r.position),
+          nickName: latestUser?.nickName || r.nickName,
+          shortName: this.getShortName(latestUser?.nickName || r.nickName),
+          avatarUrl: latestUser?.avatarUrl || r.avatarUrl,
+          positionLabel: getPositionLabelString(latestUser?.positions || r.position),
           isOnField: false,
           x: 50,
           y: 80
-        }))
+        }
+      })
       
       // 加载已保存的战术
       let savedPositions = {}
