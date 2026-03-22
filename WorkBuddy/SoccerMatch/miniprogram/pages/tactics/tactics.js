@@ -11,7 +11,11 @@ Page({
     benchPlayers: [],
     canEdit: false,
     selectedPlayer: null,
-    fieldRect: null
+    fieldRect: null,
+    // 拖拽相关
+    draggingPlayer: null,
+    dragInfo: null,
+    dragStartPos: null
   },
 
   onLoad(options) {
@@ -198,8 +202,6 @@ Page({
       selectedPlayer: null
     })
     
-    wx.showToast({ title: '已下场', icon: 'none' })
-    
     e.stopPropagation()
   },
 
@@ -233,8 +235,6 @@ Page({
       benchPlayers: benchPlayers.filter(p => p.openid !== player.openid),
       selectedPlayer: player.openid
     })
-    
-    wx.showToast({ title: '已上场', icon: 'none' })
   },
 
 
@@ -282,6 +282,152 @@ Page({
       console.error('保存失败', e)
       wx.hideLoading()
       wx.showToast({ title: '保存失败', icon: 'error' })
+    }
+  },
+
+  // 开始拖拽
+  onPlayerDragStart(e) {
+    if (!this.data.canEdit) return
+    
+    const { openid, index, type } = e.currentTarget.dataset
+    const { onFieldPlayers, benchPlayers } = this.data
+    
+    // 获取球员信息
+    const player = type === 'onField' 
+      ? onFieldPlayers[index]
+      : benchPlayers[index]
+    
+    if (!player) return
+    
+    // 获取球场位置
+    const query = this.createSelectorQuery()
+    query.select('#field').boundingClientRect()
+    query.exec((res) => {
+      if (res[0]) {
+        this.setData({
+          fieldRect: res[0],
+          draggingPlayer: openid,
+          dragStartPos: {
+            x: e.touches[0].clientX,
+            y: e.touches[0].clientY,
+            playerX: player.x,
+            playerY: player.y,
+            type: type,
+            index: index
+          },
+          dragInfo: {
+            openid: player.openid,
+            shortName: player.shortName,
+            avatarUrl: player.avatarUrl,
+            x: e.touches[0].clientX - 40,
+            y: e.touches[0].clientY - 40
+          }
+        })
+      }
+    })
+  },
+
+  // 拖拽中
+  onPlayerDragMove(e) {
+    if (!this.data.draggingPlayer || !this.data.dragInfo) return
+    
+    const { clientX, clientY } = e.touches[0]
+    
+    this.setData({
+      'dragInfo.x': clientX - 40,
+      'dragInfo.y': clientY - 40
+    })
+  },
+
+  // 结束拖拽
+  onPlayerDragEnd(e) {
+    if (!this.data.draggingPlayer || !this.data.dragStartPos) return
+    
+    const { fieldRect, onFieldPlayers, benchPlayers, dragStartPos } = this.data
+    const { clientX, clientY } = e.changedTouches[0]
+    
+    // 判断是否在球场内
+    const isInField = clientX >= fieldRect.left && 
+                      clientX <= fieldRect.right &&
+                      clientY >= fieldRect.top && 
+                      clientY <= fieldRect.bottom
+    
+    if (isInField) {
+      // 在球场内松开 - 放置到该位置
+      const relativeX = ((clientX - fieldRect.left) / fieldRect.width) * 100
+      const relativeY = ((clientY - fieldRect.top) / fieldRect.height) * 100
+      
+      // 限制在球场范围内
+      const clampedX = Math.max(5, Math.min(95, relativeX))
+      const clampedY = Math.max(5, Math.min(95, relativeY))
+      
+      if (dragStartPos.type === 'bench') {
+        // 从替补区拖到球场 - 上场
+        const player = benchPlayers[dragStartPos.index]
+        const newOnFieldPlayer = {
+          ...player,
+          isOnField: true,
+          x: clampedX,
+          y: clampedY
+        }
+        
+        // 替补自动往前排序（移除该球员）
+        const newBenchPlayers = benchPlayers.filter((_, i) => i !== dragStartPos.index)
+        
+        this.setData({
+          onFieldPlayers: [...onFieldPlayers, newOnFieldPlayer],
+          benchPlayers: newBenchPlayers,
+          draggingPlayer: null,
+          dragInfo: null,
+          dragStartPos: null
+        })
+        
+
+      } else {
+        // 从球场内拖动 - 更新位置
+        const updatedPlayers = onFieldPlayers.map(p => {
+          if (p.openid === this.data.draggingPlayer) {
+            return { ...p, x: clampedX, y: clampedY }
+          }
+          return p
+        })
+        
+        this.setData({
+          onFieldPlayers: updatedPlayers,
+          draggingPlayer: null,
+          dragInfo: null,
+          dragStartPos: null
+        })
+      }
+    } else {
+      // 不在球场内松开
+      if (dragStartPos.type === 'onField') {
+        // 从球场拖出 - 下场
+        const player = onFieldPlayers[dragStartPos.index]
+        
+        // 从场上移除
+        const newOnFieldPlayers = onFieldPlayers.filter((_, i) => i !== dragStartPos.index)
+        
+        // 添加到替补末尾
+        const newBenchPlayers = [...benchPlayers, { ...player, isOnField: false }]
+        
+        this.setData({
+          onFieldPlayers: newOnFieldPlayers,
+          benchPlayers: newBenchPlayers,
+          draggingPlayer: null,
+          dragInfo: null,
+          dragStartPos: null
+        })
+        
+
+      } else {
+        // 从替补区拖出但未进球场 - 回到原位
+        this.setData({
+          draggingPlayer: null,
+          dragInfo: null,
+          dragStartPos: null
+        })
+      }
     }
   },
 

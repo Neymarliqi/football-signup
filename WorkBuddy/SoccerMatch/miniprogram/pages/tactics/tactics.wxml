@@ -26,15 +26,27 @@
       <view 
         wx:for="{{onFieldPlayers}}" 
         wx:key="openid"
-        class="player {{selectedPlayer === item.openid ? 'selected' : ''}}"
-        style="left: {{item.x}}%; top: {{item.y}}%;"
-        bindtap="onPlayerTap"
-        bindlongpress="onPlayerLongPress"
+        class="player {{selectedPlayer === item.openid ? 'selected' : ''}} {{draggingPlayer === item.openid ? 'dragging' : ''}}"
+        style="left: {{item.x}}%; top: {{item.y}}%; {{draggingPlayer === item.openid ? 'z-index: 100;' : ''}}"
+        bindtouchstart="onPlayerDragStart"
+        bindtouchmove="onPlayerDragMove"
+        bindtouchend="onPlayerDragEnd"
         data-openid="{{item.openid}}"
         data-index="{{index}}"
+        data-type="onField"
       >
         <image class="player-avatar" src="{{item.avatarUrl || '/images/default-avatar.png'}}" mode="aspectFill"></image>
         <text class="player-name">{{item.shortName}}</text>
+      </view>
+
+      <!-- 拖拽中的球员（跟随手指） -->
+      <view 
+        wx:if="{{draggingPlayer && dragInfo}}"
+        class="player dragging"
+        style="left: {{dragInfo.x}}px; top: {{dragInfo.y}}px; position: fixed; z-index: 999; pointer-events: none;"
+      >
+        <image class="player-avatar" src="{{dragInfo.avatarUrl || '/images/default-avatar.png'}}" mode="aspectFill"></image>
+        <text class="player-name">{{dragInfo.shortName}}</text>
       </view>
     </view>
   </view>
@@ -49,9 +61,13 @@
     <view 
       wx:for="{{benchPlayers}}" 
       wx:key="openid"
-      class="bench-player"
-      bindtap="addToField"
-      data-player="{{item}}"
+      class="bench-player {{draggingPlayer === item.openid ? 'dragging' : ''}}"
+      bindtouchstart="onPlayerDragStart"
+      bindtouchmove="onPlayerDragMove"
+      bindtouchend="onPlayerDragEnd"
+      data-openid="{{item.openid}}"
+      data-index="{{index}}"
+      data-type="bench"
     >
       <image class="bench-avatar" src="{{item.avatarUrl || '/images/default-avatar.png'}}" mode="aspectFill"></image>
       <text class="bench-name">{{item.shortName}}</text>
