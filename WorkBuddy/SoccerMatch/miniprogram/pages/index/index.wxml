@@ -68,7 +68,7 @@
       </view>
       <view class="act-info-item">
         <text class="info-icon">📍</text>
-        <text class="info-text" style="max-width: 280rpx; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{item.location}}</text>
+        <text class="info-text" style="max-width: 280rpx; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{item.locationName || '待定'}}</text>
       </view>
     </view>
 
@@ -145,5 +145,5 @@
   </view>
 
   <!-- 底部安全区 -->
-  <view style="height: 120rpx;"></view>
+  <view style="height: 160rpx;"></view>
 </view>

@@ -5,6 +5,7 @@
     "pages/activity/create",
     "pages/tactics/tactics",
     "pages/profile/profile",
+    "pages/profile/history",
     "pages/admin/admin"
   ],
   "tabBar": {

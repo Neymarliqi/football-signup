@@ -108,11 +108,32 @@
 }
 
 /* 位置偏好 */
+.section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 24rpx;
+}
+
 .section-title {
   font-size: 30rpx;
   font-weight: bold;
   color: #1a1a2e;
-  margin-bottom: 24rpx;
+}
+
+/* 更多按钮 - 管理操作样式：灰色文字、无背景 */
+.section-more {
+  display: flex;
+  align-items: center;
+  gap: 4rpx;
+  font-size: 26rpx;
+  color: #666;
+  padding: 8rpx 0;
+}
+
+.more-arrow {
+  font-size: 28rpx;
+  color: #999;
 }
 
 .position-grid {
@@ -205,76 +226,126 @@
   flex-shrink: 0;
 }
 
-/* 设置项 */
-.setting-item {
+/* 关于 */
+.about-item {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 24rpx 0;
-  border-bottom: 2rpx solid #f5f5f5;
+  padding: 20rpx 0;
 }
 
-.setting-item:last-child { border-bottom: none; }
-
-.setting-left {
-  display: flex;
-  align-items: center;
-  gap: 16rpx;
-}
-
-.setting-icon { font-size: 32rpx; }
-.setting-label { font-size: 28rpx; color: #333; }
-.setting-arrow { font-size: 36rpx; color: #bbb; }
-.setting-version { font-size: 24rpx; color: #bbb; }
-
-/* 管理员申请 */
-.admin-apply {
-  display: flex;
-  align-items: center;
-  gap: 20rpx;
-  border: 2rpx dashed #ddd;
-}
-
-.apply-icon { font-size: 44rpx; }
-
-.apply-info { flex: 1; }
-
-.apply-title {
+.about-name {
   font-size: 28rpx;
-  color: #555;
+  color: #333;
+}
+
+.about-version {
+  font-size: 24rpx;
+  color: #999;
+}
+
+/* ====== 底部弹窗样式 ====== */
+.action-sheet {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 10000;
+}
+
+.sheet-mask {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0,0,0,0.5);
+}
+
+.sheet-content {
+  position: absolute;
+  left: 30rpx;
+  right: 30rpx;
+  bottom: 30rpx;
+  background: #fff;
+  border-radius: 24rpx;
+  overflow: hidden;
+}
+
+.sheet-title {
+  text-align: center;
+  font-size: 28rpx;
+  color: #999;
+  padding: 30rpx;
+  border-bottom: 1rpx solid #f0f0f0;
+}
+
+.sheet-options {
+  display: flex;
+  flex-direction: column;
+}
+
+.sheet-item {
+  text-align: center;
+  padding: 32rpx;
+  font-size: 32rpx;
+  color: #333;
+  border-bottom: 1rpx solid #f0f0f0;
+}
+
+.sheet-item:active {
+  background: #f8f8f8;
+}
+
+/* 带图标的选项 */
+.sheet-item-with-icon {
+  display: flex;
+  align-items: center;
+  padding: 24rpx 32rpx;
+  border-bottom: 1rpx solid #f0f0f0;
+}
+
+.sheet-item-with-icon:active {
+  background: #f8f8f8;
+}
+
+.sheet-item-avatar {
+  width: 80rpx;
+  height: 80rpx;
+  border-radius: 50%;
+  margin-right: 24rpx;
+  background: #f0f0f0;
+}
+
+.sheet-item-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.sheet-item-title {
+  font-size: 32rpx;
+  color: #333;
   font-weight: 500;
 }
 
-.apply-sub {
-  font-size: 22rpx;
-  color: #aaa;
-  margin-top: 4rpx;
+.sheet-item-desc {
+  font-size: 26rpx;
+  color: #999;
+  margin-top: 6rpx;
 }
 
-.apply-arrow { font-size: 36rpx; color: #bbb; }
-
-/* 管理员标识 */
-.admin-badge-wrap {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  background: linear-gradient(135deg, #1a1a2e, #0f3460);
-  border-radius: 20rpx;
-  padding: 24rpx 30rpx;
-  margin-bottom: 24rpx;
+.sheet-cancel {
+  text-align: center;
+  padding: 32rpx;
+  font-size: 32rpx;
+  color: #999;
+  background: #f8f8f8;
+  margin-top: 16rpx;
+  border-radius: 24rpx;
 }
 
-.admin-badge {
-  color: #2ecc71;
-  font-size: 28rpx;
-  font-weight: bold;
-}
-
-.admin-go-btn {
-  background: rgba(46,204,113,0.2);
-  color: #2ecc71;
-  padding: 12rpx 24rpx;
-  border-radius: 20rpx;
-  font-size: 24rpx;
-  border: 2rpx solid #2ecc71;
+.sheet-cancel:active {
+  background: #f0f0f0;
 }
