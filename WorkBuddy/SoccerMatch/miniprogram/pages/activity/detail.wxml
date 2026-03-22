@@ -123,21 +123,14 @@
     </view>
   </view>
 
-  <!-- 已报名球员列表 -->
+  <!-- 已报名球员列表 - 头像网格布局 -->
   <view class="card">
     <view class="section-title">✅ 已报名 ({{confirmedCount}})</view>
     <view wx:if="{{confirmedPlayers.length === 0}}" class="empty-tip">暂无人报名，快来第一个！</view>
-    <view class="player-list">
-      <view wx:for="{{confirmedPlayers}}" wx:key="openid" class="player-item">
-        <view class="player-rank">{{index + 1}}</view>
-        <image class="player-avatar" src="{{item.avatarUrl || placeholderAvatar}}" mode="aspectFill"></image>
-        <view class="player-info">
-          <view class="player-name">{{item.nickName}}</view>
-          <view class="player-position" wx:if="{{item.position}}">
-            <text class="position-badge">{{item.position}}</text>
-          </view>
-        </view>
-        <view class="player-time">{{item.registerTimeText}}</view>
+    <view class="player-avatar-grid" wx:if="{{confirmedPlayers.length > 0}}">
+      <view wx:for="{{confirmedPlayers}}" wx:key="openid" class="avatar-grid-item">
+        <image class="grid-avatar" src="{{item.avatarUrl || placeholderAvatar}}" mode="aspectFill"></image>
+        <view class="grid-nickname">{{item.nickName}}</view>
       </view>
     </view>
   </view>

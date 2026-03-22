@@ -96,7 +96,34 @@ Page({
 
     // 详情页最多显示30人，防止数据过多影响性能
     const MAX_DISPLAY = 30
-    const confirmedPlayers = confirmed.slice(0, MAX_DISPLAY).map(r => ({ ...r, registerTimeText: fmtTime(r.registerTime) }))
+    
+    // 处理位置信息：英文转中文，处理多个位置
+    const processPosition = (position) => {
+      if (!position) return null
+      const posMap = {
+        'GK': '门将', 'CB': '中卫', 'LB': '左后卫', 'RB': '右后卫',
+        'CM': '中场', 'CDM': '后腰', 'CAM': '前腰', 'LM': '左前卫',
+        'RM': '右前卫', 'LW': '左边锋', 'RW': '右边锋', 'ST': '前锋',
+        'CF': '中锋', 'SW': '清道夫', 'LWB': '左翼卫', 'RWB': '右翼卫'
+      }
+      // 支持逗号、空格、斜杠分隔的多个位置
+      const positions = position.split(/[,，\/\s]+/).filter(p => p.trim())
+      const chinesePositions = positions.map(p => posMap[p.trim().toUpperCase()] || p.trim())
+      return {
+        displayPosition: chinesePositions[0].substring(0, 2), // 头像上只显示前2个字
+        allPositions: chinesePositions.join('/'), // 全部位置用/分隔
+        hasMultiPositions: chinesePositions.length > 1
+      }
+    }
+    
+    const confirmedPlayers = confirmed.slice(0, MAX_DISPLAY).map(r => {
+      const posInfo = processPosition(r.position)
+      return { 
+        ...r, 
+        registerTimeText: fmtTime(r.registerTime),
+        ...posInfo
+      }
+    })
     const pendingPlayers = pending.slice(0, MAX_DISPLAY).map(r => ({ ...r, registerTimeText: fmtTime(r.registerTime) }))
     const leavePlayers = leave.slice(0, MAX_DISPLAY).map(r => ({ ...r, registerTimeText: fmtTime(r.registerTime) }))
 
@@ -529,11 +556,25 @@ Page({
         address: activity.location || ''
       })
     } else if (activity.location) {
-      // 没有经纬度，提示
-      wx.showModal({
-        title: '提示',
-        content: '该活动未设置经纬度，无法调起地图导航\n\n请发布活动时在地图上选择位置',
-        showCancel: false
+      // 没有经纬度但有地址，使用微信内置地图查看位置
+      wx.getLocation({
+        type: 'gcj02',
+        success: (res) => {
+          wx.openLocation({
+            latitude: res.latitude,
+            longitude: res.longitude,
+            scale: 18,
+            name: activity.locationName || '踢球地点',
+            address: activity.location
+          })
+        },
+        fail: () => {
+          wx.showModal({
+            title: '提示',
+            content: '该活动未设置精确导航位置\n\n建议发布活动时在地图上选择具体位置，以获得更好的导航体验',
+            showCancel: false
+          })
+        }
       })
     } else {
       wx.showToast({ title: '暂无地址信息', icon: 'none' })
@@ -652,14 +693,6 @@ Page({
       console.error('删除活动失败', e)
       wx.showToast({ title: '删除失败', icon: 'none' })
     }
-  },
-
-  // 分享
-  onShare() {
-    wx.showShareMenu({
-      withShareTicket: true,
-      menus: ['shareAppMessage', 'shareTimeline']
-    })
   },
 
   // 分享

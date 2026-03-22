@@ -145,6 +145,7 @@
   text-align: center;
   border: 2rpx solid transparent;
   transition: all 0.2s;
+  position: relative;
 }
 
 .pos-option-active {
@@ -161,6 +162,26 @@
 }
 
 .pos-option-active .pos-label { color: #27ae60; font-weight: bold; }
+
+/* 选择顺序角标 - 参考微信图片选择：首/备 */
+.pos-order-badge {
+  position: absolute;
+  top: -8rpx;
+  right: -8rpx;
+  min-width: 36rpx;
+  height: 36rpx;
+  padding: 0 8rpx;
+  background: #2ecc71;
+  color: #fff;
+  font-size: 20rpx;
+  font-weight: bold;
+  border-radius: 18rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2rpx solid #fff;
+  box-shadow: 0 2rpx 8rpx rgba(0,0,0,0.2);
+}
 
 /* 统计 */
 .stats-row {

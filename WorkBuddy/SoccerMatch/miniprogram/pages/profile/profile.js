@@ -13,14 +13,14 @@ Page({
     wechatUserInfo: {},
     placeholderAvatar: 'https://mmbiz.qpic.cn/mmbiz/icTdbqWNOwNRna42FI242Lcia07jQodd2FJGIYQfG0LAJGFxM4FbnQP6yfMxBgJ0F3YRqJCJ1aPAK2dQagdusBZg/0',
     positions: [
-      { value: 'GK', label: '守门员', emoji: '🧤' },
-      { value: 'CB', label: '中后卫', emoji: '🛡' },
-      { value: 'LB', label: '边后卫', emoji: '↩' },
-      { value: 'CM', label: '中场', emoji: '⚙' },
-      { value: 'CAM', label: '前腰', emoji: '🎯' },
-      { value: 'LW', label: '边锋', emoji: '⚡' },
+      { value: 'ALL', label: '全能', emoji: '⭐' },
       { value: 'ST', label: '中锋', emoji: '🎯' },
-      { value: 'ALL', label: '全能', emoji: '⭐' }
+      { value: 'LW', label: '边锋', emoji: '⚡' },
+      { value: 'CAM', label: '前腰', emoji: '🎯' },
+      { value: 'CM', label: '中场', emoji: '⚙' },
+      { value: 'LB', label: '边后卫', emoji: '↩' },
+      { value: 'CB', label: '中后卫', emoji: '🛡' },
+      { value: 'GK', label: '守门员', emoji: '🧤' }
     ],
     myStats: {
       totalGames: 0,
@@ -59,10 +59,11 @@ Page({
       userInfo.positions = []
     }
     
-    // 处理位置数据，添加选中状态
+    // 处理位置数据，添加选中状态和选择顺序
     const positions = this.data.positions.map(pos => ({
       ...pos,
-      isSelected: userInfo.positions.includes(pos.value)
+      isSelected: userInfo.positions.includes(pos.value),
+      selectOrder: userInfo.positions.indexOf(pos.value) + 1 // 选择顺序（1、2、3...）
     }))
     
     this.setData({ userInfo, shortOpenid, positions })
@@ -269,7 +270,7 @@ Page({
     this.setData({ editingName: false })
   },
 
-  // 选择位置（多选）
+  // 选择位置（多选，按选择顺序排序，参考微信图片选择逻辑）
   selectPosition(e) {
     const pos = e.currentTarget.dataset.pos
     const currentPositions = this.data.userInfo.positions || []
@@ -279,21 +280,27 @@ Page({
       // 已选中，取消选择
       newPositions = currentPositions.filter(p => p !== pos)
     } else {
-      // 未选中，添加选择
+      // 未选中，添加到末尾（选择顺序）
+      // 最多选择3个位置
+      if (currentPositions.length >= 3) {
+        wx.showToast({ title: '最多选择3个位置', icon: 'none' })
+        return
+      }
       newPositions = [...currentPositions, pos]
     }
     
     const userInfo = { ...this.data.userInfo, positions: newPositions }
     
-    // 更新位置选中状态
+    // 更新位置选中状态和选择顺序
     const positions = this.data.positions.map(p => ({
       ...p,
-      isSelected: newPositions.includes(p.value)
+      isSelected: newPositions.includes(p.value),
+      selectOrder: newPositions.indexOf(p.value) + 1 // 选择顺序（1、2、3...）
     }))
     
     this.setData({ userInfo, positions })
     this.saveUserInfo(userInfo)
-    // 不显示气泡提醒，只通过高亮反馈
+    // 不显示气泡提醒，只通过高亮和角标反馈
   },
 
   saveUserInfo(userInfo) {

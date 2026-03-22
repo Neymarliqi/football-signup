@@ -27,13 +27,15 @@
 
   <!-- 位置偏好 -->
   <view class="card">
-    <view class="section-title">⚽ 位置偏好 <text class="section-subtitle">（可多选）</text></view>
+    <view class="section-title">⚽ 位置偏好 <text class="section-subtitle">（按选择顺序排序，最多3个）</text></view>
     <view class="position-grid">
       <view wx:for="{{positions}}" wx:key="value"
             class="pos-option {{item.isSelected ? 'pos-option-active' : ''}}"
             bindtap="selectPosition" data-pos="{{item.value}}">
         <text class="pos-emoji">{{item.emoji}}</text>
         <text class="pos-label">{{item.label}}</text>
+        <!-- 选中顺序角标：1显示"首"，2、3显示"备" -->
+        <view class="pos-order-badge" wx:if="{{item.isSelected}}">{{item.selectOrder === 1 ? '首' : '备'}}</view>
       </view>
     </view>
   </view>
