@@ -1,63 +1,46 @@
 <!-- pages/profile/history.wxml - 参与记录列表 -->
 <view class="container">
+  
   <!-- 统计卡片 -->
   <view class="stats-card">
-    <view class="stat-item">
-      <view class="stat-num text-primary">{{myStats.totalGames}}</view>
-      <view class="stat-label">参与场次</view>
-    </view>
-    <view class="stat-divider"></view>
-    <view class="stat-item">
-      <view class="stat-num text-blue">{{myStats.confirmedCount}}</view>
-      <view class="stat-label">已报名</view>
-    </view>
-    <view class="stat-divider"></view>
-    <view class="stat-item">
-      <view class="stat-num" style="color: #f39c12;">{{myStats.pendingCount}}</view>
-      <view class="stat-label">待定</view>
-    </view>
-    <view class="stat-divider"></view>
-    <view class="stat-item">
-      <view class="stat-num text-danger">{{myStats.leaveCount}}</view>
-      <view class="stat-label">请假</view>
+    <view class="stats-row">
+      <view class="stat-block">
+        <view class="stat-num text-primary">{{myStats.totalGames}}</view>
+        <view class="stat-label">参与场次</view>
+      </view>
+      <view class="stat-block">
+        <view class="stat-num text-blue">{{myStats.confirmedCount}}</view>
+        <view class="stat-label">已报名</view>
+      </view>
+      <view class="stat-block">
+        <view class="stat-num" style="color: #f39c12;">{{myStats.pendingCount}}</view>
+        <view class="stat-label">待定次数</view>
+      </view>
+      <view class="stat-block">
+        <view class="stat-num text-danger">{{myStats.leaveCount}}</view>
+        <view class="stat-label">请假次数</view>
+      </view>
     </view>
   </view>
 
-  <!-- 记录列表 -->
-  <view class="history-list">
-    <view wx:if="{{history.length === 0 && !loading}}" class="empty-state">
-      <view class="empty-icon">📋</view>
-      <view class="empty-text">暂无参与记录</view>
-      <view class="empty-sub">快去报名参加活动吧~</view>
+  <!-- 历史记录列表 -->
+  <view class="card">
+    <view class="section-title">📅 全部记录</view>
+    <view wx:if="{{history.length === 0 && !isLoading}}" class="empty-tip">暂无参与记录</view>
+    
+    <view wx:for="{{history}}" wx:key="_id" class="history-item" bindtap="goDetail" data-id="{{item._id}}">
+      <view class="history-left">
+        <view class="history-title">{{item.title}}</view>
+        <view class="history-date">{{item.displayDate}}  {{item.time || item.displayTime}}</view>
+        <view wx:if="{{item.location}}" class="history-location">📍 {{item.location}}</view>
+      </view>
+      <view class="history-status tag {{item.myStatusClass}}">{{item.myStatusText}}</view>
     </view>
 
-    <view wx:for="{{history}}" wx:key="_id" class="history-card" bindtap="goDetail" data-id="{{item._id}}">
-      <view class="card-header">
-        <view class="activity-title">{{item.title}}</view>
-        <view class="activity-status tag {{item.myStatusClass}}">{{item.myStatusText}}</view>
-      </view>
-      <view class="card-body">
-        <view class="info-row">
-          <text class="info-icon">📅</text>
-          <text class="info-text">{{item.displayDate}} {{item.time}}</text>
-        </view>
-        <view class="info-row">
-          <text class="info-icon">📍</text>
-          <text class="info-text">{{item.locationName || item.location || '待定'}}</text>
-        </view>
-        <view class="info-row" wx:if="{{item.matchType}}">
-          <text class="info-icon">⚽</text>
-          <text class="info-text">{{item.matchType}}</text>
-        </view>
-      </view>
-    </view>
-
-    <!-- 加载更多 -->
-    <view wx:if="{{loadingMore}}" class="loading-more">
-      <view class="loading-dot"></view>
-      <view class="loading-dot"></view>
-      <view class="loading-dot"></view>
-    </view>
-    <view wx:if="{{noMore && history.length > 0}}" class="no-more">没有更多了</view>
+    <!-- 加载状态 -->
+    <view wx:if="{{isLoading}}" class="loading-tip">加载中...</view>
+    <view wx:if="{{!hasMore && history.length > 0}}" class="no-more-tip">没有更多了</view>
   </view>
+
+  <view style="height: 40rpx;"></view>
 </view>

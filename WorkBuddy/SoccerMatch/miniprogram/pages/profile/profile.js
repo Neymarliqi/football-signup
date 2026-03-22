@@ -287,15 +287,15 @@ Page({
     })
   },
 
-  // 加载历史记录
+  // 加载历史记录（只加载全部用于统计，显示前5条）
   async loadHistory() {
     const openid = app.globalData.openid || wx.getStorageSync('openid')
     if (!openid) return
 
     try {
+      // 获取所有活动用于统计
       const res = await db.collection('activities')
         .orderBy('activityDate', 'desc')
-        .limit(20)
         .get()
 
       const allActivities = res.data
@@ -306,7 +306,7 @@ Page({
 
       let totalGames = 0, confirmedCount = 0, pendingCount = 0, leaveCount = 0
 
-      const history = myActivities.map(act => {
+      const allHistory = myActivities.map(act => {
         const myReg = (act.registrations || []).find(r => r.openid === openid)
         const actDate = act.activityDate instanceof Date ? act.activityDate : new Date(act.activityDate)
         
@@ -329,13 +329,26 @@ Page({
         }
       })
 
+      // 只显示前5条
+      const displayHistory = allHistory.slice(0, 5)
+      const hasMore = allHistory.length > 5
+
       this.setData({
-        history,
+        history: displayHistory,
+        historyTotal: allHistory.length,
+        hasMoreHistory: hasMore,
         myStats: { totalGames, confirmedCount, pendingCount, leaveCount }
       })
     } catch (e) {
       console.error('加载历史失败', e)
     }
+  },
+
+  // 跳转到历史列表页
+  goHistoryList() {
+    wx.navigateTo({
+      url: '/pages/profile/history'
+    })
   },
 
   formatDate(date) {

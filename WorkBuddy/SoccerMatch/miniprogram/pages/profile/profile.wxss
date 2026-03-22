@@ -108,11 +108,22 @@
 }
 
 /* 位置偏好 */
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24rpx;
+}
+
 .section-title {
   font-size: 30rpx;
   font-weight: bold;
   color: #1a1a2e;
-  margin-bottom: 24rpx;
+}
+
+.section-more {
+  font-size: 26rpx;
+  color: #666;
 }
 
 .position-grid {

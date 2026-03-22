@@ -11,99 +11,66 @@ Page({
       pendingCount: 0,
       leaveCount: 0
     },
-    loading: false,
-    loadingMore: false,
-    noMore: false,
     pageSize: 20,
-    currentPage: 0
+    currentPage: 0,
+    hasMore: true,
+    isLoading: false,
+    isRefreshing: false
   },
 
   onLoad() {
     this.loadHistory(true)
   },
 
-  onShow() {
-    // 更新TabBar选中状态
-    if (typeof this.getTabBar === 'function' && this.getTabBar()) {
-      this.getTabBar().setData({ selected: 1 })
-    }
-  },
-
-  // 下拉刷新
   onPullDownRefresh() {
-    this.setData({
-      currentPage: 0,
-      noMore: false,
-      history: []
-    })
+    this.setData({ isRefreshing: true })
     this.loadHistory(true).then(() => {
+      this.setData({ isRefreshing: false })
       wx.stopPullDownRefresh()
     })
   },
 
-  // 上拉加载更多
   onReachBottom() {
-    if (this.data.noMore || this.data.loadingMore) return
-    this.loadHistory(false)
+    if (this.data.hasMore && !this.data.isLoading) {
+      this.loadHistory(false)
+    }
   },
 
   // 加载历史记录
   async loadHistory(isRefresh = false) {
+    if (this.data.isLoading) return
+
     const openid = app.globalData.openid || wx.getStorageSync('openid')
     if (!openid) {
       wx.showToast({ title: '请先登录', icon: 'none' })
       return
     }
 
-    if (isRefresh) {
-      this.setData({ loading: true })
-    } else {
-      this.setData({ loadingMore: true })
-    }
+    this.setData({ isLoading: true })
 
     try {
-      const { pageSize, currentPage, history } = this.data
-      const skip = isRefresh ? 0 : history.length
+      const page = isRefresh ? 0 : this.data.currentPage + 1
+      const pageSize = this.data.pageSize
 
-      // 获取活动列表
+      // 获取活动
       const res = await db.collection('activities')
         .orderBy('activityDate', 'desc')
-        .skip(skip)
+        .skip(page * pageSize)
         .limit(pageSize)
         .get()
 
-      const allActivities = res.data
+      const activities = res.data
       
       // 筛选出我参与的活动
-      const myActivities = allActivities.filter(act => {
+      const myActivities = activities.filter(act => {
         const regs = act.registrations || []
         return regs.some(r => r.openid === openid)
       })
 
-      // 如果没有更多数据了
-      if (myActivities.length === 0 && !isRefresh) {
-        this.setData({ noMore: true, loadingMore: false })
-        return
-      }
-
-      // 计算统计数据（只在刷新时计算）
-      let stats = isRefresh ? {
-        totalGames: 0,
-        confirmedCount: 0,
-        pendingCount: 0,
-        leaveCount: 0
-      } : { ...this.data.myStats }
-
+      // 处理数据
       const newHistory = myActivities.map(act => {
         const myReg = (act.registrations || []).find(r => r.openid === openid)
         const actDate = act.activityDate instanceof Date ? act.activityDate : new Date(act.activityDate)
-        
-        // 统计
-        if (isRefresh) {
-          if (myReg?.status === 'confirmed') { stats.confirmedCount++; stats.totalGames++ }
-          if (myReg?.status === 'pending') stats.pendingCount++
-          if (myReg?.status === 'leave') stats.leaveCount++
-        }
 
         const statusMap = {
           confirmed: { text: '✅ 报名', cls: 'tag-green' },
@@ -116,33 +83,73 @@ Page({
           myStatus: myReg?.status,
           myStatusText: statusMap[myReg?.status]?.text || '',
           myStatusClass: statusMap[myReg?.status]?.cls || '',
-          displayDate: this.formatDate(actDate)
+          displayDate: this.formatDate(actDate),
+          displayTime: this.formatTime(actDate)
         }
       })
 
-      this.setData({
-        history: isRefresh ? newHistory : [...history, ...newHistory],
-        myStats: isRefresh ? stats : this.data.myStats,
-        loading: false,
-        loadingMore: false,
-        currentPage: isRefresh ? 1 : currentPage + 1
-      })
+      // 合并数据
+      const history = isRefresh ? newHistory : [...this.data.history, ...newHistory]
+      const hasMore = activities.length === pageSize
 
-      // 如果获取的数据少于pageSize，说明没有更多了
-      if (allActivities.length < pageSize) {
-        this.setData({ noMore: true })
+      // 如果是刷新，重新计算统计数据
+      let myStats = this.data.myStats
+      if (isRefresh) {
+        myStats = await this.calculateStats(openid)
       }
+
+      this.setData({
+        history,
+        currentPage: page,
+        hasMore,
+        myStats,
+        isLoading: false
+      })
     } catch (e) {
       console.error('加载历史失败', e)
-      this.setData({ loading: false, loadingMore: false })
+      this.setData({ isLoading: false })
       wx.showToast({ title: '加载失败', icon: 'none' })
     }
   },
 
+  // 计算统计数据
+  async calculateStats(openid) {
+    try {
+      const res = await db.collection('activities').get()
+      const allActivities = res.data
+      
+      const myActivities = allActivities.filter(act => {
+        const regs = act.registrations || []
+        return regs.some(r => r.openid === openid)
+      })
+
+      let totalGames = 0, confirmedCount = 0, pendingCount = 0, leaveCount = 0
+
+      myActivities.forEach(act => {
+        const myReg = (act.registrations || []).find(r => r.openid === openid)
+        if (myReg?.status === 'confirmed') { confirmedCount++; totalGames++ }
+        if (myReg?.status === 'pending') pendingCount++
+        if (myReg?.status === 'leave') leaveCount++
+      })
+
+      return { totalGames, confirmedCount, pendingCount, leaveCount }
+    } catch (e) {
+      console.error('计算统计失败', e)
+      return { totalGames: 0, confirmedCount: 0, pendingCount: 0, leaveCount: 0 }
+    }
+  },
+
   formatDate(date) {
+    const y = date.getFullYear()
     const m = date.getMonth() + 1
     const d = date.getDate()
-    return `${m}月${d}日`
+    return `${y}年${m}月${d}日`
+  },
+
+  formatTime(date) {
+    const h = date.getHours().toString().padStart(2, '0')
+    const min = date.getMinutes().toString().padStart(2, '0')
+    return `${h}:${min}`
   },
 
   goDetail(e) {

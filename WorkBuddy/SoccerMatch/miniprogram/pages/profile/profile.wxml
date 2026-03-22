@@ -63,7 +63,10 @@
 
   <!-- 参与记录 -->
   <view class="card">
-    <view class="section-title">📅 参与记录</view>
+    <view class="section-header">
+      <view class="section-title">📅 参与记录</view>
+      <view wx:if="{{hasMoreHistory}}" class="section-more" bindtap="goHistoryList">更多 ></view>
+    </view>
     <view wx:if="{{history.length === 0}}" class="empty-tip">暂无参与记录</view>
     <view wx:for="{{history}}" wx:key="_id" class="history-item" bindtap="goDetail" data-id="{{item._id}}">
       <view class="history-left">
