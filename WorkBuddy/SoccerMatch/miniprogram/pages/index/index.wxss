@@ -275,6 +275,28 @@
   text-align: center;
 }
 
+/* 头像与位置标签容器 */
+.avatar-with-position {
+  position: relative;
+  width: 72rpx;
+  height: 72rpx;
+}
+
+/* 头像上的位置标签 - 首页小尺寸（弱化样式） */
+.position-tag-sm {
+  position: absolute;
+  bottom: -2rpx;
+  right: -2rpx;
+  background: rgba(0, 0, 0, 0.5);
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 16rpx;
+  padding: 2rpx 6rpx;
+  border-radius: 8rpx;
+  font-weight: normal;
+  line-height: 1.2;
+  backdrop-filter: blur(2rpx);
+}
+
 .avatar-more {
   display: flex;
   align-items: center;

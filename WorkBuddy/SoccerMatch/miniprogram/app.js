@@ -23,7 +23,7 @@ App({
   },
 
   getUserInfo() {
-    // 从本地缓存读取用户信息
+    // 从本地缓存读取用户信息（优先使用本地最新数据）
     const userInfo = wx.getStorageSync('userInfo')
     if (userInfo) {
       this.globalData.userInfo = userInfo

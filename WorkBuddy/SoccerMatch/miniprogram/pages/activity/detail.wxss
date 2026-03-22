@@ -293,27 +293,49 @@
   flex-direction: column;
   align-items: center;
   width: calc((100% - 80rpx) / 5);
-  min-width: 100rpx;
+  min-width: 72rpx;
 }
 
 .grid-avatar {
-  width: 100rpx;
-  height: 100rpx;
+  width: 72rpx;
+  height: 72rpx;
   border-radius: 50%;
   background: #e0e0e0;
-  border: 4rpx solid #e8f8f0;
+  border: 3rpx solid #e8f8f0;
   flex-shrink: 0;
 }
 
 .grid-nickname {
-  font-size: 22rpx;
-  color: #333;
-  margin-top: 12rpx;
-  max-width: 100%;
+  font-size: 20rpx;
+  color: #666;
+  margin-top: 6rpx;
+  max-width: 80rpx;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
   text-align: center;
+}
+
+/* 头像与位置标签容器 */
+.avatar-with-position {
+  position: relative;
+  width: 72rpx;
+  height: 72rpx;
+}
+
+/* 头像上的位置标签 - 与首页保持一致 */
+.position-tag-on-avatar {
+  position: absolute;
+  bottom: -2rpx;
+  right: -2rpx;
+  background: rgba(0, 0, 0, 0.5);
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 16rpx;
+  padding: 2rpx 6rpx;
+  border-radius: 8rpx;
+  font-weight: normal;
+  line-height: 1.2;
+  backdrop-filter: blur(2rpx);
 }
 
 /* 旧列表样式 - 保留用于待定/请假列表 */

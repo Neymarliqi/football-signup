@@ -129,7 +129,11 @@
     <view wx:if="{{confirmedPlayers.length === 0}}" class="empty-tip">暂无人报名，快来第一个！</view>
     <view class="player-avatar-grid" wx:if="{{confirmedPlayers.length > 0}}">
       <view wx:for="{{confirmedPlayers}}" wx:key="openid" class="avatar-grid-item">
-        <image class="grid-avatar" src="{{item.avatarUrl || placeholderAvatar}}" mode="aspectFill"></image>
+        <view class="avatar-with-position">
+          <image class="grid-avatar" src="{{item.avatarUrl || placeholderAvatar}}" mode="aspectFill"></image>
+          <!-- 首选位置标签（位置1）-->
+          <view class="position-tag-on-avatar" wx:if="{{item.firstPosition}}">{{item.firstPosition}}</view>
+        </view>
         <view class="grid-nickname">{{item.nickName}}</view>
       </view>
     </view>

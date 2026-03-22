@@ -110,7 +110,10 @@
       </view>
       <view class="avatar-list">
         <view wx:for="{{item.confirmedPlayers}}" wx:for-item="player" wx:key="openid" class="avatar-item">
-          <image class="avatar-sm" src="{{player.avatarUrl || placeholderAvatar}}" mode="aspectFill"></image>
+          <view class="avatar-with-position">
+            <image class="avatar-sm" src="{{player.avatarUrl || placeholderAvatar}}" mode="aspectFill"></image>
+            <view class="position-tag-sm" wx:if="{{player.firstPosition}}">{{player.firstPosition}}</view>
+          </view>
           <text class="avatar-name">{{player.shortName}}</text>
         </view>
         <view wx:if="{{item.confirmedCount > 6}}" class="avatar-more">

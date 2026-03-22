@@ -121,10 +121,45 @@ Page({
       myStatusClass = statusMap[myReg.status]?.cls || ''
     }
 
+    // 位置代码映射表
+    const posMap = {
+      'GK': '门将', 'CB': '中卫', 'LB': '左后卫', 'RB': '右后卫',
+      'CM': '中场', 'CDM': '后腰', 'CAM': '前腰', 'LM': '左前卫',
+      'RM': '右前卫', 'LW': '左边锋', 'RW': '右边锋', 'ST': '前锋',
+      'CF': '中锋', 'SW': '清道夫', 'LWB': '左翼卫', 'RWB': '右翼卫',
+      'ALL': '全能'
+    }
+    
+    // 处理位置信息：获取首选位置（order=1）的中文名称
+    const getFirstPosition = (position) => {
+      if (!position) return ''
+      
+      let firstPosCode = ''
+      if (typeof position === 'string') {
+        // 旧格式：逗号分隔的字符串
+        const positions = position.split(/[,，\/\s]+/).filter(p => p.trim())
+        firstPosCode = positions[0]
+      } else if (Array.isArray(position)) {
+        // 新格式：数组，查找order=1
+        const firstPosItem = position.find(p => 
+          typeof p === 'object' ? p.order === 1 : position.indexOf(p) === 0
+        )
+        firstPosCode = typeof firstPosItem === 'object' 
+          ? firstPosItem.value 
+          : firstPosItem
+      }
+      
+      if (!firstPosCode) return ''
+      
+      const chinesePosition = posMap[firstPosCode.trim().toUpperCase()] || firstPosCode.trim()
+      return chinesePosition.substring(0, 2) // 只显示前2个字
+    }
+    
     // 显示前6人头像（首页卡片空间有限）
     const confirmedPlayers = confirmed.slice(0, 6).map(r => ({
       ...r,
-      shortName: r.nickName ? r.nickName.slice(0, 3) : '队员'
+      shortName: r.nickName ? r.nickName.slice(0, 3) : '队员',
+      firstPosition: getFirstPosition(r.position) // 首选位置（前2个字）
     }))
 
     return {

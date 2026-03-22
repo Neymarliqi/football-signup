@@ -1,0 +1,9 @@
+{
+  "name": "updateUserPosition",
+  "version": "1.0.0",
+  "description": "更新用户在所有已报名活动中的位置信息",
+  "main": "index.js",
+  "dependencies": {
+    "wx-server-sdk": "latest"
+  }
+}

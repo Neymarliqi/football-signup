@@ -27,7 +27,10 @@
 
   <!-- 位置偏好 -->
   <view class="card">
-    <view class="section-title">⚽ 位置偏好 <text class="section-subtitle">（按选择顺序排序，最多3个）</text></view>
+    <view class="section-header">
+      <view class="section-title">⚽ 位置偏好 <text class="section-subtitle">（按选择顺序排序，最多3个）</text></view>
+      <view class="section-more" bindtap="clearPositions">清空</view>
+    </view>
     <view class="position-grid">
       <view wx:for="{{positions}}" wx:key="value"
             class="pos-option {{item.isSelected ? 'pos-option-active' : ''}}"

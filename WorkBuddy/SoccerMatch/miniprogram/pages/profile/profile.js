@@ -60,11 +60,17 @@ Page({
     }
     
     // 处理位置数据，添加选中状态和选择顺序
-    const positions = this.data.positions.map(pos => ({
-      ...pos,
-      isSelected: userInfo.positions.includes(pos.value),
-      selectOrder: userInfo.positions.indexOf(pos.value) + 1 // 选择顺序（1、2、3...）
-    }))
+    // 兼容旧格式（字符串数组）和新格式（对象数组）
+    const positions = this.data.positions.map(pos => {
+      const selectedItem = userInfo.positions.find(p => 
+        typeof p === 'string' ? p === pos.value : p.value === pos.value
+      )
+      return {
+        ...pos,
+        isSelected: !!selectedItem,
+        selectOrder: selectedItem ? (typeof selectedItem === 'string' ? 1 : selectedItem.order) : 0
+      }
+    })
     
     this.setData({ userInfo, shortOpenid, positions })
   },
@@ -270,15 +276,52 @@ Page({
     this.setData({ editingName: false })
   },
 
+  // 清空位置偏好
+  clearPositions() {
+    wx.showModal({
+      title: '确认清空',
+      content: '确定要清空所有位置偏好吗？',
+      success: (res) => {
+        if (res.confirm) {
+          const userInfo = { ...this.data.userInfo, positions: [] }
+          
+          // 重置所有位置选中状态
+          const positions = this.data.positions.map(p => ({
+            ...p,
+            isSelected: false,
+            selectOrder: 0
+          }))
+          
+          this.setData({ userInfo, positions })
+          this.saveUserInfo(userInfo)
+          wx.showToast({ title: '已清空', icon: 'success' })
+        }
+      }
+    })
+  },
+
   // 选择位置（多选，按选择顺序排序，参考微信图片选择逻辑）
   selectPosition(e) {
     const pos = e.currentTarget.dataset.pos
     const currentPositions = this.data.userInfo.positions || []
     
     let newPositions
-    if (currentPositions.includes(pos)) {
+    // 检查是否已选中（支持新旧两种数据格式）
+    const isSelected = currentPositions.some(p => 
+      typeof p === 'string' ? p === pos : p.value === pos
+    )
+    
+    if (isSelected) {
       // 已选中，取消选择
-      newPositions = currentPositions.filter(p => p !== pos)
+      newPositions = currentPositions.filter(p => 
+        typeof p === 'string' ? p !== pos : p.value !== pos
+      )
+      // 重新计算剩余位置的 order（保持连续的 1、2、3）
+      newPositions = newPositions.map((p, index) => ({
+        ...p,
+        order: index + 1,
+        label: index === 0 ? '首' : '备'
+      }))
     } else {
       // 未选中，添加到末尾（选择顺序）
       // 最多选择3个位置
@@ -286,37 +329,62 @@ Page({
         wx.showToast({ title: '最多选择3个位置', icon: 'none' })
         return
       }
-      newPositions = [...currentPositions, pos]
+      // 新格式：存储对象，包含顺序信息
+      const order = currentPositions.length + 1
+      newPositions = [...currentPositions, {
+        value: pos,
+        order: order,
+        label: order === 1 ? '首' : '备'
+      }]
     }
     
     const userInfo = { ...this.data.userInfo, positions: newPositions }
     
     // 更新位置选中状态和选择顺序
-    const positions = this.data.positions.map(p => ({
-      ...p,
-      isSelected: newPositions.includes(p.value),
-      selectOrder: newPositions.indexOf(p.value) + 1 // 选择顺序（1、2、3...）
-    }))
+    const positions = this.data.positions.map(p => {
+      const selectedItem = newPositions.find(item => 
+        typeof item === 'string' ? item === p.value : item.value === p.value
+      )
+      return {
+        ...p,
+        isSelected: !!selectedItem,
+        selectOrder: selectedItem ? (typeof selectedItem === 'string' ? 1 : selectedItem.order) : 0
+      }
+    })
     
     this.setData({ userInfo, positions })
     this.saveUserInfo(userInfo)
     // 不显示气泡提醒，只通过高亮和角标反馈
   },
 
-  saveUserInfo(userInfo) {
+  async saveUserInfo(userInfo) {
+    // 1. 立即更新全局数据和本地存储（确保本地永远是最新的）
     app.globalData.userInfo = userInfo
     wx.setStorageSync('userInfo', userInfo)
     this.setData({ userInfo })
 
-    // 同步到云数据库
     const openid = app.globalData.openid || wx.getStorageSync('openid')
     if (!openid) return
 
+    // 2. 同步更新所有已报名活动中的位置信息
+    this.updateActivityPositions(userInfo.positions)
+
+    // 3. 异步同步到云数据库（云端数据作为备份）
     const db = wx.cloud.database()
     db.collection('users').where({ openid }).get().then(res => {
       if (res.data.length > 0) {
+        // 更新现有记录
         db.collection('users').doc(res.data[0]._id).update({
-          data: { ...userInfo, updatedAt: db.serverDate() }
+          data: { 
+            positions: userInfo.positions,
+            nickName: userInfo.nickName,
+            avatarUrl: userInfo.avatarUrl,
+            updatedAt: db.serverDate() 
+          }
+        }).then(() => {
+          console.log('[saveUserInfo] 云端同步成功')
+        }).catch(err => {
+          console.error('[saveUserInfo] 云端同步失败', err)
         })
       } else {
         db.collection('users').add({
@@ -324,6 +392,23 @@ Page({
         })
       }
     })
+  },
+
+  // 更新所有已报名活动中的位置信息
+  async updateActivityPositions(positions) {
+    try {
+      const res = await wx.cloud.callFunction({
+        name: 'updateUserPosition',
+        data: { positions }
+      })
+      if (res.result.success) {
+        console.log('[updateActivityPositions] 更新成功:', res.result.message)
+      } else {
+        console.error('[updateActivityPositions] 更新失败:', res.result.error)
+      }
+    } catch (err) {
+      console.error('[updateActivityPositions] 调用失败:', err)
+    }
   },
 
   // 加载历史记录（只加载全部用于统计，显示前5条）

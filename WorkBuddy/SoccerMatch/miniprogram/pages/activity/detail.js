@@ -56,6 +56,11 @@ Page({
   },
 
   onShow() {
+    // 重新加载最新的用户信息（确保位置数据是最新的）
+    const localUserInfo = wx.getStorageSync('userInfo')
+    if (localUserInfo) {
+      app.globalData.userInfo = localUserInfo
+    }
     this.loadActivity()
   },
 
@@ -97,22 +102,42 @@ Page({
     // 详情页最多显示30人，防止数据过多影响性能
     const MAX_DISPLAY = 30
     
-    // 处理位置信息：英文转中文，处理多个位置
+    // 位置代码映射表
+    const posMap = {
+      'GK': '门将', 'CB': '中卫', 'LB': '左后卫', 'RB': '右后卫',
+      'CM': '中场', 'CDM': '后腰', 'CAM': '前腰', 'LM': '左前卫',
+      'RM': '右前卫', 'LW': '左边锋', 'RW': '右边锋', 'ST': '前锋',
+      'CF': '中锋', 'SW': '清道夫', 'LWB': '左翼卫', 'RWB': '右翼卫',
+      'ALL': '全能'
+    }
+    
+    // 处理位置信息：从用户的positions数组中读取首选位置（order=1）
     const processPosition = (position) => {
       if (!position) return null
-      const posMap = {
-        'GK': '门将', 'CB': '中卫', 'LB': '左后卫', 'RB': '右后卫',
-        'CM': '中场', 'CDM': '后腰', 'CAM': '前腰', 'LM': '左前卫',
-        'RM': '右前卫', 'LW': '左边锋', 'RW': '右边锋', 'ST': '前锋',
-        'CF': '中锋', 'SW': '清道夫', 'LWB': '左翼卫', 'RWB': '右翼卫'
+      
+      // 支持新格式（对象数组）和旧格式（字符串）
+      let firstPosCode = ''
+      
+      if (typeof position === 'string') {
+        // 旧格式：逗号分隔的字符串
+        const positions = position.split(/[,，\/\s]+/).filter(p => p.trim())
+        firstPosCode = positions[0]
+      } else if (Array.isArray(position)) {
+        // 新格式：数组
+        // 查找order=1的首选位置
+        const firstPosItem = position.find(p => 
+          typeof p === 'object' ? p.order === 1 : position.indexOf(p) === 0
+        )
+        firstPosCode = typeof firstPosItem === 'object' 
+          ? firstPosItem.value 
+          : firstPosItem
       }
-      // 支持逗号、空格、斜杠分隔的多个位置
-      const positions = position.split(/[,，\/\s]+/).filter(p => p.trim())
-      const chinesePositions = positions.map(p => posMap[p.trim().toUpperCase()] || p.trim())
+      
+      if (!firstPosCode) return null
+      
+      const chinesePosition = posMap[firstPosCode.trim().toUpperCase()] || firstPosCode.trim()
       return {
-        displayPosition: chinesePositions[0].substring(0, 2), // 头像上只显示前2个字
-        allPositions: chinesePositions.join('/'), // 全部位置用/分隔
-        hasMultiPositions: chinesePositions.length > 1
+        firstPosition: chinesePosition.substring(0, 2) // 头像上只显示前2个字，与首页一致
       }
     }
     
@@ -399,7 +424,8 @@ Page({
   async doRegister(status, leaveReason) {
     const { activityId, confirmedCount, activity } = this.data
     const openid = app.globalData.openid || wx.getStorageSync('openid')
-    const userInfo = app.globalData.userInfo
+    // 从本地存储获取最新的 userInfo（确保位置数据是最新的）
+    const userInfo = wx.getStorageSync('userInfo') || app.globalData.userInfo || {}
 
     // 检查是否已满员（报名状态时）
     if (status === 'confirmed' && confirmedCount >= activity.maxPlayers) {
@@ -418,7 +444,7 @@ Page({
           leaveReason,
           nickName: userInfo.nickName,
           avatarUrl: userInfo.avatarUrl,
-          position: userInfo.position || ''
+          position: userInfo.positions || []  // 存储新的positions数组（包含order信息）
         }
       })
 
