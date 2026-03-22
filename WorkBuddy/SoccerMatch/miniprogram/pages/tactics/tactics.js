@@ -70,26 +70,33 @@ Page({
         'ST': '中锋', 'CF': '前锋'
       }
       
-      // 获取球员首选位置（取前2个字）
-      const getPositionLabel = (position) => {
+      // 获取球员所有位置（按order排序），返回用/拼接的字符串
+      const getPositionLabelString = (position) => {
         if (!position) return ''
         
-        let firstPosCode = ''
+        let posCodes = []
         if (typeof position === 'string') {
-          const positions = position.split(/[,，\/\s]+/).filter(p => p.trim())
-          firstPosCode = positions[0]
+          // 旧格式：逗号分隔的字符串
+          posCodes = position.split(/[,，\/\s]+/).filter(p => p.trim())
         } else if (Array.isArray(position)) {
-          const firstPosItem = position.find(p => 
-            typeof p === 'object' ? p.order === 1 : position.indexOf(p) === 0
-          )
-          firstPosCode = typeof firstPosItem === 'object' 
-            ? firstPosItem.value 
-            : firstPosItem
+          // 新格式：数组，按order排序
+          const sorted = [...position].sort((a, b) => {
+            const orderA = typeof a === 'object' ? (a.order || 99) : 99
+            const orderB = typeof b === 'object' ? (b.order || 99) : 99
+            return orderA - orderB
+          })
+          posCodes = sorted.map(p => typeof p === 'object' ? p.value : p)
         }
         
-        if (!firstPosCode) return ''
-        const label = posMap[firstPosCode.trim().toUpperCase()] || firstPosCode.trim()
-        return label.substring(0, 2) // 只显示前2个字
+        // 转换为中文标签，每个标签取前2个字，用/拼接
+        const labels = posCodes
+          .map(code => {
+            const label = posMap[code.trim().toUpperCase()] || code.trim()
+            return label.substring(0, 2)
+          })
+          .filter(label => label)
+        
+        return labels.join('/')
       }
       
       // 获取已确认的球员
@@ -100,7 +107,7 @@ Page({
           nickName: r.nickName,
           shortName: this.getShortName(r.nickName),
           avatarUrl: r.avatarUrl,
-          positionLabel: getPositionLabel(r.position),
+          positionLabel: getPositionLabelString(r.position),
           isOnField: false,
           x: 50,
           y: 80
@@ -352,7 +359,7 @@ Page({
             openid: player.openid,
             shortName: player.shortName,
             avatarUrl: player.avatarUrl,
-            positionLabel: player.positionLabel,
+            positionLabel: player.positionLabel || '',
             x: e.touches[0].clientX - 40,
             y: e.touches[0].clientY - 40
           }
