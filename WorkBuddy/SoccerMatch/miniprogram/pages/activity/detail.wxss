@@ -42,6 +42,7 @@
   color: rgba(255,255,255,0.65);
   line-height: 1.6;
   word-break: break-all;
+  white-space: pre-wrap; /* 保留换行符 */
 }
 
 .detail-desc.desc-collapsed {
@@ -888,6 +889,7 @@
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
   padding-right: 10rpx;
+  white-space: pre-wrap; /* 保留换行符 */
 }
 
 .notice-tips {
