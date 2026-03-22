@@ -121,13 +121,14 @@ Page({
       myStatusClass = statusMap[myReg.status]?.cls || ''
     }
 
-    // 位置代码映射表
+    // 位置代码映射表 - 统一使用"中文名称 + 英文代码"格式
     const posMap = {
-      'GK': '门将', 'CB': '中卫', 'LB': '左后卫', 'RB': '右后卫',
-      'CM': '中场', 'CDM': '后腰', 'CAM': '前腰', 'LM': '左前卫',
-      'RM': '右前卫', 'LW': '左边锋', 'RW': '右边锋', 'ST': '前锋',
-      'CF': '中锋', 'SW': '清道夫', 'LWB': '左翼卫', 'RWB': '右翼卫',
-      'ALL': '全能'
+      'ALL': '全能 ALL',
+      'GK': '守门员 GK', 'LB': '左后卫 LB', 'CB': '中后卫 CB', 'RB': '右后卫 RB',
+      'LWB': '左翼卫 LWB', 'RWB': '右翼卫 RWB',
+      'CDM': '后腰 CDM', 'CM': '中场 CM', 'LM': '左中场 LM', 'RM': '右中场 RM',
+      'CAM': '前腰 CAM', 'LW': '左边锋 LW', 'RW': '右边锋 RW',
+      'ST': '中锋 ST', 'CF': '前锋 CF'
     }
     
     // 处理位置信息：获取首选位置（order=1）的中文名称

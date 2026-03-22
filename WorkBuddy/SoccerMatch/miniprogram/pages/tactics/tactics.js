@@ -63,14 +63,15 @@ Page({
     ],
     selectedFormation: '4-3-3',
     positionOptions: [
-      { value: 'GK', label: '守门员' }, { value: 'LB', label: '左后卫' },
-      { value: 'CB', label: '中后卫' }, { value: 'RB', label: '右后卫' },
-      { value: 'LWB', label: '左翼卫' }, { value: 'RWB', label: '右翼卫' },
-      { value: 'CDM', label: '后腰' }, { value: 'CM', label: '中场' },
-      { value: 'LM', label: '左中场' }, { value: 'RM', label: '右中场' },
-      { value: 'CAM', label: '前腰' }, { value: 'LW', label: '左边锋' },
-      { value: 'RW', label: '右边锋' }, { value: 'ST', label: '中锋' },
-      { value: 'CF', label: '前锋' }
+      { value: 'ALL', label: '全能 ALL' },
+      { value: 'GK', label: '守门员 GK' }, { value: 'LB', label: '左后卫 LB' },
+      { value: 'CB', label: '中后卫 CB' }, { value: 'RB', label: '右后卫 RB' },
+      { value: 'LWB', label: '左翼卫 LWB' }, { value: 'RWB', label: '右翼卫 RWB' },
+      { value: 'CDM', label: '后腰 CDM' }, { value: 'CM', label: '中场 CM' },
+      { value: 'LM', label: '左中场 LM' }, { value: 'RM', label: '右中场 RM' },
+      { value: 'CAM', label: '前腰 CAM' }, { value: 'LW', label: '左边锋 LW' },
+      { value: 'RW', label: '右边锋 RW' }, { value: 'ST', label: '中锋 ST' },
+      { value: 'CF', label: '前锋 CF' }
     ],
     unassignedCount: 0,
     // 拖拽相关
