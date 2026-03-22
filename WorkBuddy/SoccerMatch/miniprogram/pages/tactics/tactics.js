@@ -10,6 +10,8 @@ Page({
     onFieldPlayers: [],
     benchPlayers: [],
     canEdit: false,
+    isCreator: false,
+    isParticipant: false,
     selectedPlayer: null,
     fieldRect: null,
     // 拖拽相关
@@ -56,7 +58,9 @@ Page({
       }
       
       this.setData({ 
-        canEdit: isCreator,
+        canEdit: isCreator || isParticipant,
+        isCreator: isCreator,
+        isParticipant: isParticipant,
         activity 
       })
       
@@ -282,7 +286,7 @@ Page({
   // 保存战术
   async saveTactics() {
     if (!this.data.canEdit) {
-      wx.showToast({ title: '只有队长可以保存', icon: 'none' })
+      wx.showToast({ title: '暂无权限保存', icon: 'none' })
       return
     }
     

@@ -83,8 +83,8 @@
     </view>
   </view>
 
-  <!-- 底部保存按钮 -->
-  <view class="bottom-bar">
+  <!-- 底部保存按钮 - 只有参与者和创建者可以保存 -->
+  <view class="bottom-bar" wx:if="{{canEdit}}">
     <button class="save-btn" bindtap="saveTactics">保存</button>
   </view>
 </view>
