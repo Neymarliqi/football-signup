@@ -1,119 +1,65 @@
-<!-- pages/tactics/tactics.wxml - 战术板 -->
-<view class="tactics-container">
-  
-  <!-- 顶部工具栏 -->
-  <view class="toolbar">
-    <view class="toolbar-left">
-      <text class="toolbar-title">⚽ 战术板</text>
-    </view>
-    <view class="toolbar-right">
-      <!-- 发布者或参与者显示编辑按钮 -->
-      <view class="tool-btn {{editMode ? 'tool-active' : ''}}" bindtap="toggleEdit" wx:if="{{canEdit}}">
-        {{editMode ? '✅ 保存布阵' : '✏ 编辑布阵'}}
-      </view>
-      <!-- 游客显示提示 -->
-      <view class="tool-btn tool-disabled" wx:if="{{!canEdit}}">仅查看</view>
-      <view class="tool-btn" bindtap="resetPositions" wx:if="{{canEdit && editMode}}">重置</view>
-    </view>
-  </view>
-
-  <!-- 阵型选择 -->
-  <view class="formation-bar" wx:if="{{editMode && canEdit}}">
-    <text class="formation-label">阵型：</text>
-    <view class="formation-list">
-      <view wx:for="{{formations}}" wx:key="value" 
-            class="formation-item {{selectedFormation === item.value ? 'formation-active' : ''}}"
-            bindtap="selectFormation" data-value="{{item.value}}">
-        {{item.label}}
-      </view>
-    </view>
-  </view>
-
+<!-- pages/tactics/tactics.wxml -->
+<view class="container">
   <!-- 足球场 -->
-  <view class="field-wrap">
-    <view class="field" id="field"
-          bindtouchstart="{{editMode ? 'onFieldTouch' : ''}}"
-          style="height: {{fieldHeight}}px;">
-      
-      <!-- 场地线条装饰 -->
+  <view class="field-container">
+    <view class="field" id="field" bindtap="onFieldTap">
+      <!-- 场地线条 -->
       <view class="field-lines">
+        <!-- 外边框 -->
+        <view class="field-border"></view>
+        <!-- 中线 -->
+        <view class="center-line"></view>
         <!-- 中圈 -->
         <view class="center-circle"></view>
-        <view class="center-line"></view>
-        <!-- 大禁区 -->
-        <view class="penalty-area top-pa"></view>
-        <view class="penalty-area bottom-pa"></view>
-        <!-- 小禁区 -->
-        <view class="goal-area top-ga"></view>
-        <view class="goal-area bottom-ga"></view>
-        <!-- 球门 -->
-        <view class="goal top-goal"></view>
-        <view class="goal bottom-goal"></view>
-        <!-- 中心点 -->
-        <view class="center-dot"></view>
+        <!-- 球门区（上） -->
+        <view class="goal-area-top"></view>
+        <!-- 禁区（上） -->
+        <view class="penalty-area-top"></view>
+        <!-- 球门区（下） -->
+        <view class="goal-area-bottom"></view>
+        <!-- 禁区（下） -->
+        <view class="penalty-area-bottom"></view>
+
       </view>
 
-      <!-- 球员token（上半场 - 对方/无用于示意） -->
-      <view class="team-label team-label-top">
-        <text>对方</text>
-      </view>
-
-      <!-- 己方球员 token -->
-      <view wx:for="{{playerTokens}}" wx:key="openid"
-            class="player-token {{selectedPlayer === item.openid ? 'token-selected' : ''}} {{item.position === 'GK' ? 'token-gk' : 'token-field'}}"
-            style="left: {{item.x}}%; top: {{item.y}}%;"
-            bindtap="selectPlayerToken"
-            data-openid="{{item.openid}}"
-            bindtouchstart="onTokenTouchStart"
-            data-index="{{index}}">
-        <image class="token-avatar" src="{{item.avatarUrl || placeholderAvatar}}" mode="aspectFill"></image>
-        <view class="token-name">{{item.shortName}}</view>
-        <view class="token-pos-badge" wx:if="{{item.posLabel}}">{{item.posLabel}}</view>
-      </view>
-
-      <view class="team-label team-label-bottom">
-        <text>我方</text>
+      <!-- 场上球员 -->
+      <view 
+        wx:for="{{onFieldPlayers}}" 
+        wx:key="openid"
+        class="player {{selectedPlayer === item.openid ? 'selected' : ''}}"
+        style="left: {{item.x}}%; top: {{item.y}}%;"
+        bindtap="onPlayerTap"
+        bindlongpress="onPlayerLongPress"
+        data-openid="{{item.openid}}"
+        data-index="{{index}}"
+      >
+        <image class="player-avatar" src="{{item.avatarUrl || '/images/default-avatar.png'}}" mode="aspectFill"></image>
+        <text class="player-name">{{item.shortName}}</text>
       </view>
     </view>
   </view>
 
-  <!-- 位置分配面板（编辑模式） -->
-  <view class="assign-panel" wx:if="{{editMode && selectedPlayerInfo}}">
-    <view class="assign-header flex-between">
-      <view class="assign-player-info">
-        <image class="assign-avatar" src="{{selectedPlayerInfo.avatarUrl || placeholderAvatar}}" mode="aspectFill"></image>
-        <text class="assign-name">{{selectedPlayerInfo.nickName}}</text>
-      </view>
-      <view class="assign-close" bindtap="closeAssignPanel">×</view>
-    </view>
-    <view class="pos-btn-list">
-      <view wx:for="{{positionOptions}}" wx:key="value"
-            class="pos-btn {{selectedPlayerInfo.posLabel === item.value ? 'pos-btn-active' : ''}}"
-            bindtap="assignPosition" data-pos="{{item.value}}" data-label="{{item.label}}">
-        {{item.value}} {{item.label}}
-      </view>
+  <!-- 分隔线 -->
+  <view class="divider">
+    <text class="divider-text">选择上场球员</text>
+  </view>
+
+  <!-- 替补球员 -->
+  <view class="bench-container">
+    <view 
+      wx:for="{{benchPlayers}}" 
+      wx:key="openid"
+      class="bench-player"
+      bindtap="addToField"
+      data-player="{{item}}"
+    >
+      <image class="bench-avatar" src="{{item.avatarUrl || '/images/default-avatar.png'}}" mode="aspectFill"></image>
+      <text class="bench-name">{{item.shortName}}</text>
     </view>
   </view>
 
-  <!-- 球员名单（底部） -->
-  <view class="player-bench">
-    <view class="bench-title">
-      <text>👥 上场名单 ({{playerTokens.length}}人)</text>
-      <text class="bench-sub" wx:if="{{unassignedCount > 0}}">还有{{unassignedCount}}人未安排位置</text>
-    </view>
-    <scroll-view class="bench-scroll" scroll-x>
-      <view class="bench-list">
-        <view wx:for="{{playerTokens}}" wx:key="openid"
-              class="bench-item {{selectedPlayer === item.openid ? 'bench-selected' : ''}}"
-              bindtap="selectPlayerToken" data-openid="{{item.openid}}">
-          <image class="bench-avatar" src="{{item.avatarUrl || placeholderAvatar}}" mode="aspectFill"></image>
-          <view class="bench-name">{{item.shortName}}</view>
-          <view class="bench-pos-badge {{item.posLabel ? 'pos-assigned' : 'pos-unassigned'}}">
-            {{item.posLabel || '未定'}}
-          </view>
-        </view>
-      </view>
-    </scroll-view>
+  <!-- 底部保存按钮 -->
+  <view class="bottom-bar">
+    <button class="save-btn" bindtap="saveTactics">保存</button>
   </view>
-
 </view>

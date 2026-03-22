@@ -1,365 +1,249 @@
 /* pages/tactics/tactics.wxss */
+page {
+  background: #1a9f5e;
+  height: 100%;
+}
 
-.tactics-container {
-  background: #1a1a2e;
-  min-height: 100vh;
+.container {
   display: flex;
   flex-direction: column;
-}
-
-/* 工具栏 */
-.toolbar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 20rpx 30rpx;
-  background: #16213e;
-  box-shadow: 0 4rpx 16rpx rgba(0,0,0,0.3);
-}
-
-.toolbar-title {
-  font-size: 34rpx;
-  font-weight: bold;
-  color: #fff;
-}
-
-.toolbar-right {
-  display: flex;
-  gap: 16rpx;
-}
-
-.tool-btn {
-  padding: 14rpx 28rpx;
-  border-radius: 30rpx;
-  font-size: 26rpx;
-  color: #fff;
-  background: rgba(255,255,255,0.12);
-  border: 2rpx solid rgba(255,255,255,0.2);
-}
-
-.tool-active {
-  background: linear-gradient(135deg, #2ecc71, #27ae60);
-  border-color: #2ecc71;
-}
-
-/* 阵型选择 */
-.formation-bar {
-  display: flex;
-  align-items: center;
-  padding: 16rpx 30rpx;
-  background: #0f3460;
-  overflow-x: auto;
-  gap: 16rpx;
-}
-
-.formation-label {
-  color: #aaa;
-  font-size: 26rpx;
-  white-space: nowrap;
-  flex-shrink: 0;
-}
-
-.formation-list {
-  display: flex;
-  gap: 12rpx;
-}
-
-.formation-item {
-  padding: 10rpx 24rpx;
-  border-radius: 30rpx;
-  font-size: 24rpx;
-  color: #aaa;
-  background: rgba(255,255,255,0.08);
-  white-space: nowrap;
-  border: 2rpx solid transparent;
-}
-
-.formation-active {
-  color: #2ecc71;
-  border-color: #2ecc71;
-  background: rgba(46,204,113,0.12);
+  min-height: 100vh;
+  background: #1a9f5e;
 }
 
 /* 足球场 */
-.field-wrap {
-  padding: 20rpx;
-  flex: 1;
+.field-container {
+  padding: 20rpx 30rpx 0;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
 }
 
 .field {
   width: 100%;
-  background: #2d6a35;
-  border-radius: 16rpx;
+  max-width: 650rpx;
+  aspect-ratio: 0.75;
+  background: #1a9f5e;
   position: relative;
-  overflow: hidden;
-  border: 6rpx solid rgba(255,255,255,0.15);
+  border: 4rpx solid rgba(255, 255, 255, 0.6);
+  box-sizing: border-box;
 }
 
 /* 场地线条 */
 .field-lines {
   position: absolute;
-  top: 0; left: 0; right: 0; bottom: 0;
-  pointer-events: none;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
 }
 
-/* 中线 */
+.field-border {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  border: 4rpx solid rgba(255, 255, 255, 0.6);
+}
+
 .center-line {
   position: absolute;
-  left: 0; right: 0;
   top: 50%;
-  height: 3rpx;
-  background: rgba(255,255,255,0.4);
+  left: 2rpx;
+  right: 2rpx;
+  height: 4rpx;
+  background: rgba(255, 255, 255, 0.6);
   transform: translateY(-50%);
 }
 
-/* 中圈 */
 .center-circle {
   position: absolute;
-  width: 180rpx; height: 180rpx;
-  border-radius: 50%;
-  border: 3rpx solid rgba(255,255,255,0.4);
-  top: 50%; left: 50%;
-  transform: translate(-50%, -50%);
-}
-
-/* 中心点 */
-.center-dot {
-  position: absolute;
-  width: 12rpx; height: 12rpx;
-  border-radius: 50%;
-  background: rgba(255,255,255,0.6);
-  top: 50%; left: 50%;
-  transform: translate(-50%, -50%);
-}
-
-/* 禁区 */
-.penalty-area {
-  position: absolute;
-  width: 56%;
-  height: 18%;
-  border: 3rpx solid rgba(255,255,255,0.4);
-  left: 22%;
-}
-.top-pa { top: 0; border-top: none; }
-.bottom-pa { bottom: 0; border-bottom: none; }
-
-/* 小禁区 */
-.goal-area {
-  position: absolute;
-  width: 26%;
-  height: 8%;
-  border: 3rpx solid rgba(255,255,255,0.4);
-  left: 37%;
-}
-.top-ga { top: 0; border-top: none; }
-.bottom-ga { bottom: 0; border-bottom: none; }
-
-/* 球门 */
-.goal {
-  position: absolute;
-  width: 14%;
-  height: 4%;
-  background: rgba(255,255,255,0.12);
-  border: 3rpx solid rgba(255,255,255,0.5);
-  left: 43%;
-}
-.top-goal { top: 0; border-top: none; }
-.bottom-goal { bottom: 0; border-bottom: none; }
-
-/* 我方/对方标签 */
-.team-label {
-  position: absolute;
+  top: 50%;
   left: 50%;
-  transform: translateX(-50%);
-  color: rgba(255,255,255,0.4);
-  font-size: 24rpx;
-  letter-spacing: 6rpx;
-  z-index: 1;
-}
-.team-label-top { top: 12rpx; }
-.team-label-bottom { bottom: 12rpx; }
-
-/* 球员token */
-.player-token {
-  position: absolute;
+  width: 120rpx;
+  height: 120rpx;
+  border: 4rpx solid rgba(255, 255, 255, 0.6);
+  border-radius: 50%;
   transform: translate(-50%, -50%);
+}
+
+/* 禁区（上） */
+.penalty-area-top {
+  position: absolute;
+  top: 2rpx;
+  left: 50%;
+  width: 300rpx;
+  height: 120rpx;
+  border: 4rpx solid rgba(255, 255, 255, 0.6);
+  border-top: none;
+  transform: translateX(-50%);
+}
+
+/* 球门区（上） */
+.goal-area-top {
+  position: absolute;
+  top: 2rpx;
+  left: 50%;
+  width: 160rpx;
+  height: 60rpx;
+  border: 4rpx solid rgba(255, 255, 255, 0.6);
+  border-top: none;
+  transform: translateX(-50%);
+}
+
+/* 禁区（下） */
+.penalty-area-bottom {
+  position: absolute;
+  bottom: 2rpx;
+  left: 50%;
+  width: 300rpx;
+  height: 120rpx;
+  border: 4rpx solid rgba(255, 255, 255, 0.6);
+  border-bottom: none;
+  transform: translateX(-50%);
+}
+
+/* 球门区（下） */
+.goal-area-bottom {
+  position: absolute;
+  bottom: 2rpx;
+  left: 50%;
+  width: 160rpx;
+  height: 60rpx;
+  border: 4rpx solid rgba(255, 255, 255, 0.6);
+  border-bottom: none;
+  transform: translateX(-50%);
+}
+
+
+
+/* 场上球员 */
+.player {
+  position: absolute;
   display: flex;
   flex-direction: column;
   align-items: center;
+  transform: translate(-50%, -50%);
   z-index: 10;
-  transition: all 0.2s;
 }
 
-.token-field .token-avatar {
+.player.selected {
+  z-index: 20;
+}
+
+.player.selected .player-avatar {
+  border: 4rpx solid #ff6b35;
+  box-shadow: 0 0 20rpx rgba(255, 107, 53, 0.5);
+}
+
+.player-avatar {
   width: 80rpx;
   height: 80rpx;
   border-radius: 50%;
-  border: 4rpx solid #3498db;
-  background: #2980b9;
-  box-shadow: 0 4rpx 12rpx rgba(0,0,0,0.4);
+  border: 3rpx solid #fff;
+  background: #fff;
 }
 
-.token-gk .token-avatar {
-  width: 80rpx;
-  height: 80rpx;
-  border-radius: 50%;
-  border: 4rpx solid #f39c12;
-  background: #e67e22;
-  box-shadow: 0 4rpx 12rpx rgba(0,0,0,0.4);
-}
-
-.token-selected .token-avatar {
-  border-color: #2ecc71 !important;
-  box-shadow: 0 0 0 6rpx rgba(46,204,113,0.4), 0 4rpx 16rpx rgba(0,0,0,0.5) !important;
-  transform: scale(1.15);
-}
-
-.token-name {
-  font-size: 18rpx;
+.player-name {
+  margin-top: 8rpx;
+  font-size: 24rpx;
   color: #fff;
-  background: rgba(0,0,0,0.65);
-  padding: 3rpx 10rpx;
-  border-radius: 12rpx;
-  margin-top: 4rpx;
-  max-width: 90rpx;
+  text-shadow: 0 2rpx 4rpx rgba(0, 0, 0, 0.3);
+  max-width: 120rpx;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  text-align: center;
 }
 
-.token-pos-badge {
-  font-size: 16rpx;
-  background: #2ecc71;
-  color: #fff;
-  padding: 2rpx 8rpx;
-  border-radius: 10rpx;
-  margin-top: 2rpx;
-}
-
-/* 位置分配面板 */
-.assign-panel {
-  background: #16213e;
-  padding: 24rpx 30rpx;
-  border-top: 2rpx solid rgba(255,255,255,0.1);
-}
-
-.assign-header {
-  margin-bottom: 20rpx;
-}
-
-.assign-player-info {
+/* 分隔线 */
+.divider {
   display: flex;
   align-items: center;
-  gap: 16rpx;
+  justify-content: center;
+  padding: 8rpx 30rpx 4rpx;
+  position: relative;
+  background: transparent;
+  margin-top: 4px;
 }
 
-.assign-avatar {
-  width: 64rpx; height: 64rpx;
-  border-radius: 50%;
-  border: 3rpx solid #2ecc71;
+.divider::before {
+  content: '';
+  flex: 1;
+  height: 2rpx;
+  background: rgba(255, 255, 255, 0.4);
 }
 
-.assign-name {
-  font-size: 28rpx;
-  color: #fff;
-  font-weight: bold;
+.divider::after {
+  content: '';
+  flex: 1;
+  height: 2rpx;
+  background: rgba(255, 255, 255, 0.4);
 }
 
-.assign-close {
-  color: #aaa;
-  font-size: 44rpx;
-  line-height: 1;
+.divider-text {
+  padding: 0 20rpx;
+  font-size: 26rpx;
+  color: rgba(255, 255, 255, 0.9);
 }
 
-.pos-btn-list {
+/* 替补球员 */
+.bench-container {
   display: flex;
   flex-wrap: wrap;
-  gap: 16rpx;
+  padding: 8rpx 30rpx;
+  gap: 40rpx;
+  flex: 1;
+  min-height: 300rpx;
+  overflow-y: auto;
 }
 
-.pos-btn {
-  padding: 12rpx 24rpx;
-  border-radius: 30rpx;
-  font-size: 24rpx;
-  color: #aaa;
-  background: rgba(255,255,255,0.08);
-  border: 2rpx solid rgba(255,255,255,0.12);
-}
-
-.pos-btn-active {
-  color: #2ecc71;
-  border-color: #2ecc71;
-  background: rgba(46,204,113,0.15);
-  font-weight: bold;
-}
-
-/* 替补席 */
-.player-bench {
-  background: #0f3460;
-  padding: 20rpx 30rpx 40rpx;
-  border-top: 2rpx solid rgba(255,255,255,0.1);
-}
-
-.bench-title {
-  font-size: 26rpx;
-  color: #aaa;
-  margin-bottom: 16rpx;
-  display: flex;
-  align-items: center;
-  gap: 16rpx;
-}
-
-.bench-sub { color: #e74c3c; }
-
-.bench-scroll { width: 100%; }
-
-.bench-list {
-  display: flex;
-  gap: 20rpx;
-  padding-right: 20rpx;
-}
-
-.bench-item {
+.bench-player {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 8rpx;
-  flex-shrink: 0;
 }
 
 .bench-avatar {
-  width: 80rpx; height: 80rpx;
+  width: 80rpx;
+  height: 80rpx;
   border-radius: 50%;
-  border: 3rpx solid rgba(255,255,255,0.2);
-}
-
-.bench-selected .bench-avatar {
-  border-color: #2ecc71;
+  border: 3rpx solid #fff;
+  background: #fff;
 }
 
 .bench-name {
-  font-size: 20rpx;
-  color: #aaa;
-  max-width: 80rpx;
+  margin-top: 8rpx;
+  font-size: 24rpx;
+  color: #fff;
+  max-width: 100rpx;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  text-align: center;
 }
 
-.bench-pos-badge {
-  font-size: 18rpx;
-  padding: 3rpx 12rpx;
-  border-radius: 12rpx;
+/* 底部保存按钮 */
+.bottom-bar {
+  padding: 20rpx 60rpx 40rpx;
+  margin-top: auto;
 }
 
-.pos-assigned {
-  background: rgba(46,204,113,0.2);
-  color: #2ecc71;
+.save-btn {
+  width: 100%;
+  height: 90rpx;
+  line-height: 90rpx;
+  background: #ff6b35;
+  color: #fff;
+  font-size: 32rpx;
+  font-weight: 500;
+  border-radius: 45rpx;
+  border: none;
 }
 
-.pos-unassigned {
-  background: rgba(255,255,255,0.08);
-  color: #666;
+.save-btn::after {
+  border: none;
+}
+
+.save-btn:active {
+  opacity: 0.9;
 }
