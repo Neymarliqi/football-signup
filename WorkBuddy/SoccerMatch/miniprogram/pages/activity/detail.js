@@ -37,7 +37,16 @@ Page({
     showConfirmModal: false,
     confirmCountdown: 3,
     confirmBtnEnabled: false,
-    confirmTimer: null
+    confirmTimer: null,
+    // 活动描述展开状态
+    isDescExpanded: false
+  },
+
+  // 切换活动描述展开/收起
+  toggleDescExpand() {
+    this.setData({
+      isDescExpanded: !this.data.isDescExpanded
+    })
   },
 
   onLoad(options) {

@@ -13,7 +13,13 @@
       </view>
     </view>
     <view class="detail-title">{{activity.title}}</view>
-    <view class="detail-desc" wx:if="{{activity.description}}">{{activity.description}}</view>
+    <view class="detail-desc-wrap" wx:if="{{activity.description}}">
+      <view class="detail-desc {{isDescExpanded ? 'desc-expanded' : 'desc-collapsed'}}">{{activity.description}}</view>
+      <view class="desc-expand-btn" bindtap="toggleDescExpand">
+        <text>{{isDescExpanded ? '收起' : '展开查看全部'}}</text>
+        <text class="expand-icon {{isDescExpanded ? 'icon-rotate' : ''}}">▼</text>
+      </view>
+    </view>
   </view>
 
   <!-- 活动信息卡 -->
@@ -281,7 +287,7 @@
       <text class="modal-title">📋 请阅读活动描述</text>
       <view class="modal-close" bindtap="closeConfirmModal">✕</view>
     </view>
-    <view class="modal-body">
+    <view class="modal-body confirm-body">
       <view class="confirm-notice">
         <view class="notice-title">活动：{{activity.title}}</view>
         <view class="notice-desc" wx:if="{{activity.description}}">{{activity.description}}</view>
@@ -293,7 +299,6 @@
       </view>
     </view>
     <view class="modal-footer confirm-footer">
-      <view class="modal-btn modal-btn-cancel" bindtap="closeConfirmModal">取消</view>
       <view class="modal-btn modal-btn-confirm {{confirmBtnEnabled ? '' : 'btn-disabled'}}" bindtap="confirmRegister">
         <text wx:if="{{confirmBtnEnabled}}">我已确认</text>
         <text wx:else>我已确认 ({{confirmCountdown}}s)</text>

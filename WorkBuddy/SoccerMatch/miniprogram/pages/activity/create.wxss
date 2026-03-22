@@ -59,6 +59,8 @@
   min-height: 160rpx;
   box-sizing: border-box;
   line-height: 1.6;
+  /* 修复微信小程序 textarea 白边问题 */
+  margin: 0;
 }
 
 .form-picker {
