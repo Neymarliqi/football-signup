@@ -113,6 +113,9 @@ Page({
         }
       } catch (e) {}
 
+      // 获取所有报名用户的位置偏好数据
+      const userPositions = await this.loadUserPositions(registrations)
+
       // 合并球员和位置数据
       const playerTokens = registrations.map((r, index) => {
         const saved = tacticPositions[r.openid]
@@ -120,12 +123,16 @@ Page({
         const defaultX = ((index % 5) + 1) * (100 / 6)
         const defaultY = 70 + Math.floor(index / 5) * 15
 
+        // 获取用户的位置偏好
+        const userPos = userPositions[r.openid] || []
+
         return {
           ...r,
           shortName: r.nickName ? r.nickName.slice(0, 3) : '队员',
           x: saved ? saved.x : defaultX,
           y: saved ? saved.y : defaultY,
-          posLabel: saved ? saved.posLabel : ''
+          posLabel: saved ? saved.posLabel : '',
+          preferredPositions: userPos // 用户偏好位置，用于智能分配
         }
       })
 
@@ -134,6 +141,34 @@ Page({
     } catch (e) {
       console.error('加载战术失败', e)
     }
+  },
+
+  // 加载用户的位置偏好数据
+  async loadUserPositions(registrations) {
+    const userPositions = {}
+    try {
+      // 获取所有报名用户的openid
+      const openids = registrations.map(r => r.openid)
+      if (openids.length === 0) return userPositions
+
+      // 批量查询用户数据
+      const batchSize = 20
+      for (let i = 0; i < openids.length; i += batchSize) {
+        const batch = openids.slice(i, i + batchSize)
+        const res = await db.collection('users').where({
+          openid: db.command.in(batch)
+        }).get()
+
+        res.data.forEach(user => {
+          if (user.positions && user.positions.length > 0) {
+            userPositions[user.openid] = user.positions
+          }
+        })
+      }
+    } catch (e) {
+      console.error('加载用户位置偏好失败', e)
+    }
+    return userPositions
   },
 
   toggleEdit() {
@@ -219,17 +254,103 @@ Page({
     if (!positions) return
 
     const { playerTokens } = this.data
-    const updated = playerTokens.map((p, index) => {
-      const preset = positions[index]
-      if (preset) {
-        return { ...p, x: preset.x, y: preset.y, posLabel: preset.posLabel }
+    
+    // 智能分配：根据用户位置偏好匹配阵型位置
+    const assigned = this.smartAssignPositions(playerTokens, positions)
+
+    const unassignedCount = assigned.filter(p => !p.posLabel).length
+    this.setData({ selectedFormation: value, playerTokens: assigned, unassignedCount })
+    wx.showToast({ title: `已应用 ${value} 阵型`, icon: 'none' })
+  },
+
+  // 智能分配位置：根据用户偏好匹配阵型位置
+  smartAssignPositions(players, formationPositions) {
+    // 复制数组避免修改原数据
+    const remainingPlayers = [...players]
+    const assigned = []
+
+    // 第一步：为每个阵型位置找到最匹配的球员
+    formationPositions.forEach(pos => {
+      const posLabel = pos.posLabel
+      
+      // 在剩余球员中找到最匹配这个位置的
+      let bestMatch = -1
+      let bestScore = -1
+
+      remainingPlayers.forEach((player, index) => {
+        if (!player.preferredPositions || player.preferredPositions.length === 0) {
+          // 没有设置偏好的球员，优先级较低
+          return
+        }
+
+        // 计算匹配分数
+        let score = 0
+        if (player.preferredPositions.includes(posLabel)) {
+          // 精确匹配
+          score = 100
+        } else if (player.preferredPositions.includes('ALL')) {
+          // 全能选手
+          score = 50
+        } else {
+          // 部分匹配（例如 CB 和 LB 都是后卫）
+          const posGroup = this.getPositionGroup(posLabel)
+          const playerGroups = player.preferredPositions.map(p => this.getPositionGroup(p))
+          if (playerGroups.includes(posGroup)) {
+            score = 30
+          }
+        }
+
+        if (score > bestScore) {
+          bestScore = score
+          bestMatch = index
+        }
+      })
+
+      if (bestMatch >= 0) {
+        // 找到匹配的球员
+        const player = remainingPlayers.splice(bestMatch, 1)[0]
+        assigned.push({
+          ...player,
+          x: pos.x,
+          y: pos.y,
+          posLabel: pos.posLabel
+        })
+      } else {
+        // 没有匹配的球员，从剩余中随便选一个
+        if (remainingPlayers.length > 0) {
+          const player = remainingPlayers.shift()
+          assigned.push({
+            ...player,
+            x: pos.x,
+            y: pos.y,
+            posLabel: pos.posLabel
+          })
+        }
       }
-      return p
     })
 
-    const unassignedCount = updated.filter(p => !p.posLabel).length
-    this.setData({ selectedFormation: value, playerTokens: updated, unassignedCount })
-    wx.showToast({ title: `已应用 ${value} 阵型`, icon: 'none' })
+    // 剩余的球员（如果有）放在替补位置
+    remainingPlayers.forEach(player => {
+      assigned.push({
+        ...player,
+        x: 50,
+        y: 95,
+        posLabel: ''
+      })
+    })
+
+    return assigned
+  },
+
+  // 获取位置分组（用于模糊匹配）
+  getPositionGroup(pos) {
+    const groups = {
+      'GK': 'GK',
+      'LB': 'DEF', 'CB': 'DEF', 'RB': 'DEF', 'LWB': 'DEF', 'RWB': 'DEF',
+      'CDM': 'MID', 'CM': 'MID', 'LM': 'MID', 'RM': 'MID', 'CAM': 'MID',
+      'LW': 'FWD', 'RW': 'FWD', 'ST': 'FWD', 'CF': 'FWD'
+    }
+    return groups[pos] || 'OTHER'
   },
 
   // 通过触摸拖拽移动token（简化版：选中后点击场地移动）

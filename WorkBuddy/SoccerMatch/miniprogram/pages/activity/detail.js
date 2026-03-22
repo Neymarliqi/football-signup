@@ -148,6 +148,9 @@ Page({
   },
 
   // ==================== 底部操作栏新逻辑 ====================
+  
+  // 待执行的操作（用于获取用户信息后自动执行）
+  pendingAction: null,
 
   /**
    * 主操作按钮点击
@@ -158,6 +161,8 @@ Page({
 
     // 检查用户信息是否完整
     if (!userInfo || !userInfo.avatarUrl || !userInfo.nickName) {
+      // 保存待执行的操作，获取用户信息后自动执行
+      this.pendingAction = action
       this.setData({
         showUserInfoModal: true,
         tempAvatarUrl: '',
@@ -194,6 +199,8 @@ Page({
 
     // 检查用户信息是否完整
     if (!userInfo || !userInfo.avatarUrl || !userInfo.nickName) {
+      // 保存待执行的操作，获取用户信息后自动执行
+      this.pendingAction = action
       this.setData({
         showUserInfoModal: true,
         tempAvatarUrl: '',
@@ -340,6 +347,8 @@ Page({
    */
   closeUserInfoModal() {
     this.setData({ showUserInfoModal: false })
+    // 清除待执行的操作
+    this.pendingAction = null
   },
 
   /**
@@ -390,17 +399,25 @@ Page({
       })
 
       // 更新全局数据
-      app.globalData.userInfo = {
+      const userInfo = {
         nickName: tempNickName,
         avatarUrl: finalAvatarUrl,
         position: ''
       }
+      app.globalData.userInfo = userInfo
 
       wx.hideLoading()
-      wx.showToast({ title: '保存成功', icon: 'success' })
-
       this.setData({ showUserInfoModal: false })
-      this.loadActivity()
+      
+      // 如果有待执行的操作，自动执行报名
+      if (this.pendingAction) {
+        wx.showLoading({ title: '报名中...' })
+        await this.doRegister(this.pendingAction, '')
+        this.pendingAction = null
+      } else {
+        wx.showToast({ title: '保存成功', icon: 'success' })
+        this.loadActivity()
+      }
     } catch (e) {
       wx.hideLoading()
       console.error('保存用户信息失败', e)

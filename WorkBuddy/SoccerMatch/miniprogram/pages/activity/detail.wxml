@@ -263,12 +263,12 @@
       </view>
       <view class="form-row">
         <view class="form-label">昵称</view>
-        <input class="nickname-input" type="nickname" placeholder="请输入昵称" value="{{tempNickName}}" bindinput="onNickNameInput" />
+        <input class="nickname-input" type="nickname" placeholder="请输入昵称" value="{{tempNickName}}" bindinput="onNickNameInput" bindblur="onNickNameInput" />
       </view>
     </view>
     <view class="modal-footer">
       <view class="modal-btn modal-btn-cancel" bindtap="closeUserInfoModal">取消</view>
-      <view class="modal-btn modal-btn-confirm" bindtap="saveUserInfo">保存</view>
+      <button class="modal-btn modal-btn-confirm" bindtap="saveUserInfo">保存并报名</button>
     </view>
   </view>
 </view>

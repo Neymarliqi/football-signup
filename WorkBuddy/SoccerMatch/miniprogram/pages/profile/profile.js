@@ -53,7 +53,19 @@ Page({
     const userInfo = app.globalData.userInfo || wx.getStorageSync('userInfo') || {}
     const openid = app.globalData.openid || wx.getStorageSync('openid') || ''
     const shortOpenid = openid ? openid.slice(-6).toUpperCase() : '------'
-    this.setData({ userInfo, shortOpenid })
+    
+    // 确保 positions 是数组
+    if (!userInfo.positions) {
+      userInfo.positions = []
+    }
+    
+    // 处理位置数据，添加选中状态
+    const positions = this.data.positions.map(pos => ({
+      ...pos,
+      isSelected: userInfo.positions.includes(pos.value)
+    }))
+    
+    this.setData({ userInfo, shortOpenid, positions })
   },
 
   // ==================== 头像选择 ====================
@@ -257,11 +269,31 @@ Page({
     this.setData({ editingName: false })
   },
 
+  // 选择位置（多选）
   selectPosition(e) {
     const pos = e.currentTarget.dataset.pos
-    const userInfo = { ...this.data.userInfo, position: pos }
+    const currentPositions = this.data.userInfo.positions || []
+    
+    let newPositions
+    if (currentPositions.includes(pos)) {
+      // 已选中，取消选择
+      newPositions = currentPositions.filter(p => p !== pos)
+    } else {
+      // 未选中，添加选择
+      newPositions = [...currentPositions, pos]
+    }
+    
+    const userInfo = { ...this.data.userInfo, positions: newPositions }
+    
+    // 更新位置选中状态
+    const positions = this.data.positions.map(p => ({
+      ...p,
+      isSelected: newPositions.includes(p.value)
+    }))
+    
+    this.setData({ userInfo, positions })
     this.saveUserInfo(userInfo)
-    wx.showToast({ title: '位置偏好已保存', icon: 'success' })
+    // 不显示气泡提醒，只通过高亮反馈
   },
 
   saveUserInfo(userInfo) {

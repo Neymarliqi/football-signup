@@ -126,6 +126,12 @@
   color: #666;
 }
 
+.section-subtitle {
+  font-size: 24rpx;
+  color: #999;
+  font-weight: normal;
+}
+
 .position-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);

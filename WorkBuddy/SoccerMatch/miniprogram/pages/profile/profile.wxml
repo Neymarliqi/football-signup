@@ -27,10 +27,10 @@
 
   <!-- 位置偏好 -->
   <view class="card">
-    <view class="section-title">⚽ 位置偏好</view>
+    <view class="section-title">⚽ 位置偏好 <text class="section-subtitle">（可多选）</text></view>
     <view class="position-grid">
       <view wx:for="{{positions}}" wx:key="value"
-            class="pos-option {{userInfo.position === item.value ? 'pos-option-active' : ''}}"
+            class="pos-option {{item.isSelected ? 'pos-option-active' : ''}}"
             bindtap="selectPosition" data-pos="{{item.value}}">
         <text class="pos-emoji">{{item.emoji}}</text>
         <text class="pos-label">{{item.label}}</text>
