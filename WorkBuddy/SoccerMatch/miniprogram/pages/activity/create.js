@@ -54,6 +54,7 @@ Page({
   },
 
   onLoad(options) {
+    console.log('create.js onLoad', options)
     if (options.id) {
       this.setData({ isEdit: true, activityId: options.id })
       this.loadActivity(options.id)
@@ -122,18 +123,28 @@ Page({
       const res = await db.collection('activities').doc(id).get()
       const act = res.data
       
-      // 权限检查：只有创建者可编辑
       const openid = app.globalData.openid || wx.getStorageSync('openid')
+      
+      // 权限检查：只有创建者可编辑
       if (act.createdBy !== openid && !app.globalData.isAdmin) {
         wx.showToast({ title: '无权编辑此活动', icon: 'error' })
         setTimeout(() => wx.navigateBack(), 1500)
         return
       }
       
-      // 状态检查：只有open状态可编辑
+      // 状态检查：只有open状态且活动未开始才可编辑
       const now = new Date()
       const actDate = act.activityDate instanceof Date ? act.activityDate : new Date(act.activityDate)
-      if (act.status !== 'open' && actDate < now) {
+      // 计算实际状态（兼容根据日期判断的情况）
+      let effectiveStatus = act.status
+      if (act.status === 'finished' || actDate < now) {
+        effectiveStatus = 'finished'
+      } else if (act.status === 'cancelled') {
+        effectiveStatus = 'cancelled'
+      } else {
+        effectiveStatus = 'open'
+      }
+      if (effectiveStatus !== 'open') {
         wx.showToast({ title: '活动已结束或取消，无法编辑', icon: 'none' })
         setTimeout(() => wx.navigateBack(), 1500)
         return

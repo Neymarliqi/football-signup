@@ -89,13 +89,13 @@ Page({
     // 活动状态
     const now = new Date()
     const actDate = act.activityDate instanceof Date ? act.activityDate : new Date(act.activityDate)
-    let statusText, statusClass
+    let statusText, statusClass, effectiveStatus
     if (act.status === 'finished' || actDate < now) {
-      statusText = '已结束'; statusClass = 'tag-gray'
+      statusText = '已结束'; statusClass = 'tag-gray'; effectiveStatus = 'finished'
     } else if (act.status === 'cancelled') {
-      statusText = '已取消'; statusClass = 'tag-red'
+      statusText = '已取消'; statusClass = 'tag-red'; effectiveStatus = 'cancelled'
     } else {
-      statusText = '报名中'; statusClass = 'tag-green'
+      statusText = '报名中'; statusClass = 'tag-green'; effectiveStatus = 'open'
     }
 
     // 我的状态
@@ -113,13 +113,14 @@ Page({
 
     // 判断是否是发布者且活动未开始（可以编辑）
     const isCreator = act.createdBy === openid
-    const canEdit = isCreator && act.status === 'open' && actDate > now
+    // 使用 effectiveStatus 判断，确保根据日期计算的状态也能正确控制权限
+    const canEdit = isCreator && effectiveStatus === 'open' && actDate > now
 
     // 格式化日期
     const displayDate = this.formatDate(actDate)
 
     this.setData({
-      activity: { ...act, statusText, statusClass, displayDate },
+      activity: { ...act, statusText, statusClass, displayDate, effectiveStatus },
       confirmedPlayers,
       pendingPlayers,
       leavePlayers,
@@ -457,10 +458,17 @@ Page({
   },
 
   editActivity() {
-    const { activityId, canEdit } = this.data
+    const { activityId, isCreator, activity } = this.data
     
-    if (!canEdit) {
-      wx.showToast({ title: '无权编辑该活动', icon: 'none' })
+    // 权限检查：只有创建者可编辑
+    if (!isCreator) {
+      wx.showToast({ title: '只有发布者可编辑', icon: 'none' })
+      return
+    }
+    
+    // 状态检查：只有报名中的活动可编辑
+    if (activity.effectiveStatus !== 'open') {
+      wx.showToast({ title: '该状态无法编辑', icon: 'none' })
       return
     }
     
@@ -476,15 +484,17 @@ Page({
 
   // 取消活动（发布者权限）
   async cancelActivity() {
-    const { activity, isCreator, canEdit } = this.data
+    const { activity, isCreator } = this.data
     
+    // 权限检查：只有创建者可取消
     if (!isCreator) {
-      wx.showToast({ title: '无权取消该活动', icon: 'none' })
+      wx.showToast({ title: '只有发布者可取消活动', icon: 'none' })
       return
     }
     
-    if (!canEdit) {
-      wx.showToast({ title: '活动状态不允许取消', icon: 'none' })
+    // 状态检查：只有报名中的活动可取消
+    if (activity.effectiveStatus !== 'open') {
+      wx.showToast({ title: '该状态无法取消', icon: 'none' })
       return
     }
 
@@ -518,10 +528,17 @@ Page({
   // 删除活动（发布者权限，仅取消/结束状态可删除）
   async deleteActivity() {
     const { activity, isCreator } = this.data
-    const canDelete = isCreator && (activity.status === 'cancelled' || activity.status === 'finished')
     
-    if (!canDelete) {
+    // 权限检查：只有创建者可删除
+    if (!isCreator) {
       wx.showToast({ title: '无权删除该活动', icon: 'none' })
+      return
+    }
+    
+    // 状态检查：只有已取消或已结束的活动可删除
+    const canDelete = activity.effectiveStatus === 'cancelled' || activity.effectiveStatus === 'finished'
+    if (!canDelete) {
+      wx.showToast({ title: '该状态无法删除', icon: 'none' })
       return
     }
 
