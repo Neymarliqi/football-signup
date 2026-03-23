@@ -6,7 +6,8 @@
     "pages/tactics/tactics",
     "pages/profile/profile",
     "pages/profile/history",
-    "pages/admin/admin"
+    "pages/admin/admin",
+    "pages/privacy/privacy"
   ],
   "tabBar": {
     "custom": true,

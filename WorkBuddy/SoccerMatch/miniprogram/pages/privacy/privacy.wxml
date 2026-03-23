@@ -1,0 +1,85 @@
+<view class="privacy-container">
+  <!-- 顶部导航栏 -->
+  <view class="nav-bar">
+    <view class="nav-back" bindtap="goBack">
+      <text class="nav-icon">←</text>
+    </view>
+    <text class="nav-title">隐私保护指引</text>
+    <view class="nav-placeholder"></view>
+  </view>
+
+  <!-- 内容区域 -->
+  <scroll-view class="privacy-content" scroll-y>
+    <!-- 头部说明 -->
+    <view class="privacy-header">
+      <text class="app-name">约球助手</text>
+      <text class="update-time">更新日期：2026年3月23日</text>
+    </view>
+
+    <!-- 隐私内容 -->
+    <view class="privacy-sections">
+      <view class="section">
+        <view class="section-title">
+          <view class="title-num">1</view>
+          <text>我们如何收集和使用您的信息</text>
+        </view>
+        <view class="section-body">
+          <view class="item">
+            <text class="item-dot">•</text>
+            <text class="item-text">为帮助您注册和使用本小程序，我们可能会收集您的微信昵称、头像、OpenID。</text>
+          </view>
+          <view class="item">
+            <text class="item-dot">•</text>
+            <text class="item-text">为提供活动位置服务，我们可能会收集您的地理位置信息（仅在您选择地点时使用）。</text>
+          </view>
+          <view class="item">
+            <text class="item-dot">•</text>
+            <text class="item-text">为记录您的活动报名情况，我们会存储您报名的活动信息。</text>
+          </view>
+        </view>
+      </view>
+
+      <view class="section">
+        <view class="section-title">
+          <view class="title-num">2</view>
+          <text>我们如何存储和保护您的信息</text>
+        </view>
+        <view class="section-body">
+          <view class="item">
+            <text class="item-dot">•</text>
+            <text class="item-text">您的信息存储在微信云开发服务中，我们采用业界标准的安全措施保护您的数据。</text>
+          </view>
+        </view>
+      </view>
+
+      <view class="section">
+        <view class="section-title">
+          <view class="title-num">3</view>
+          <text>您的权利</text>
+        </view>
+        <view class="section-body">
+          <view class="item">
+            <text class="item-dot">•</text>
+            <text class="item-text">您有权查看、修改或删除您的个人信息。如有需要，请联系开发者。</text>
+          </view>
+        </view>
+      </view>
+
+      <view class="section">
+        <view class="section-title">
+          <view class="title-num">4</view>
+          <text>联系我们</text>
+        </view>
+        <view class="section-body">
+          <view class="item">
+            <text class="item-dot">•</text>
+            <text class="item-text">如您对本隐私保护指引有任何疑问，请通过小程序内的反馈功能联系我们。</text>
+          </view>
+        </view>
+      </view>
+    </view>
+
+    <!-- 底部留白 -->
+    <view class="bottom-space"></view>
+  </scroll-view>
+</view>

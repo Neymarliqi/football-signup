@@ -476,6 +476,13 @@ Page({
     })
   },
 
+  // 跳转到隐私保护指引
+  goPrivacy() {
+    wx.navigateTo({
+      url: '/pages/privacy/privacy'
+    })
+  },
+
   formatDate(date) {
     const m = date.getMonth() + 1
     const d = date.getDate()
