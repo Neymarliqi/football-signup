@@ -698,25 +698,12 @@ Page({
         address: activity.location || ''
       })
     } else if (activity.location) {
-      // 没有经纬度但有地址，使用微信内置地图查看位置
-      wx.getLocation({
-        type: 'gcj02',
-        success: (res) => {
-          wx.openLocation({
-            latitude: res.latitude,
-            longitude: res.longitude,
-            scale: 18,
-            name: activity.locationName || '踢球地点',
-            address: activity.location
-          })
-        },
-        fail: () => {
-          wx.showModal({
-            title: '提示',
-            content: '该活动未设置精确导航位置\n\n建议发布活动时在地图上选择具体位置，以获得更好的导航体验',
-            showCancel: false
-          })
-        }
+      // 没有经纬度但有地址，提示用户
+      wx.showModal({
+        title: '导航提示',
+        content: '该活动未设置精确导航位置，建议联系发布者确认具体地址\n\n地址：' + activity.location,
+        showCancel: false,
+        confirmText: '知道了'
       })
     } else {
       wx.showToast({ title: '暂无地址信息', icon: 'none' })
