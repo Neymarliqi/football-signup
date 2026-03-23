@@ -23,10 +23,5 @@ Page({
 
   onLoad() {
     // 页面加载
-  },
-
-  // 返回上一页
-  goBack() {
-    wx.navigateBack()
   }
 })

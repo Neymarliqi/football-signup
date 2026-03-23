@@ -1,5 +1,6 @@
 {
   "navigationBarTitleText": "隐私保护指引",
-  "navigationStyle": "custom",
-  "usingComponents": {}
+  "navigationBarBackgroundColor": "#1a1a2e",
+  "navigationBarTextStyle": "white",
+  "backgroundColor": "#f5f5f5"
 }

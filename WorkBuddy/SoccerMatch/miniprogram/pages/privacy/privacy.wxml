@@ -1,13 +1,4 @@
 <view class="privacy-container">
-  <!-- 顶部导航栏 -->
-  <view class="nav-bar">
-    <view class="nav-back" bindtap="goBack">
-      <text class="nav-icon">←</text>
-    </view>
-    <text class="nav-title">隐私保护指引</text>
-    <view class="nav-placeholder"></view>
-  </view>
-
   <!-- 内容区域 -->
   <scroll-view class="privacy-content" scroll-y>
     <!-- 头部说明 -->
