@@ -413,11 +413,10 @@ Page({
 
   // 选择地点 - 使用腾讯地图选点插件（支持搜索）
   pickLocation() {
-    // 腾讯位置服务 Key（需要在腾讯位置服务平台申请）
-    const key = 'YOUR_TENCENT_MAP_KEY' // 请替换为您的Key
+    const key = 'SXGBZ-RHQ6M-26V6Z-6UTTU-JGKUV-TVFJS'
     const referer = '约球助手'
     
-    // 如果已有位置，以该位置为中心；否则使用当前位置
+    // 如果已有位置，以该位置为中心
     const location = this.data.form.latitude && this.data.form.longitude
       ? JSON.stringify({
           latitude: this.data.form.latitude,
@@ -425,7 +424,6 @@ Page({
         })
       : ''
     
-    // 分类关键词：体育场馆、运动健身
     const category = '体育场馆,运动健身'
     
     // 跳转到地图选点插件页面

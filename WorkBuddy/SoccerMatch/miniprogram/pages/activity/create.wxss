@@ -132,7 +132,7 @@
   color: #333;
   border: 2rpx solid #e8e8e8;
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
   min-height: 88rpx;
   box-sizing: border-box;
@@ -144,9 +144,9 @@
 
 .nav-address-text {
   flex: 1;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  word-wrap: break-word;
+  word-break: break-all;
+  line-height: 1.5;
 }
 
 .clear-location {
