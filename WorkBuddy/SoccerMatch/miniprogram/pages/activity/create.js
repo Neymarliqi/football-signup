@@ -411,7 +411,7 @@ Page({
     this.setData({ 'form.fee': fee })
   },
 
-  // 选择地点 - 使用腾讯地图选点插件（支持搜索）
+  // 选择地点 - 使用腾讯地图选点插件（不传category，不显示分类导航栏）
   pickLocation() {
     const key = 'SXGBZ-RHQ6M-26V6Z-6UTTU-JGKUV-TVFJS'
     const referer = '约球助手'
@@ -424,11 +424,9 @@ Page({
         })
       : ''
     
-    const category = '体育场馆,运动健身'
-    
-    // 跳转到地图选点插件页面
+    // 不传category参数，就不会显示分类导航栏
     wx.navigateTo({
-      url: `plugin://chooseLocation/index?key=${key}&referer=${referer}&location=${location}&category=${category}`
+      url: `plugin://chooseLocation/index?key=${key}&referer=${referer}&location=${location}`
     })
   },
 
@@ -445,11 +443,6 @@ Page({
       // 清除选点数据，防止再次进入页面时返回上次结果
       chooseLocation.setLocation(null)
     }
-  },
-
-  // 页面卸载时清理
-  onUnload() {
-    chooseLocation.setLocation(null)
   },
 
   // 清除导航地址

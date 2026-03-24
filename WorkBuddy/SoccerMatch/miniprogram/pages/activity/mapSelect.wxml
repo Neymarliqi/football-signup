@@ -1,0 +1,98 @@
+<!-- pages/activity/mapSelect.wxml -->
+<view class="container {{show ? 'show' : ''}}">
+  <!-- 顶部导航栏 -->
+  <view class="nav-bar">
+    <view class="nav-cancel" bindtap="onCancel">取消</view>
+    <view class="nav-title">{{isSearching ? '搜索地点' : '选择位置'}}</view>
+    <view class="nav-confirm {{selectedPoi ? 'active' : ''}}" bindtap="onConfirm">确定</view>
+  </view>
+
+  <!-- 搜索区域 -->
+  <view class="search-section">
+    <view class="search-box" bindtap="onSearchFocus">
+      <text class="search-icon">🔍</text>
+      <input 
+        class="search-input" 
+        placeholder="搜索地点" 
+        value="{{keyword}}"
+        focus="{{isSearching}}"
+        bindinput="onSearchInput"
+        bindconfirm="onSearchConfirm"
+        bindblur="onSearchBlur"
+      />
+      <view class="search-clear" wx:if="{{keyword}}" bindtap="onClearSearch">×</view>
+    </view>
+    <view class="search-cancel" wx:if="{{isSearching}}" bindtap="onCancelSearch">取消</view>
+  </view>
+
+  <!-- 地图区域（仅在非搜索模式显示） -->
+  <view class="map-section" wx:if="{{!isSearching}}">
+    <map
+      id="locationMap"
+      class="map"
+      latitude="{{mapCenter.latitude}}"
+      longitude="{{mapCenter.longitude}}"
+      scale="16"
+      show-location
+      markers="{{markers}}"
+      bindregionchange="onMapRegionChange"
+    />
+    <!-- 中心点标记 -->
+    <view class="center-marker">
+      <view class="marker-pin"></view>
+      <view class="marker-shadow"></view>
+    </view>
+    <!-- 重新定位按钮 -->
+    <view class="locate-btn" bindtap="onRelocate">
+      <view class="locate-icon"></view>
+    </view>
+  </view>
+
+  <!-- 地点列表 -->
+  <view class="poi-list-section">
+    <scroll-view scroll-y class="poi-scroll" scroll-into-view="poi-{{selectedIndex}}">
+      <!-- 当前选中位置（地图模式） -->
+      <view class="poi-item current-location" wx:if="{{!isSearching && currentPoi}}" bindtap="onSelectPoi" data-poi="{{currentPoi}}" data-index="-1">
+        <view class="poi-icon">📍</view>
+        <view class="poi-info">
+          <view class="poi-name">{{currentPoi.title}}</view>
+          <view class="poi-address">{{currentPoi.address}}</view>
+        </view>
+        <view class="poi-check {{selectedIndex === -1 ? 'checked' : ''}}">
+          <view class="check-icon"></view>
+        </view>
+      </view>
+
+      <!-- 附近地点列表（地图模式） -->
+      <block wx:if="{{!isSearching}}">
+        <view class="poi-item" wx:for="{{nearbyPois}}" wx:key="id" bindtap="onSelectPoi" data-poi="{{item}}" data-index="{{index}}" id="poi-{{index}}">
+          <view class="poi-icon">📍</view>
+          <view class="poi-info">
+            <view class="poi-name">{{item.title}}</view>
+            <view class="poi-address">{{item.address}}</view>
+          </view>
+          <view class="poi-check {{selectedIndex === index ? 'checked' : ''}}">
+            <view class="check-icon"></view>
+          </view>
+        </view>
+      </block>
+
+      <!-- 搜索结果列表（搜索模式） -->
+      <block wx:if="{{isSearching}}">
+        <view class="poi-item" wx:for="{{searchResults}}" wx:key="id" bindtap="onSelectSearchResult" data-poi="{{item}}" data-index="{{index}}">
+          <view class="poi-icon">📍</view>
+          <view class="poi-info">
+            <view class="poi-name">{{item.title}}</view>
+            <view class="poi-address">{{item.address}}</view>
+          </view>
+          <view class="poi-distance" wx:if="{{item.distance}}">{{item.distance}}km</view>
+        </view>
+      </block>
+
+      <!-- 空状态 -->
+      <view class="empty-state" wx:if="{{isSearching && searchResults.length === 0 && keyword}}">
+        <text class="empty-text">未找到相关地点</text>
+      </view>
+    </scroll-view>
+  </view>
+</view>

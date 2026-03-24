@@ -9,6 +9,12 @@
     "pages/admin/admin",
     "pages/privacy/privacy"
   ],
+  "plugins": {
+    "chooseLocation": {
+      "version": "1.0.12",
+      "provider": "wx76a9a06e5b4e693e"
+    }
+  },
   "tabBar": {
     "custom": true,
     "color": "#999999",
@@ -37,12 +43,7 @@
       "desc": "获取您的位置用于显示踢球地点附近信息"
     }
   },
-  "plugins": {
-    "chooseLocation": {
-      "version": "1.0.12",
-      "provider": "wx76a9a06e5b4e693e"
-    }
-  },
+
   "sitemapLocation": "sitemap.json",
   "usingComponents": {}
 }

@@ -118,13 +118,13 @@
     <view class="form-item">
       <view class="form-label">导航地址</view>
       <view class="nav-address-wrap">
-        <view class="nav-address-display {{form.location ? '' : 'placeholder'}}" bindtap="pickLocation">
-          <text class="nav-address-text">{{form.location || '点击选择导航地址（可选）'}}</text>
+        <view class="nav-address-display {{form.locationName ? '' : 'placeholder'}}" bindtap="pickLocation">
+          <text class="nav-address-text">{{form.locationName || '点击选择导航地址（可选）'}}</text>
           <text class="picker-arrow">›</text>
         </view>
-        <text wx:if="{{form.location}}" class="clear-location" bindtap="clearLocation">清除</text>
+        <text wx:if="{{form.locationName}}" class="clear-location" bindtap="clearLocation">清除</text>
       </view>
-      <view class="form-hint" wx:if="{{form.location}}">已选择导航地址，用户可直接导航前往</view>
+      <view class="form-hint" wx:if="{{form.locationName}}">已选择导航地址，用户可直接导航前往</view>
     </view>
 
     <view class="form-item">
