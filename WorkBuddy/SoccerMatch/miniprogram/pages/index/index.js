@@ -292,6 +292,7 @@ Page({
     // 显示前6人头像（首页卡片空间有限）- 使用最新用户信息
     const confirmedPlayers = confirmed.slice(0, 6).map(r => {
       const latestUser = latestUsers[r.openid]
+      console.log('[index] 处理球员:', r.openid, 'latestUser存在:', !!latestUser, '使用头像:', latestUser?.avatarUrl || r.avatarUrl)
       return {
         ...r,
         nickName: latestUser?.nickName || r.nickName,

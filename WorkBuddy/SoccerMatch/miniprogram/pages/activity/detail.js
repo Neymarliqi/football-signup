@@ -154,20 +154,11 @@ Page({
           const registrations = act.registrations || []
           const userIds = registrations.map(r => r.openid).filter(id => id)
 
-          // 获取最新用户信息
+          // 获取最新用户信息（使用全局缓存系统）
           let latestUsers = {}
           if (userIds.length > 0) {
             try {
-              const batchSize = 20
-              for (let i = 0; i < userIds.length; i += batchSize) {
-                const batch = userIds.slice(i, i + batchSize)
-                const usersRes = await db.collection('users').where({
-                  _id: db.command.in(batch)
-                }).get()
-                usersRes.data.forEach(u => {
-                  latestUsers[u._id] = u
-                })
-              }
+              latestUsers = await app.fetchUsersWithCache(userIds)
             } catch (e) {
               console.log('实时更新用户信息失败', e)
             }
@@ -628,7 +619,8 @@ Page({
   },
 
   /**
-   * 保存用户信息
+   * 保存用户信息（首次报名弹窗）
+   * 优化策略：先保存到本地缓存，再异步保存到云端
    */
   async saveUserInfo() {
     const { tempAvatarUrl, tempNickName } = this.data
@@ -641,20 +633,35 @@ Page({
     wx.showLoading({ title: '保存中...' })
 
     try {
+      // 1. 先获取 openid
+      let openid = app.globalData.openid || wx.getStorageSync('openid')
+      if (!openid) {
+        try {
+          const res = await wx.cloud.callFunction({ name: 'getOpenid' })
+          openid = res.result.openid
+          app.globalData.openid = openid
+          wx.setStorageSync('openid', openid)
+        } catch (e) {
+          console.error('[saveUserInfo] 获取 openid 失败', e)
+          wx.hideLoading()
+          wx.showToast({ title: '获取用户信息失败', icon: 'none' })
+          return
+        }
+      }
+
       let finalAvatarUrl = tempAvatarUrl
 
-
-
-      // 如果选择了头像，上传到云存储
+      // 2. 如果选择了头像，上传到云存储
       if (tempAvatarUrl && !tempAvatarUrl.startsWith('cloud://') && !tempAvatarUrl.startsWith('http')) {
         try {
+          const ext = tempAvatarUrl.match(/\.([^.]+)$/) ? tempAvatarUrl.match(/\.([^.]+)$/)[1] : 'jpg'
           const uploadRes = await wx.cloud.uploadFile({
-            cloudPath: `avatars/${openid}_${Date.now()}.jpg`,
+            cloudPath: `avatars/${openid}_${Date.now()}.${ext}`,
             filePath: tempAvatarUrl
           })
           finalAvatarUrl = uploadRes.fileID
         } catch (e) {
-          console.error('上传头像失败', e)
+          console.error('[saveUserInfo] 上传头像失败', e)
           finalAvatarUrl = this.data.defaultAvatarUrl
         }
       }
@@ -664,36 +671,11 @@ Page({
         finalAvatarUrl = this.data.defaultAvatarUrl
       }
 
-      const openid = app.globalData.openid || wx.getStorageSync('openid')
-
-      // 获取当前用户信息（保留位置偏好）
+      // 3. 获取当前用户信息（保留位置偏好）
       const currentUserInfo = app.globalData.userInfo || wx.getStorageSync('userInfo') || {}
       const positions = currentUserInfo.positions || []
 
-      // 保存到数据库 - 先尝试 update（保留已有数据），失败则用 set（新建文档）
-      try {
-        await db.collection('users').doc(openid).update({
-          data: {
-            nickName: tempNickName,
-            avatarUrl: finalAvatarUrl,
-            updatedAt: new Date()
-          }
-        })
-      } catch (e) {
-        // 文档不存在，使用 set 创建
-        await db.collection('users').doc(openid).set({
-          data: {
-            openid: openid,
-            nickName: tempNickName,
-            avatarUrl: finalAvatarUrl,
-            positions: positions,
-            createdAt: new Date(),
-            updatedAt: new Date()
-          }
-        })
-      }
-
-      // 更新全局数据和本地存储（保留位置偏好）
+      // 4. 构建更新后的用户信息
       const userInfo = {
         _id: openid,
         openid: openid,
@@ -701,18 +683,49 @@ Page({
         avatarUrl: finalAvatarUrl,
         positions: positions
       }
+
+      // 5. 更新本地缓存（优先）
       app.globalData.userInfo = userInfo
       wx.setStorageSync('userInfo', userInfo)
 
-      // 清除全局缓存中的该用户信息（强制其他页面重新获取）
+      // 6. 异步保存到云端（不影响用户体验）
+      db.collection('users').doc(openid).update({
+        data: {
+          nickName: tempNickName,
+          avatarUrl: finalAvatarUrl,
+          openid: openid,
+          positions: positions,
+          updatedAt: db.serverDate()
+        }
+      }).catch(err => {
+        // 如果文档不存在，使用 set 创建
+        if (err.errCode === -502001 || err.errCode === -502005) {
+          db.collection('users').doc(openid).set({
+            data: {
+              openid: openid,
+              nickName: tempNickName,
+              avatarUrl: finalAvatarUrl,
+              positions: positions,
+              createdAt: db.serverDate(),
+              updatedAt: db.serverDate()
+            }
+          }).catch(setErr => {
+            console.error('[saveUserInfo] 云端保存失败:', setErr)
+          })
+        } else {
+          console.error('[saveUserInfo] 云端保存失败:', err)
+        }
+      })
+
+      // 7. 清除全局缓存中的该用户信息
       if (app.clearUserCache) {
         app.clearUserCache(openid)
       }
 
       wx.hideLoading()
       this.setData({ showUserInfoModal: false })
-      
-      // 如果有待执行的操作
+
+      // 8. 如果有待执行的操作
       if (this.pendingAction) {
         // 只有报名操作需要阅读确认弹窗，待定/请假直接执行
         if (this.pendingAction === 'confirmed') {

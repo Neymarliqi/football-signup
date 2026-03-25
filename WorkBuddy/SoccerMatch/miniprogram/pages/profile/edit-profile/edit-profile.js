@@ -53,15 +53,18 @@ Page({
     wx.showLoading({ title: '保存中...' })
 
     try {
+      // 1. 先获取 openid
+      const openid = app.globalData.openid || wx.getStorageSync('openid')
+      if (!openid || openid === 'undefined' || openid === '') {
+        wx.hideLoading()
+        wx.showToast({ title: '用户信息异常，请重试', icon: 'none' })
+        return
+      }
+
       let finalAvatarUrl = userInfo.avatarUrl
 
+      // 2. 如果上传了新头像，先上传到云存储
       if (tempAvatarUrl) {
-        const openid = app.globalData.openid || wx.getStorageSync('openid')
-        if (!openid) {
-          wx.hideLoading()
-          wx.showToast({ title: '获取用户信息失败', icon: 'none' })
-          return
-        }
         const ext = tempAvatarUrl.match(/\.([^.]+)$/) ? tempAvatarUrl.match(/\.([^.]+)$/)[1] : 'jpg'
         const cloudPath = `avatars/${openid}_${Date.now()}.${ext}`
 
@@ -73,25 +76,30 @@ Page({
         finalAvatarUrl = uploadRes.fileID
       }
 
+      // 3. 构建更新后的用户信息
       const updatedUserInfo = {
         ...userInfo,
         nickName: finalNickName.trim(),
-        avatarUrl: finalAvatarUrl
+        avatarUrl: finalAvatarUrl,
+        openid  // 确保 openid 存在
       }
 
+      // 4. 更新本地缓存（优先）
       app.globalData.userInfo = updatedUserInfo
       wx.setStorageSync('userInfo', updatedUserInfo)
 
-      const openid = app.globalData.openid || wx.getStorageSync('openid')
-      if (openid) {
-        await db.collection('users').doc(openid).update({
-          data: {
-            nickName: updatedUserInfo.nickName,
-            avatarUrl: updatedUserInfo.avatarUrl,
-            updatedAt: db.serverDate()
-          }
-        })
-      }
+      // 5. 异步保存到云端（不影响本地体验）
+      db.collection('users').doc(openid).update({
+        data: {
+          nickName: updatedUserInfo.nickName,
+          avatarUrl: updatedUserInfo.avatarUrl,
+          openid: openid,
+          updatedAt: db.serverDate()
+        }
+      }).catch(err => {
+        console.error('[edit-profile] 云端保存失败:', err)
+        // 云端保存失败不影响用户体验，本地已保存
+      })
 
       wx.hideLoading()
       wx.showToast({

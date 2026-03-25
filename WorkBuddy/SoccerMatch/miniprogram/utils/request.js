@@ -40,10 +40,10 @@ export async function batchGetUsers(userIds, db) {
     for (let i = 0; i < userIds.length; i += batchSize) {
       const batch = userIds.slice(i, i + batchSize)
       const usersRes = await requestWithRetry(() =>
-        db.collection('users').where({ _id: db.command.in(batch) }).get()
+        db.collection('users').where({ openid: db.command.in(batch) }).get()
       )
       usersRes.data.forEach(u => {
-        result[u._id] = u
+        result[u.openid] = u
       })
     }
   } catch (e) {

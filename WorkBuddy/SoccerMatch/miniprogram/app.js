@@ -104,6 +104,8 @@ App({
   async fetchUsersWithCache(userIds) {
     if (!userIds || userIds.length === 0) return {}
 
+    console.log('[fetchUsersWithCache] 开始查询用户信息, userIds:', userIds)
+
     const db = wx.cloud.database()
     const { usersCache, cacheExpireTime } = this.globalData
     const now = Date.now()
@@ -115,9 +117,11 @@ App({
       const cached = usersCache[id]
       if (cached && (now - cached.timestamp < cacheExpireTime)) {
         // 缓存有效，使用缓存
+        console.log('[fetchUsersWithCache] 缓存命中:', id, cached.data.nickName)
         result[id] = cached.data
       } else {
         // 缓存过期或不存在，需要查询
+        console.log('[fetchUsersWithCache] 缓存未命中:', id, '已缓存:', !!cached)
         uncachedIds.push(id)
       }
     })
@@ -128,14 +132,18 @@ App({
         const batchSize = 20
         for (let i = 0; i < uncachedIds.length; i += batchSize) {
           const batch = uncachedIds.slice(i, i + batchSize)
+          console.log('[fetchUsersWithCache] 查询数据库, batch:', batch)
           const res = await db.collection('users').where({
-            _id: db.command.in(batch)
+            openid: db.command.in(batch)
           }).get()
 
-          // 更新缓存
+          console.log('[fetchUsersWithCache] 查询结果:', res.data.length, '条')
+          
+          // 更新缓存 - 使用 openid 作为 key（保持查询一致性）
           res.data.forEach(user => {
-            result[user._id] = user
-            usersCache[user._id] = {
+            console.log('[fetchUsersWithCache] 更新缓存:', user.openid, user.nickName, user.avatarUrl)
+            result[user.openid] = user
+            usersCache[user.openid] = {
               data: user,
               timestamp: now
             }
@@ -146,6 +154,7 @@ App({
       }
     }
 
+    console.log('[fetchUsersWithCache] 最终结果:', Object.keys(result).length, '个用户')
     return result
   },
 
