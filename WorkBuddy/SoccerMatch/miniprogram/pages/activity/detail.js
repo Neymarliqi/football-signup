@@ -621,37 +621,6 @@ Page({
   },
 
   /**
-   * 快速获取微信头像和昵称
-   */
-  async quickFillWechatInfo() {
-    wx.showLoading({ title: '获取中...' })
-    
-    try {
-      // 获取微信用户信息
-      const res = await new Promise((resolve, reject) => {
-        wx.getUserProfile({
-          desc: '用于完善用户资料',
-          success: resolve,
-          fail: reject
-        })
-      })
-      
-      const { avatarUrl, nickName } = res.userInfo
-      
-      this.setData({
-        tempAvatarUrl: avatarUrl,
-        tempNickName: nickName
-      })
-      
-      wx.hideLoading()
-      wx.showToast({ title: '已填充微信信息', icon: 'success' })
-    } catch (e) {
-      wx.hideLoading()
-      wx.showToast({ title: '获取失败，请手动填写', icon: 'none' })
-    }
-  },
-
-  /**
    * 输入昵称
    */
   onNickNameInput(e) {

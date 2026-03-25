@@ -932,31 +932,6 @@
 .modal-body {
   margin-bottom: 40rpx;
 }
-
-/* 一键获取微信信息按钮 */
-.wechat-info-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 12rpx;
-  padding: 28rpx 0;
-  background: linear-gradient(135deg, #07c160, #05a350);
-  border-radius: 16rpx;
-  margin-bottom: 30rpx;
-}
-
-.wechat-info-btn text {
-  font-size: 30rpx;
-  font-weight: bold;
-  color: #fff;
-}
-
-.wechat-icon {
-  font-size: 36rpx;
-}
-
-/* 分隔线文字 */
-.divider-text {
   text-align: center;
   font-size: 26rpx;
   color: #999;
