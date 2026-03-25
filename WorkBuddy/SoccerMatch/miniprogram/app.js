@@ -144,13 +144,20 @@ App({
 
           // 更新缓存 - 使用 openid 作为 key（保持查询一致性）
           res.data.forEach(user => {
-            console.log('[fetchUsersWithCache] 更新缓存:', user.openid, user.nickName, user.avatarUrl)
+            console.log('[fetchUsersWithCache] 更新缓存:', user.openid, user.nickName, user.avatarUrl?.substring(0, 60))
             result[user.openid] = user
             usersCache[user.openid] = {
               data: user,
               timestamp: now
             }
           })
+        }
+
+        // 记录未查询到的用户ID
+        const foundIds = Object.keys(result)
+        const notFoundIds = uncachedIds.filter(id => !foundIds.includes(id))
+        if (notFoundIds.length > 0) {
+          console.warn('[fetchUsersWithCache] 以下用户ID未查询到数据:', notFoundIds)
         }
       } catch (e) {
         console.error('[fetchUsersWithCache] 查询用户信息失败', e)

@@ -1,0 +1,71 @@
+/**
+ * 请在微信开发者工具控制台中直接执行以下代码，然后把结果截图给我
+ * 
+ * 代码1: 查询 users 表全部数据
+ */
+// ========== 代码1: 查询 users 表 ==========
+const db = wx.cloud.database()
+
+// 查询所有用户（分批获取）
+async function queryAllUsers() {
+  const MAX_LIMIT = 20
+  let allUsers = []
+  let count = 0
+  
+  // 先获取总数
+  const countRes = await db.collection('users').count()
+  console.log('=== users 集合总记录数:', countRes.total, '===')
+  
+  // 分批获取
+  const total = countRes.total
+  const batchTimes = Math.ceil(total / MAX_LIMIT)
+  
+  for (let i = 0; i < batchTimes; i++) {
+    const res = await db.collection('users').skip(i * MAX_LIMIT).limit(MAX_LIMIT).get()
+    allUsers = allUsers.concat(res.data)
+  }
+  
+  console.log('=== users 表全部数据 ===')
+  allUsers.forEach(user => {
+    console.log({
+      _id: user._id,
+      openid: user.openid,
+      nickName: user.nickName,
+      avatarUrl: user.avatarUrl,
+      positions: user.positions,
+      updatedAt: user.updatedAt
+    })
+  })
+  
+  return allUsers
+}
+
+queryAllUsers().then(users => {
+  console.log('\n=== 查询完成，共', users.length, '条用户记录 ===')
+}).catch(err => {
+  console.error('查询失败:', err)
+})
+
+// ========== 代码2: 查询 activities 表中的 registrations 结构 ==========
+// 请单独执行这段代码
+async function queryActivities() {
+  const res = await db.collection('activities').limit(2).get()
+  console.log('\n=== activities 表数据 (前2条) ===')
+  res.data.forEach(act => {
+    console.log({
+      _id: act._id,
+      title: act.title,
+      createdBy: act.createdBy,
+      registrationsCount: act.registrations ? act.registrations.length : 0,
+      registrations: act.registrations ? act.registrations.slice(0, 5).map(r => ({
+        openid: r.openid,
+        nickName: r.nickName,
+        avatarUrl: r.avatarUrl
+      })) : []
+    })
+  })
+}
+
+queryActivities().catch(err => {
+  console.error('查询活动失败:', err)
+})

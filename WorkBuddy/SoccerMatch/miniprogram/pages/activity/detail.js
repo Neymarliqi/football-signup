@@ -652,7 +652,8 @@ Page({
       let finalAvatarUrl = tempAvatarUrl
 
       // 2. 如果选择了头像，上传到云存储
-      if (tempAvatarUrl && !tempAvatarUrl.startsWith('cloud://') && !tempAvatarUrl.startsWith('http')) {
+      // 注意：微信头像选择返回的是临时文件路径（http://tmp/...），必须上传到云存储
+      if (tempAvatarUrl && !tempAvatarUrl.startsWith('cloud://')) {
         try {
           const ext = tempAvatarUrl.match(/\.([^.]+)$/) ? tempAvatarUrl.match(/\.([^.]+)$/)[1] : 'jpg'
           const uploadRes = await wx.cloud.uploadFile({
@@ -660,6 +661,7 @@ Page({
             filePath: tempAvatarUrl
           })
           finalAvatarUrl = uploadRes.fileID
+          console.log('[saveUserInfo] 头像已上传:', finalAvatarUrl)
         } catch (e) {
           console.error('[saveUserInfo] 上传头像失败', e)
           finalAvatarUrl = this.data.defaultAvatarUrl

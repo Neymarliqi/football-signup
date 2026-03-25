@@ -1,0 +1,9 @@
+{
+  "name": "debugDataStructure",
+  "version": "1.0.0",
+  "description": "调试数据结构",
+  "main": "index.js",
+  "dependencies": {
+    "wx-server-sdk": "~2.6.3"
+  }
+}

@@ -64,16 +64,23 @@ Page({
       let finalAvatarUrl = userInfo.avatarUrl
 
       // 2. 如果上传了新头像，先上传到云存储
-      if (tempAvatarUrl) {
-        const ext = tempAvatarUrl.match(/\.([^.]+)$/) ? tempAvatarUrl.match(/\.([^.]+)$/)[1] : 'jpg'
-        const cloudPath = `avatars/${openid}_${Date.now()}.${ext}`
+      // 注意：微信头像选择返回的是临时文件路径（http://tmp/...），必须上传到云存储
+      if (tempAvatarUrl && !tempAvatarUrl.startsWith('cloud://')) {
+        try {
+          const ext = tempAvatarUrl.match(/\.([^.]+)$/) ? tempAvatarUrl.match(/\.([^.]+)$/)[1] : 'jpg'
+          const cloudPath = `avatars/${openid}_${Date.now()}.${ext}`
 
-        const uploadRes = await wx.cloud.uploadFile({
-          cloudPath,
-          filePath: tempAvatarUrl
-        })
+          const uploadRes = await wx.cloud.uploadFile({
+            cloudPath,
+            filePath: tempAvatarUrl
+          })
 
-        finalAvatarUrl = uploadRes.fileID
+          finalAvatarUrl = uploadRes.fileID
+          console.log('[edit-profile] 头像已上传:', finalAvatarUrl)
+        } catch (e) {
+          console.error('[edit-profile] 头像上传失败:', e)
+          // 上传失败使用原头像
+        }
       }
 
       // 3. 构建更新后的用户信息
