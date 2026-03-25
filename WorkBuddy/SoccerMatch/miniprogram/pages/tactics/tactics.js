@@ -30,6 +30,101 @@ Page({
     this.loadTactics()
   },
 
+  onShow() {
+    // 每次显示时强制刷新用户信息，确保看到最新头像
+    const { activityId } = this.data
+    if (activityId && this.data.activity) {
+      this.refreshUsersInfo()
+    }
+  },
+
+  async refreshUsersInfo() {
+    const { activity, activityId } = this.data
+    if (!activity) return
+
+    try {
+      const confirmedRegs = activity.registrations?.filter(r => r.status === 'confirmed') || []
+      const userIds = confirmedRegs.map(r => r.openid)
+
+      if (userIds.length > 0) {
+        // 强制刷新用户缓存
+        const latestUsers = await app.fetchUsersWithCache(userIds, true) // true = 强制刷新
+
+        // 重新构建球员列表
+        const posMap = {
+          'ALL': '全能',
+          'GK': '门将', 'LB': '左后', 'CB': '中后', 'RB': '右后',
+          'LWB': '左翼', 'RWB': '右翼',
+          'CDM': '后腰', 'CM': '中场', 'LM': '左中', 'RM': '右中',
+          'CAM': '前腰', 'LW': '左锋', 'RW': '右锋',
+          'ST': '中锋', 'CF': '前锋'
+        }
+
+        const getPositionLabelString = (position) => {
+          if (!position) return ''
+          let posCodes = []
+          if (typeof position === 'string') {
+            posCodes = position.split(/[,，\/\s]+/).filter(p => p.trim())
+          } else if (Array.isArray(position)) {
+            const sorted = [...position].sort((a, b) => {
+              const orderA = typeof a === 'object' ? (a.order || 99) : 99
+              const orderB = typeof b === 'object' ? (b.order || 99) : 99
+              return orderA - orderB
+            })
+            posCodes = sorted.map(p => typeof p === 'object' ? p.value : p)
+          }
+          const labels = posCodes.map(code => {
+            const label = posMap[code.trim().toUpperCase()] || code.trim()
+            return label.substring(0, 2)
+          }).filter(label => label)
+          return labels.join('/')
+        }
+
+        const confirmedPlayers = confirmedRegs.map(r => {
+          const latestUser = latestUsers[r.openid]
+          return {
+            openid: r.openid,
+            nickName: latestUser?.nickName || r.nickName,
+            shortName: this.getShortName(latestUser?.nickName || r.nickName),
+            avatarUrl: latestUser?.avatarUrl || r.avatarUrl,
+            positionLabel: getPositionLabelString(latestUser?.positions || r.position),
+            isOnField: false,
+            x: 50,
+            y: 80
+          }
+        })
+
+        // 保持现有位置状态，只更新用户信息
+        const currentOnField = this.data.onFieldPlayers
+        const currentBench = this.data.benchPlayers
+
+        const newOnField = confirmedPlayers.map(p => {
+          const existing = currentOnField.find(fp => fp.openid === p.openid)
+          if (existing) {
+            return { ...p, isOnField: true, x: existing.x, y: existing.y }
+          }
+          return p
+        })
+
+        const newBench = confirmedPlayers
+          .filter(p => !newOnField.find(fp => fp.openid === p.openid))
+          .map(p => {
+            const existing = currentBench.find(bp => bp.openid === p.openid)
+            return { ...p, isOnField: false }
+          })
+
+        this.setData({
+          onFieldPlayers: newOnField,
+          benchPlayers: newBench
+        })
+
+        console.log('[refreshUsersInfo] 已刷新战术板用户信息')
+      }
+    } catch (e) {
+      console.error('[refreshUsersInfo] 刷新用户信息失败', e)
+    }
+  },
+
   async loadTactics() {
     const { activityId } = this.data
     const openid = app.globalData.openid || wx.getStorageSync('openid')

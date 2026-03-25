@@ -28,9 +28,12 @@ Page({
       this.loadAnnouncements()
     }
 
-    // 首次加载或超过 30 秒才全量加载活动
+      // 首次加载或超过 30 秒才全量加载活动
     if (this.data.activities.length === 0 || now - this.data.lastShowTime > 30000) {
-      this.loadActivities()
+      this.loadActivities(true, true) // 第二个参数 true，强制刷新用户缓存
+    } else {
+      // 如果活动列表已有，仅刷新用户信息（确保看到最新头像）
+      this.refreshUsersInfo()
     }
 
     // 刷新管理员状态
@@ -42,6 +45,33 @@ Page({
     // 同步 TabBar 选中状态
     if (typeof this.getTabBar === 'function' && this.getTabBar()) {
       this.getTabBar().setData({ selected: 0 })
+    }
+  },
+
+  // 强制刷新所有用户信息（onShow 时调用）
+  async refreshUsersInfo() {
+    try {
+      // 收集所有活动的所有用户 openid
+      const allUserIds = new Set()
+      this.data.activities.forEach(act => {
+        if (act.createdBy) allUserIds.add(act.createdBy)
+        const regs = act.registrations || []
+        regs.forEach(r => {
+          if (r.openid) allUserIds.add(r.openid)
+        })
+      })
+
+      // 强制刷新用户缓存
+      if (allUserIds.size > 0) {
+        const latestUsers = await app.fetchUsersWithCache(Array.from(allUserIds), true) // true = 强制刷新
+        // 重新格式化活动列表，使用最新用户信息
+        const openid = app.globalData.openid
+        const formattedActivities = this.data.activities.map(act => this.formatActivity(act, openid, latestUsers))
+        this.setData({ activities: formattedActivities })
+        console.log('[refreshUsersInfo] 已刷新用户信息')
+      }
+    } catch (e) {
+      console.error('[refreshUsersInfo] 刷新用户信息失败', e)
     }
   },
 
@@ -85,7 +115,8 @@ Page({
   },
 
   // 加载活动列表 - 智能刷新策略
-  async loadActivities(enableWatch = false) {
+  // @param {boolean} forceRefreshUsers - 是否强制刷新用户缓存（默认 false）
+  async loadActivities(enableWatch = false, forceRefreshUsers = false) {
     this.setData({ loading: true })
     try {
       const openid = app.globalData.openid || wx.getStorageSync('openid')
@@ -127,8 +158,8 @@ Page({
       let latestUsers = {}
       if (allUserIds.size > 0) {
         try {
-          // 使用全局缓存系统
-          latestUsers = await app.fetchUsersWithCache(Array.from(allUserIds))
+          // 使用全局缓存系统（forceRefresh 参数在首次加载时使用）
+          latestUsers = await app.fetchUsersWithCache(Array.from(allUserIds), forceRefresh || false)
         } catch (e) {
           console.log('获取用户信息失败', e)
         }

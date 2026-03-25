@@ -89,10 +89,10 @@ Page({
     if (localUserInfo) {
       app.globalData.userInfo = localUserInfo
     }
-    this.loadActivity()
+    this.loadActivity(true) // 传入 true，强制刷新用户缓存
   },
 
-  async loadActivity() {
+  async loadActivity(forceRefreshUsers = false) {
     const { activityId } = this.data
     if (!activityId) return
 
@@ -112,8 +112,8 @@ Page({
       let latestUsers = {}
       if (userIds.length > 0) {
         try {
-          // 使用全局缓存系统
-          latestUsers = await app.fetchUsersWithCache(userIds)
+          // 使用全局缓存系统（onShow 时强制刷新）
+          latestUsers = await app.fetchUsersWithCache(userIds, forceRefreshUsers)
         } catch (e) {
           console.log('获取用户信息失败', e)
         }
@@ -720,6 +720,7 @@ Page({
       // 7. 清除全局缓存中的该用户信息
       if (app.clearUserCache) {
         app.clearUserCache(openid)
+        console.log('[saveUserInfo] 已清除用户缓存，强制其他页面重新查询:', openid)
       }
 
       wx.hideLoading()

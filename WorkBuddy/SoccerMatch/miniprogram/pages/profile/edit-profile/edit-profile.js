@@ -101,6 +101,12 @@ Page({
         // 云端保存失败不影响用户体验，本地已保存
       })
 
+      // 6. 主动清除自己的缓存（强制其他页面重新查询）
+      if (app.clearUserCache) {
+        app.clearUserCache(openid)
+        console.log('[edit-profile] 已清除用户缓存:', openid)
+      }
+
       wx.hideLoading()
       wx.showToast({
         title: '保存成功',

@@ -8,8 +8,8 @@ App({
     adminList: [],
     // 全局用户信息缓存（减少数据库查询）
     usersCache: {},
-    // 缓存过期时间（5分钟）
-    cacheExpireTime: 5 * 60 * 1000
+    // 缓存过期时间（1分钟 - 缩短以提升实时性）
+    cacheExpireTime: 1 * 60 * 1000
   },
 
   onLaunch() {
@@ -99,12 +99,14 @@ App({
   /**
    * 批量获取用户信息（带缓存）
    * @param {Array<string>} userIds - 用户 openid 数组
+   * @param {boolean} forceRefresh - 是否强制刷新缓存（默认 false）
    * @returns {Promise<Object>} - 用户信息映射 { openid: userInfo }
    */
-  async fetchUsersWithCache(userIds) {
+  async fetchUsersWithCache(userIds, forceRefresh = false) {
     if (!userIds || userIds.length === 0) return {}
 
-    console.log('[fetchUsersWithCache] 开始查询用户信息, userIds:', userIds)
+    const refreshTag = forceRefresh ? '[强制刷新] ' : ''
+    console.log(`[fetchUsersWithCache] ${refreshTag}开始查询用户信息, userIds:`, userIds)
 
     const db = wx.cloud.database()
     const { usersCache, cacheExpireTime } = this.globalData
@@ -115,13 +117,14 @@ App({
     // 先从缓存中查找
     userIds.forEach(id => {
       const cached = usersCache[id]
-      if (cached && (now - cached.timestamp < cacheExpireTime)) {
-        // 缓存有效，使用缓存
+      if (cached && (now - cached.timestamp < cacheExpireTime) && !forceRefresh) {
+        // 缓存有效且不强制刷新，使用缓存
         console.log('[fetchUsersWithCache] 缓存命中:', id, cached.data.nickName)
         result[id] = cached.data
       } else {
-        // 缓存过期或不存在，需要查询
-        console.log('[fetchUsersWithCache] 缓存未命中:', id, '已缓存:', !!cached)
+        // 缓存过期、不存在或强制刷新，需要查询
+        const reason = forceRefresh ? '强制刷新' : (cached ? '缓存过期' : '无缓存')
+        console.log('[fetchUsersWithCache]', reason, ':', id)
         uncachedIds.push(id)
       }
     })
@@ -138,7 +141,7 @@ App({
           }).get()
 
           console.log('[fetchUsersWithCache] 查询结果:', res.data.length, '条')
-          
+
           // 更新缓存 - 使用 openid 作为 key（保持查询一致性）
           res.data.forEach(user => {
             console.log('[fetchUsersWithCache] 更新缓存:', user.openid, user.nickName, user.avatarUrl)
