@@ -10,6 +10,9 @@
     "pages/privacy/privacy",
     "pages/profile/edit-profile/edit-profile"
   ],
+  "requiredPrivateInfos": [
+    "chooseNickname"
+  ],
   "plugins": {
     "chooseLocation": {
       "version": "1.0.12",
