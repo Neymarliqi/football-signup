@@ -9,6 +9,12 @@
   display: flex;
   align-items: center;
   gap: 30rpx;
+  position: relative;
+  transition: opacity 0.2s;
+}
+
+.profile-header:active {
+  opacity: 0.8;
 }
 
 .avatar-wrap {
@@ -24,27 +30,11 @@
   background: #2d2d4e;
 }
 
-.avatar-edit-badge {
-  position: absolute;
-  bottom: 4rpx;
-  right: 4rpx;
-  width: 44rpx;
-  height: 44rpx;
-  background: #2ecc71;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 24rpx;
-  box-shadow: 0 2rpx 8rpx rgba(0,0,0,0.3);
+.name-wrap {
+  flex: 1;
 }
 
-.name-wrap { flex: 1; }
-
 .display-name {
-  display: flex;
-  align-items: center;
-  gap: 12rpx;
   margin-bottom: 10rpx;
 }
 
@@ -54,57 +44,17 @@
   color: #fff;
 }
 
-.name-edit-icon {
-  color: rgba(255,255,255,0.5);
-  font-size: 28rpx;
-}
-
-.edit-name-wrap {
-  display: flex;
-  align-items: center;
-  gap: 12rpx;
-  margin-bottom: 10rpx;
-}
-
-.name-input {
-  flex: 1;
-  background: rgba(255,255,255,0.1);
-  color: #fff;
-  padding: 12rpx 20rpx;
-  border-radius: 20rpx;
-  font-size: 28rpx;
-  border: 2rpx solid rgba(255,255,255,0.3);
-}
-
-.name-input::placeholder { color: rgba(255,255,255,0.4); }
-
-.name-save-btn {
-  background: #2ecc71;
-  color: #fff;
-  width: 48rpx; height: 48rpx;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 24rpx;
-  flex-shrink: 0;
-}
-
-.name-cancel-btn {
-  background: rgba(255,255,255,0.15);
-  color: #fff;
-  width: 48rpx; height: 48rpx;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 24rpx;
-  flex-shrink: 0;
-}
-
 .uid-text {
   font-size: 22rpx;
   color: rgba(255,255,255,0.4);
+}
+
+/* 右箭头 */
+.edit-arrow {
+  font-size: 40rpx;
+  color: rgba(255,255,255,0.6);
+  font-weight: bold;
+  margin-left: 10rpx;
 }
 
 /* 位置偏好 */
@@ -322,7 +272,7 @@
   left: 30rpx;
   right: 30rpx;
   bottom: 30rpx;
-  background: #fff;
+  background-color: transparent;
   border-radius: 24rpx;
   overflow: hidden;
 }
@@ -330,14 +280,16 @@
 .sheet-title {
   text-align: center;
   font-size: 28rpx;
-  color: #999;
+  color: #fff;
   padding: 30rpx;
-  border-bottom: 1rpx solid #f0f0f0;
 }
 
 .sheet-options {
   display: flex;
   flex-direction: column;
+  background: #fff;
+  border-radius: 24rpx;
+  overflow: hidden;
 }
 
 .sheet-item {

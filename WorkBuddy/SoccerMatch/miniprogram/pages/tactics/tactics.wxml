@@ -57,31 +57,33 @@
     </view>
   </view>
 
-  <!-- 分隔线 -->
+  <!-- 分隔线 + 统计 -->
   <view class="divider">
-    <text class="divider-text">选择上场球员</text>
+    <text class="divider-text">选择上场球员（已选 {{onFieldPlayers.length}} / {{allPlayers.length}}）</text>
   </view>
 
-  <!-- 替补球员 -->
-  <view class="bench-container">
-    <view 
-      wx:for="{{benchPlayers}}" 
-      wx:key="openid"
-      class="bench-player {{draggingPlayer === item.openid ? 'dragging' : ''}}"
-      bindtouchstart="onPlayerDragStart"
-      bindtouchmove="onPlayerDragMove"
-      bindtouchend="onPlayerDragEnd"
-      data-openid="{{item.openid}}"
-      data-index="{{index}}"
-      data-type="bench"
-    >
-      <view class="player-avatar-wrap">
-        <image class="bench-avatar" src="{{item.avatarUrl || '/images/default-avatar.png'}}" mode="aspectFill"></image>
-        <view wx:if="{{item.positionLabel}}" class="position-tag">{{item.positionLabel}}</view>
+  <!-- 替补球员 - 可滚动区域 -->
+  <scroll-view class="bench-container" scroll-y>
+    <view class="bench-content">
+      <view
+        wx:for="{{benchPlayers}}"
+        wx:key="openid"
+        class="bench-player {{draggingPlayer === item.openid ? 'dragging' : ''}}"
+        bindtouchstart="onPlayerDragStart"
+        bindtouchmove="onPlayerDragMove"
+        bindtouchend="onPlayerDragEnd"
+        data-openid="{{item.openid}}"
+        data-index="{{index}}"
+        data-type="bench"
+      >
+        <view class="player-avatar-wrap">
+          <image class="bench-avatar" src="{{item.avatarUrl || '/images/default-avatar.png'}}" mode="aspectFill"></image>
+          <view wx:if="{{item.positionLabel}}" class="position-tag">{{item.positionLabel}}</view>
+        </view>
+        <text class="bench-name">{{item.shortName}}</text>
       </view>
-      <text class="bench-name">{{item.shortName}}</text>
     </view>
-  </view>
+  </scroll-view>
 
   <!-- 底部保存按钮 - 只有参与者和创建者可以保存 -->
   <view class="bottom-bar" wx:if="{{canEdit}}">

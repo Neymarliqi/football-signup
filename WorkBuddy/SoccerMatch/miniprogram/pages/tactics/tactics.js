@@ -187,8 +187,8 @@ Page({
 
   getShortName(nickName) {
     if (!nickName) return '未知'
-    // 取前4个字符，避免太长
-    return nickName.length > 4 ? nickName.substring(0, 4) : nickName
+    // 取前8个字符，显示更多
+    return nickName.length > 8 ? nickName.substring(0, 8) : nickName
   },
 
   // 点击球场空白处 - 移动选中的球员
@@ -356,17 +356,20 @@ Page({
   // 开始拖拽
   onPlayerDragStart(e) {
     if (!this.data.canEdit) return
-    
+
     const { openid, index, type } = e.currentTarget.dataset
     const { onFieldPlayers, benchPlayers } = this.data
-    
+
     // 获取球员信息
-    const player = type === 'onField' 
+    const player = type === 'onField'
       ? onFieldPlayers[index]
       : benchPlayers[index]
-    
+
     if (!player) return
-    
+
+    // 获取触摸位置
+    const touch = e.touches[0]
+
     // 获取球场位置
     const query = this.createSelectorQuery()
     query.select('#field').boundingClientRect()
@@ -376,8 +379,8 @@ Page({
           fieldRect: res[0],
           draggingPlayer: openid,
           dragStartPos: {
-            x: e.touches[0].clientX,
-            y: e.touches[0].clientY,
+            x: touch.clientX,
+            y: touch.clientY,
             playerX: player.x,
             playerY: player.y,
             type: type,
@@ -388,8 +391,9 @@ Page({
             shortName: player.shortName,
             avatarUrl: player.avatarUrl,
             positionLabel: player.positionLabel || '',
-            x: e.touches[0].clientX - 40,
-            y: e.touches[0].clientY - 40
+            // 直接使用触摸位置，无偏移
+            x: touch.clientX,
+            y: touch.clientY
           }
         })
       }
@@ -399,12 +403,12 @@ Page({
   // 拖拽中
   onPlayerDragMove(e) {
     if (!this.data.draggingPlayer || !this.data.dragInfo) return
-    
+
     const { clientX, clientY } = e.touches[0]
-    
+
     this.setData({
-      'dragInfo.x': clientX - 40,
-      'dragInfo.y': clientY - 40
+      'dragInfo.x': clientX,
+      'dragInfo.y': clientY
     })
   },
 

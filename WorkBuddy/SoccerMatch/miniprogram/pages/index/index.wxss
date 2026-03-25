@@ -257,16 +257,16 @@
 }
 
 .avatar-sm {
-  width: 72rpx;
-  height: 72rpx;
+  width: 60rpx;
+  height: 60rpx;
   border-radius: 50%;
   border: 3rpx solid #e8f8f0;
 }
 
 .avatar-name {
-  font-size: 20rpx;
+  font-size: 15rpx;
   color: #666;
-  max-width: 80rpx;
+  max-width: 100rpx;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -276,8 +276,8 @@
 /* 头像与位置标签容器 */
 .avatar-with-position {
   position: relative;
-  width: 72rpx;
-  height: 72rpx;
+  width: 60rpx;
+  height: 60rpx;
 }
 
 /* 头像上的位置标签 - 首页小尺寸（弱化样式） */
@@ -287,7 +287,7 @@
   right: -2rpx;
   background: rgba(0, 0, 0, 0.5);
   color: rgba(255, 255, 255, 0.9);
-  font-size: 16rpx;
+  font-size: 10rpx;
   padding: 2rpx 6rpx;
   border-radius: 8rpx;
   font-weight: normal;

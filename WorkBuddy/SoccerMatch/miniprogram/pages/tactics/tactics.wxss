@@ -154,8 +154,8 @@ page {
 }
 
 .player-avatar {
-  width: 80rpx;
-  height: 80rpx;
+  width: 60rpx;
+  height: 60rpx;
   border-radius: 50%;
   border: 3rpx solid #fff;
   background: #fff;
@@ -167,7 +167,7 @@ page {
   bottom: -4rpx;
   left: 50%;
   transform: translateX(-50%);
-  font-size: 14rpx;
+  font-size: 10rpx;
   color: rgba(255, 255, 255, 0.9);
   background: rgba(0, 0, 0, 0.35);
   padding: 1rpx 8rpx;
@@ -179,10 +179,10 @@ page {
 
 .player-name {
   margin-top: 8rpx;
-  font-size: 24rpx;
+  font-size: 15rpx;
   color: #fff;
   text-shadow: 0 2rpx 4rpx rgba(0, 0, 0, 0.3);
-  max-width: 120rpx;
+  max-width: 100rpx;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -219,15 +219,18 @@ page {
   color: rgba(255, 255, 255, 0.9);
 }
 
-/* 替补球员 */
+/* 替补球员 - 可滚动容器 */
 .bench-container {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.bench-content {
   display: flex;
   flex-wrap: wrap;
   padding: 8rpx 30rpx;
-  gap: 40rpx;
-  flex: 1;
-  min-height: 300rpx;
-  overflow-y: auto;
+  gap: 24rpx 40rpx;
 }
 
 .bench-player {
@@ -246,8 +249,8 @@ page {
 }
 
 .bench-avatar {
-  width: 80rpx;
-  height: 80rpx;
+  width: 60rpx;
+  height: 60rpx;
   border-radius: 50%;
   border: 3rpx solid #fff;
   background: #fff;
@@ -259,7 +262,7 @@ page {
   bottom: -4rpx;
   left: 50%;
   transform: translateX(-50%);
-  font-size: 14rpx;
+  font-size: 10rpx;
   color: rgba(255, 255, 255, 0.9);
   background: rgba(0, 0, 0, 0.35);
   padding: 1rpx 8rpx;
@@ -271,7 +274,7 @@ page {
 
 .bench-name {
   margin-top: 8rpx;
-  font-size: 24rpx;
+  font-size: 15rpx;
   color: #fff;
   max-width: 100rpx;
   overflow: hidden;
@@ -279,10 +282,11 @@ page {
   white-space: nowrap;
 }
 
-/* 底部保存按钮 */
+/* 底部保存按钮 - 固定底部 */
 .bottom-bar {
   padding: 20rpx 60rpx 40rpx;
-  margin-top: auto;
+  flex-shrink: 0;
+  background: linear-gradient(to top, #1a9f5e 20rpx, transparent);
 }
 
 .save-btn {

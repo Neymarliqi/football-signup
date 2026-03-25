@@ -1,28 +1,23 @@
 <!-- pages/profile/profile.wxml - 个人中心 -->
 <view class="container">
-  
-  <!-- 头部用户信息卡 -->
-  <view class="profile-header">
+
+  <!-- 头部用户信息卡 - 点击整个模块进入编辑页面 -->
+  <view class="profile-header" bindtap="goEditProfile">
     <!-- 头像 -->
-    <view class="avatar-wrap" bindtap="showAvatarOptions">
+    <view class="avatar-wrap">
       <image class="profile-avatar" src="{{userInfo.avatarUrl || placeholderAvatar}}" mode="aspectFill"></image>
-      <view class="avatar-edit-badge">📷</view>
     </view>
 
     <!-- 用户名 -->
     <view class="name-wrap">
-      <view wx:if="{{!editingName}}" class="display-name" bindtap="showNameOptions">
+      <view class="display-name">
         <text class="name-text">{{userInfo.nickName || '点击设置昵称'}}</text>
-        <text class="name-edit-icon">✏</text>
-      </view>
-      <view wx:else class="edit-name-wrap">
-        <input class="name-input" value="{{tempName}}" bindinput="onNameInput" 
-               placeholder="输入你的昵称" maxlength="10" focus="{{true}}"/>
-        <view class="name-save-btn" bindtap="saveName">✅</view>
-        <view class="name-cancel-btn" bindtap="cancelEditName">✕</view>
       </view>
       <view class="uid-text">ID: {{shortOpenid}}</view>
     </view>
+
+    <!-- 右箭头 -->
+    <view class="edit-arrow">></view>
   </view>
 
   <!-- 位置偏好 -->
@@ -106,45 +101,4 @@
   </view>
 
   <view style="height: 160rpx;"></view>
-</view>
-
-<!-- 头像选择弹窗 -->
-<view class="action-sheet" wx:if="{{showAvatarSheet}}" catchtouchmove="preventScroll">
-  <view class="sheet-mask" bindtap="closeAvatarSheet"></view>
-  <view class="sheet-content">
-    <view class="sheet-title">选择头像</view>
-    <view class="sheet-options">
-      <!-- 微信头像选项 -->
-      <view class="sheet-item-with-icon" bindtap="chooseWechatAvatar">
-        <image class="sheet-item-avatar" src="{{wechatUserInfo.avatarUrl || placeholderAvatar}}" mode="aspectFill"></image>
-        <view class="sheet-item-info">
-          <text class="sheet-item-title">使用微信头像</text>
-          <text class="sheet-item-desc">{{wechatUserInfo.nickName || '微信用户'}}</text>
-        </view>
-      </view>
-      <view class="sheet-item" bindtap="chooseAlbumAvatar">📷 从相册选择</view>
-      <view class="sheet-item" bindtap="chooseCameraAvatar">📸 拍照</view>
-    </view>
-    <view class="sheet-cancel" bindtap="closeAvatarSheet">取消</view>
-  </view>
-</view>
-
-<!-- 昵称选择弹窗 -->
-<view class="action-sheet" wx:if="{{showNameSheet}}" catchtouchmove="preventScroll">
-  <view class="sheet-mask" bindtap="closeNameSheet"></view>
-  <view class="sheet-content">
-    <view class="sheet-title">选择昵称</view>
-    <view class="sheet-options">
-      <!-- 微信昵称选项 -->
-      <view class="sheet-item-with-icon" bindtap="chooseWechatName">
-        <image class="sheet-item-avatar" src="{{wechatUserInfo.avatarUrl || placeholderAvatar}}" mode="aspectFill"></image>
-        <view class="sheet-item-info">
-          <text class="sheet-item-title">使用微信昵称</text>
-          <text class="sheet-item-desc">{{wechatUserInfo.nickName || '微信用户'}}</text>
-        </view>
-      </view>
-      <view class="sheet-item" bindtap="chooseManualName">✏️ 手动输入</view>
-    </view>
-    <view class="sheet-cancel" bindtap="closeNameSheet">取消</view>
-  </view>
 </view>

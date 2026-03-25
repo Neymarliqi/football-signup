@@ -40,6 +40,43 @@ Page({
     version: '1.0.0'
   },
 
+  data: {
+    userInfo: {},
+    shortOpenid: '',
+    editingName: false,
+    tempName: '',
+    showAvatarSheet: false,
+    showNameSheet: false,
+    wechatUserInfo: {},
+    placeholderAvatar: 'https://mmbiz.qpic.cn/mmbiz/icTdbqWNOwNRna42FI242Lcia07jQodd2FJGIYQfG0LAJGFxM4FbnQP6yfMxBgJ0F3YRqJCJ1aPAK2dQagdusBZg/0',
+    positions: [
+      { value: 'ALL', label: '全能 ALL', emoji: '⭐' },
+      { value: 'GK', label: '守门员 GK', emoji: '🧤' },
+      { value: 'LB', label: '左后卫 LB', emoji: '↩' },
+      { value: 'CB', label: '中后卫 CB', emoji: '🛡' },
+      { value: 'RB', label: '右后卫 RB', emoji: '↪' },
+      { value: 'LWB', label: '左翼卫 LWB', emoji: '⚡' },
+      { value: 'RWB', label: '右翼卫 RWB', emoji: '⚡' },
+      { value: 'CDM', label: '后腰 CDM', emoji: '🛡' },
+      { value: 'CM', label: '中场 CM', emoji: '⚙' },
+      { value: 'LM', label: '左中场 LM', emoji: '⚡' },
+      { value: 'RM', label: '右中场 RM', emoji: '⚡' },
+      { value: 'CAM', label: '前腰 CAM', emoji: '🎯' },
+      { value: 'LW', label: '左边锋 LW', emoji: '⚡' },
+      { value: 'RW', label: '右边锋 RW', emoji: '⚡' },
+      { value: 'ST', label: '中锋 ST', emoji: '🎯' },
+      { value: 'CF', label: '前锋 CF', emoji: '🎯' }
+    ],
+    myStats: {
+      totalGames: 0,
+      confirmedCount: 0,
+      pendingCount: 0,
+      leaveCount: 0
+    },
+    history: [],
+    version: '1.0.0'
+  },
+
   onLoad() {
     this.loadUserInfo()
     // 获取小程序版本号
@@ -49,9 +86,13 @@ Page({
   },
 
   onShow() {
+    // 智能加载：优先显示本地缓存（秒开）
     this.loadUserInfo()
-    this.loadHistory()
-    // 更新TabBar选中状态
+
+    // 加载历史记录（本地缓存优先）
+    this.loadHistory(true)
+
+    // 同步 TabBar 选中状态（个人中心索引为 1）
     if (typeof this.getTabBar === 'function' && this.getTabBar()) {
       this.getTabBar().setData({ selected: 1 })
     }
@@ -94,20 +135,13 @@ Page({
     this.fetchWechatUserInfo()
   },
 
-  // 获取微信用户信息（兼容新旧版本）
+  // 获取微信用户信息（从已保存的用户信息中获取，不调用废弃的 API）
   fetchWechatUserInfo() {
-    // 首先尝试使用 wx.getUserProfile（需要用户点击触发）
-    wx.getUserProfile({
-      desc: '用于展示微信头像和昵称',
-      success: (res) => {
-        this.setData({ wechatUserInfo: res.userInfo })
-      },
-      fail: () => {
-        // 如果失败，尝试从全局数据获取
-        const userInfo = app.globalData.userInfo || {}
-        this.setData({ wechatUserInfo: userInfo })
-      }
-    })
+    // 从全局数据或本地存储获取已保存的用户信息
+    const userInfo = app.globalData.userInfo || wx.getStorageSync('userInfo') || {}
+    
+    // 将用户信息保存到 wechatUserInfo
+    this.setData({ wechatUserInfo: userInfo })
   },
 
   // 关闭头像选项弹窗
@@ -116,30 +150,25 @@ Page({
   },
 
   // 使用微信头像
-  chooseWechatAvatar() {
-    // 直接使用已获取的微信用户信息
-    const { wechatUserInfo } = this.data
+  chooseWechatAvatar(e) {
+    // 使用微信最新的头像选择方式：button open-type="chooseAvatar"
+    // 这个方法会在 button 组件触发时自动调用
+    const { avatarUrl } = e.detail
     
-    if (wechatUserInfo && wechatUserInfo.avatarUrl) {
-      // 已有微信用户信息，直接使用
-      const userInfo = { ...this.data.userInfo, avatarUrl: wechatUserInfo.avatarUrl }
-      this.saveUserInfo(userInfo)
-      this.closeAvatarSheet()
-      wx.showToast({ title: '头像更新成功', icon: 'success' })
-    } else {
-      // 如果没有获取到，再尝试获取一次
-      wx.getUserProfile({
-        desc: '用于完善用户资料',
+    if (avatarUrl) {
+      // 获取到临时头像路径，上传到云存储
+      wx.cloud.uploadFile({
+        cloudPath: `avatars/${app.globalData.openid || wx.getStorageSync('openid')}_${Date.now()}.jpg`,
+        filePath: avatarUrl,
         success: (res) => {
-          const { avatarUrl } = res.userInfo
-          const userInfo = { ...this.data.userInfo, avatarUrl }
-          this.setData({ wechatUserInfo: res.userInfo })
+          const userInfo = { ...this.data.userInfo, avatarUrl: res.fileID }
           this.saveUserInfo(userInfo)
           this.closeAvatarSheet()
           wx.showToast({ title: '头像更新成功', icon: 'success' })
         },
-        fail: () => {
-          wx.showToast({ title: '获取微信头像失败，请重试', icon: 'none' })
+        fail: (err) => {
+          console.error('上传头像失败', err)
+          wx.showToast({ title: '上传失败，请重试', icon: 'none' })
         }
       })
     }
@@ -413,10 +442,30 @@ Page({
   },
 
   // 加载历史记录（只加载全部用于统计，显示前5条）
-  async loadHistory() {
+  async loadHistory(useCache = false) {
     const openid = app.globalData.openid || wx.getStorageSync('openid')
     if (!openid) return
 
+    // 本地缓存优先
+    if (useCache) {
+      const cachedHistory = wx.getStorageSync('myHistory')
+      const cachedStats = wx.getStorageSync('myStats')
+      if (cachedHistory && cachedStats) {
+        this.setData({
+          history: cachedHistory,
+          historyTotal: cachedHistory.length,
+          hasMoreHistory: cachedHistory.length > 5,
+          myStats: cachedStats
+        })
+      }
+    }
+
+    // 后台静默更新（不阻塞界面）
+    this.syncHistory(openid)
+  },
+
+  // 后台同步历史数据
+  async syncHistory(openid) {
     try {
       // 获取所有活动用于统计
       const res = await db.collection('activities')
@@ -434,7 +483,7 @@ Page({
       const allHistory = myActivities.map(act => {
         const myReg = (act.registrations || []).find(r => r.openid === openid)
         const actDate = act.activityDate instanceof Date ? act.activityDate : new Date(act.activityDate)
-        
+
         if (myReg?.status === 'confirmed') { confirmedCount++; totalGames++ }
         if (myReg?.status === 'pending') pendingCount++
         if (myReg?.status === 'leave') leaveCount++
@@ -458,14 +507,27 @@ Page({
       const displayHistory = allHistory.slice(0, 5)
       const hasMore = allHistory.length > 5
 
-      this.setData({
-        history: displayHistory,
-        historyTotal: allHistory.length,
-        hasMoreHistory: hasMore,
-        myStats: { totalGames, confirmedCount, pendingCount, leaveCount }
-      })
+      const newStats = { totalGames, confirmedCount, pendingCount, leaveCount }
+
+      // 保存到缓存
+      wx.setStorageSync('myHistory', displayHistory)
+      wx.setStorageSync('myStats', newStats)
+
+      // 数据有变化才更新界面
+      const currentStats = this.data.myStats
+      if (currentStats.totalGames !== newStats.totalGames ||
+          currentStats.confirmedCount !== newStats.confirmedCount ||
+          currentStats.pendingCount !== newStats.pendingCount ||
+          currentStats.leaveCount !== newStats.leaveCount) {
+        this.setData({
+          history: displayHistory,
+          historyTotal: allHistory.length,
+          hasMoreHistory: hasMore,
+          myStats: newStats
+        })
+      }
     } catch (e) {
-      console.error('加载历史失败', e)
+      console.error('同步历史失败', e)
     }
   },
 
@@ -500,6 +562,13 @@ Page({
       title: `约球助手 v${version}`,
       content: '⚽ 专为足球队设计的约球报名小程序\n功能：活动报名、战术板、队员管理\n\n有建议欢迎联系管理员',
       showCancel: false
+    })
+  },
+
+  // 跳转到编辑页面
+  goEditProfile() {
+    wx.navigateTo({
+      url: '/pages/profile/edit-profile/edit-profile'
     })
   }
 })

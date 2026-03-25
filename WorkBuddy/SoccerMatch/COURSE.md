@@ -27,33 +27,399 @@
 
 ## 模块1: 项目初始化（第1-2天）
 
-### 1.1 为什么要这样搭建？
+### 1.1 完整目录结构解析
 
-**微信小程序目录结构是固定的**，必须遵循：
+**项目根目录**：
 
 ```
-miniprogram/        # 小程序前端代码
-  ├── pages/        # 页面（每个页面独立文件夹）
-  ├── components/   # 自定义组件
-  ├── utils/        # 工具函数
-  ├── app.js        # 小程序入口（初始化配置）
-  ├── app.json      # 全局配置（路由、tabBar、权限）
-  └── app.wxss      # 全局样式
-
-cloudfunctions/     # 云函数（后端逻辑）
-  ├── getMapSignature/
-  └── ...
-
-custom-tab-bar/     # 自定义 TabBar
+SoccerMatch/
+├── miniprogram/              # 小程序前端代码（必须）
+├── cloudfunctions/           # 云函数（后端逻辑，可选）
+├── custom-tab-bar/           # 自定义 TabBar（可选，app.json 开启 custom 后必须）
+├── docs/                     # 项目文档（可选）
+├── project.config.json       # 项目配置文件（必须）
+├── project.private.config.json  # 私人配置（appid 等，不要提交 Git）
+├── CHANGELOG.md              # 版本更新日志
+├── DEPLOYMENT.md             # 上架部署指南
+└── README.md                 # 项目说明文档
 ```
 
-### 1.2 必须掌握的核心文件
+---
 
-| 文件 | 作用 | 重点 |
+### 1.2 miniprogram/ 目录详解（前端核心）
+
+**为什么前端代码要独立在 miniprogram/ 目录？**
+
+```
+1. 小程序编译时，只编译这个目录下的文件
+2. 与后端（云函数）分离，职责清晰
+3. 便于打包上传
+```
+
+**miniprogram/ 内部结构**：
+
+```
+miniprogram/
+├── app.js                    # 小程序入口文件（必须）
+├── app.json                  # 全局配置（必须）
+├── app.wxss                  # 全局样式（可选）
+├── sitemap.json              # 搜索配置（可选，默认就够用）
+├── pages/                    # 所有页面（必须）
+│   ├── index/                # 首页
+│   │   ├── index.js          # 页面逻辑
+│   │   ├── index.json        # 页面配置
+│   │   ├── index.wxml        # 页面结构
+│   │   └── index.wxss        # 页面样式
+│   ├── activity/             # 活动相关页面
+│   │   ├── detail/           # 活动详情
+│   │   └── create/           # 创建/编辑活动
+│   ├── profile/              # 个人中心
+│   │   ├── profile.js
+│   │   ├── history/          # 历史记录（子页面）
+│   │   └── ...
+│   ├── tactics/              # 战术板
+│   ├── admin/                # 管理后台
+│   └── privacy/              # 隐私保护指引
+├── images/                   # 图片资源（本项目中用网络图片）
+├── utils/                    # 工具函数（可选）
+│   └── util.js               # 通用工具函数
+└── components/               # 自定义组件（可选，本项目中用 custom-tab-bar）
+```
+
+**每个文件的作用**：
+
+#### app.js（小程序入口）
+
+```javascript
+App({
+  onLaunch() {  // 小程序启动时执行（只执行一次）
+    this.initCloud()
+  },
+
+  onShow() {    // 小程序前台显示时执行
+    console.log('显示')
+  },
+
+  initCloud() {
+    wx.cloud.init({ env: 'cloud1-5gbn5i1p97239e9d' })
+  }
+})
+```
+
+**为什么叫 app.js？**
+- `App()` 是小程序的构造函数，必须用这个
+- 全局数据存在 `this.globalData`
+
+---
+
+#### app.json（全局配置）
+
+```json
+{
+  "pages": [
+    "pages/index/index",        // 必须把首页放在第一位
+    "pages/activity/detail",
+    "pages/activity/create"
+  ],
+  "tabBar": {
+    "custom": true,             // 开启自定义 TabBar
+    "list": [
+      { "pagePath": "pages/index/index", "text": "约球" },
+      { "pagePath": "pages/profile/profile", "text": "我的" }
+    ]
+  },
+  "permission": {               // 权限声明（必须）
+    "scope.userLocation": {
+      "desc": "获取您的位置用于显示踢球地点"
+    }
+  },
+  "plugins": {                  // 插件配置（腾讯地图）
+    "chooseLocation": {
+      "version": "1.0.12",
+      "provider": "wx76a9a06e5b4e693e"
+    }
+  },
+  "window": {                   // 窗口外观
+    "navigationBarBackgroundColor": "#1a1a2e",
+    "navigationBarTitleText": "⚽ 约球"
+  }
+}
+```
+
+**为什么 pages 数组的第一页是首页？**
+- 微信启动时，默认加载 pages 数组的第一页
+- 顺序错了会导致首页错误
+
+---
+
+#### app.wxss（全局样式）
+
+```css
+/* 定义全局变量和通用样式 */
+page {
+  background: #f5f5f5;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial;
+}
+
+.container {
+  min-height: 100vh;
+}
+```
+
+**为什么要有全局样式？**
+- 避免每个页面重复写相同代码
+- 统一字体、颜色等基础样式
+
+---
+
+### 1.3 pages/ 目录详解（页面文件）
+
+**每个页面必须包含 4 个文件**：
+
+| 文件 | 作用 | 必需 |
 |------|------|------|
-| `app.js` | 全局数据、生命周期 | `onLaunch`、`globalData` |
-| `app.json` | 路由配置、tabBar | `pages`、`tabBar`、`permission` |
-| `project.config.json` | 项目配置 | `appid`、`cloudfunctionRoot` |
+| `xxx.js` | 页面逻辑（数据处理、事件处理） | ✅ 必须 |
+| `xxx.json` | 页面配置（标题、下拉刷新等） | ✅ 必须（可以为空 `{}`） |
+| `xxx.wxml` | 页面结构（类似 HTML） | ✅ 必须 |
+| `xxx.wxss` | 页面样式（类似 CSS） | ⚠️ 可选 |
+
+**示例：pages/index/index.js**
+
+```javascript
+Page({
+  data: {              // 页面数据（双向绑定）
+    activities: [],
+    loading: false
+  },
+
+  onLoad() {           // 页面加载时执行
+    this.loadActivities()
+  },
+
+  onShow() {           // 页面显示时执行（每次都执行）
+    // 用于刷新数据
+  },
+
+  async loadActivities() {  // 自定义方法
+    this.setData({ loading: true })
+    const res = await wx.cloud.database().collection('activities').get()
+    this.setData({
+      activities: res.data,
+      loading: false
+    })
+  }
+})
+```
+
+**为什么用 Page() 而不是 App()？**
+- `App()` 是小程序入口，全局只有一个
+- `Page()` 是页面入口，每个页面一个
+
+---
+
+### 1.4 cloudfunctions/ 目录详解（云函数）
+
+**为什么要有云函数？**
+
+```
+传统开发：前端 → 请求服务器 → 服务器处理 → 返回数据
+云开发：    前端 → 云函数 → 数据库 → 返回数据
+
+优势：
+1. 无需买服务器
+2. 自动扩容
+3. 与微信生态深度集成
+```
+
+**cloudfunctions/ 结构**：
+
+```
+cloudfunctions/
+├── getMapSignature/         # 云函数示例
+│   ├── index.js            # 云函数入口（必须）
+│   ├── package.json        # 依赖配置
+│   └── cloudfunctions/     # 依赖安装后生成
+└── login/                  # 登录云函数
+    └── index.js
+```
+
+**云函数示例（login）**：
+
+```javascript
+// cloudfunctions/login/index.js
+exports.main = async (event, context) => {
+  const wxContext = cloud.getWXContext()
+  return {
+    openid: wxContext.OPENID,  // 用户身份标识
+    appid: wxContext.APPID,
+    unionid: wxContext.UNIONID
+  }
+}
+```
+
+**调用云函数**：
+
+```javascript
+wx.cloud.callFunction({
+  name: 'login'
+}).then(res => {
+  console.log(res.result.openid)
+})
+```
+
+---
+
+### 1.5 custom-tab-bar/ 目录详解（自定义 TabBar）
+
+**为什么要自定义 TabBar？**
+
+```
+原生 TabBar 限制：
+- 图标只能是图片
+- 样式固定，无法自定义
+
+自定义 TabBar 优势：
+- 图标可以是 CSS 绘制
+- 中间可以有大圆形按钮
+- 完全自定义样式
+```
+
+**custom-tab-bar 结构**：
+
+```
+custom-tab-bar/
+├── index.js      # TabBar 逻辑
+├── index.json    # TabBar 配置（可省略）
+├── index.wxml    # TabBar 结构
+└── index.wxss    # TabBar 样式
+```
+
+**index.js**：
+
+```javascript
+Component({
+  data: {
+    selected: 0  // 当前选中的索引
+  },
+
+  methods: {
+    switchTab(e) {
+      const index = e.currentTarget.dataset.index
+      wx.switchTab({ url: `/pages/index/index` })
+      this.setData({ selected: index })
+    }
+  }
+})
+```
+
+**index.wxml**：
+
+```html
+<view class="tab-bar">
+  <view class="tab-item" data-index="0" bindtap="switchTab">
+    <view class="icon home"></view>
+    <text class="label">约球</text>
+  </view>
+</view>
+```
+
+**页面同步选中状态**：
+
+```javascript
+// pages/index/index.js
+Page({
+  onShow() {
+    if (typeof this.getTabBar === 'function' && this.getTabBar()) {
+      this.getTabBar().setData({ selected: 0 })
+    }
+  }
+})
+```
+
+---
+
+### 1.6 核心配置文件
+
+#### project.config.json（项目配置）
+
+```json
+{
+  "appid": "wx1234567890abcdef",  // 小程序 AppID
+  "cloudfunctionRoot": "cloudfunctions/",  // 云函数目录
+  "miniprogramRoot": "miniprogram/",        // 小程序代码目录
+  "setting": {
+    "urlCheck": false,        // 开发时不检查域名
+    "es6": true,              // 启用 ES6
+    "postcss": true           // 启用 PostCSS
+  }
+}
+```
+
+**为什么需要这个文件？**
+- 团队协作时，统一项目配置
+- 记录云开发环境、编译选项等
+
+---
+
+#### project.private.config.json（私人配置）
+
+```json
+{
+  "appid": "你的私人 AppID"
+}
+```
+
+**为什么不要提交到 Git？**
+- 包含个人隐私信息（AppID、项目密钥）
+- 团队成员用自己的 AppID 开发
+
+---
+
+### 1.7 文件执行顺序（前后逻辑）
+
+**小程序启动流程**：
+
+```
+1. 读取 project.config.json（获取 AppID、项目配置）
+2. 读取 app.json（获取页面列表、TabBar 配置）
+3. 执行 app.js（初始化云开发、全局数据）
+4. 加载 pages[0]（首页）
+5. 执行首页的 onLoad → onShow
+```
+
+**页面切换流程**：
+
+```
+用户点击 → 执行 onLoad（首次加载）
+        → 执行 onShow（每次显示）
+        → 渲染 wxml → 应用 wxss
+```
+
+**数据更新流程**：
+
+```
+this.setData({ activities: newData })
+     ↓
+触发页面重新渲染
+     ↓
+更新 wxml 中的 {{activities}}
+```
+
+---
+
+### 1.8 必须掌握的核心文件总结
+
+| 文件 | 作用 | 必需 |
+|------|------|------|
+| `app.js` | 小程序入口、全局数据 | ✅ 必须 |
+| `app.json` | 全局配置（路由、TabBar、权限） | ✅ 必须 |
+| `project.config.json` | 项目配置（AppID、云函数路径） | ✅ 必须 |
+| `pages/xxx/xxx.js` | 页面逻辑 | ✅ 必须 |
+| `pages/xxx/xxx.json` | 页面配置 | ✅ 必须（可空） |
+| `pages/xxx/xxx.wxml` | 页面结构 | ✅ 必须 |
+| `pages/xxx/xxx.wxss` | 页面样式 | ⚠️ 可选 |
+| `cloudfunctions/xxx/index.js` | 云函数 | ⚠️ 可选 |
+| `custom-tab-bar/index.js` | 自定义 TabBar | ⚠️ 可选 |
 
 ### 1.3 实战操作
 

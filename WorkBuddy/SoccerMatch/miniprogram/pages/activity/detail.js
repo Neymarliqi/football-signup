@@ -21,6 +21,8 @@ Page({
     isCreator: false,
     canEdit: false,
     loading: true,
+    // 数据库监听器
+    activityWatcher: null,
     // 头像昵称弹窗
     showUserInfoModal: false,
     tempAvatarUrl: '',
@@ -73,6 +75,14 @@ Page({
     this.loadActivity()
   },
 
+  onUnload() {
+    // 页面卸载时关闭监听
+    if (this.data.activityWatcher) {
+      this.data.activityWatcher.close()
+      this.setData({ activityWatcher: null })
+    }
+  },
+
   onShow() {
     // 重新加载最新的用户信息（确保位置数据是最新的）
     const localUserInfo = wx.getStorageSync('userInfo')
@@ -106,7 +116,7 @@ Page({
           const batchSize = 20
           for (let i = 0; i < userIds.length; i += batchSize) {
             const batch = userIds.slice(i, i + batchSize)
-            const usersRes = await this.requestWithRetry(() => 
+            const usersRes = await this.requestWithRetry(() =>
               db.collection('users').where({ _id: db.command.in(batch) }).get()
             )
             usersRes.data.forEach(u => {
@@ -120,13 +130,71 @@ Page({
 
       this.processActivity(act, openid, latestUsers)
       this.setData({ loading: false })
+
+      // 启动数据库监听（只监听当前活动）
+      this.startActivityWatcher(activityId, openid)
     } catch (e) {
       console.error('加载活动详情失败', e)
       this.setData({ loading: false })
-      wx.showToast({ title: '网络异常，请下拉刷新重试', icon: 'none', duration: 3000 })
+      wx.showToast({ title: '网络异常，请稍后重试', icon: 'none', duration: 2000 })
     } finally {
       wx.hideNavigationBarLoading()
     }
+  },
+
+  // 启动数据库监听（实时更新当前活动）
+  startActivityWatcher(activityId, openid) {
+    // 先关闭旧监听
+    if (this.data.activityWatcher) {
+      this.data.activityWatcher.close()
+    }
+
+    // 只监听当前活动（精确监听）
+    const watcher = db.collection('activities')
+      .doc(activityId)
+      .watch({
+        onChange: async (snapshot) => {
+          console.log('活动详情实时更新:', snapshot.docs[0]?.title)
+
+          const act = snapshot.docs[0]
+          if (!act) return
+
+          // 收集所有报名用户ID
+          const registrations = act.registrations || []
+          const userIds = registrations.map(r => r.openid).filter(id => id)
+
+          // 获取最新用户信息
+          let latestUsers = {}
+          if (userIds.length > 0) {
+            try {
+              const batchSize = 20
+              for (let i = 0; i < userIds.length; i += batchSize) {
+                const batch = userIds.slice(i, i + batchSize)
+                const usersRes = await db.collection('users').where({
+                  _id: db.command.in(batch)
+                }).get()
+                usersRes.data.forEach(u => {
+                  latestUsers[u._id] = u
+                })
+              }
+            } catch (e) {
+              console.log('实时更新用户信息失败', e)
+            }
+          }
+
+          // 更新活动数据
+          this.processActivity(act, openid, latestUsers)
+        },
+        onError: (err) => {
+          console.error('活动详情监听失败', err)
+          // 监听失败后回退到定时刷新
+          setTimeout(() => {
+            this.loadActivity()
+          }, 5000)
+        }
+      })
+
+    this.setData({ activityWatcher: watcher })
   },
 
   processActivity(act, openid, latestUsers = {}) {
@@ -698,12 +766,25 @@ Page({
         address: activity.location || ''
       })
     } else if (activity.location) {
-      // 没有经纬度但有地址，提示用户
-      wx.showModal({
-        title: '导航提示',
-        content: '该活动未设置精确导航位置，建议联系发布者确认具体地址\n\n地址：' + activity.location,
-        showCancel: false,
-        confirmText: '知道了'
+      // 没有经纬度但有地址，使用微信内置地图查看位置
+      wx.getLocation({
+        type: 'gcj02',
+        success: (res) => {
+          wx.openLocation({
+            latitude: res.latitude,
+            longitude: res.longitude,
+            scale: 18,
+            name: activity.locationName || '踢球地点',
+            address: activity.location
+          })
+        },
+        fail: () => {
+          wx.showModal({
+            title: '提示',
+            content: '该活动未设置精确导航位置\n\n建议发布活动时在地图上选择具体位置，以获得更好的导航体验',
+            showCancel: false
+          })
+        }
       })
     } else {
       wx.showToast({ title: '暂无地址信息', icon: 'none' })

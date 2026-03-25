@@ -16,10 +16,11 @@ Component({
     // 切换Tab
     switchTab(e) {
       const index = parseInt(e.currentTarget.dataset.index)
-      const url = index === 0 ? '/pages/index/index' : '/pages/profile/profile'
       
       // 只有切换到不同页面时才执行
       if (this.data.selected !== index) {
+        const url = index === 0 ? '/pages/index/index' : '/pages/profile/profile'
+        
         wx.switchTab({
           url,
           success: () => {

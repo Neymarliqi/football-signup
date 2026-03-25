@@ -1,0 +1,12 @@
+{
+  "name": "getMapSignature",
+  "version": "1.0.0",
+  "description": "生成腾讯地图 WebService API 签名",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {}
+}

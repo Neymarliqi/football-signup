@@ -1,6 +1,8 @@
 // pages/index/index.js
 const app = getApp()
 const db = wx.cloud.database()
+import { formatDate, requestWithRetry } from '../../utils/format.js'
+import { getPositionLabelShort, REGISTRATION_STATUS_MAP } from '../../utils/constants.js'
 
 Page({
   data: {
@@ -9,7 +11,9 @@ Page({
     activeFilter: 'all',
     isAdmin: false,
     loading: true,
-    placeholderAvatar: 'https://mmbiz.qpic.cn/mmbiz/icTdbqWNOwNRna42FI242Lcia07jQodd2FJGIYQfG0LAJGFxM4FbnQP6yfMxBgJ0F3YRqJCJ1aPAK2dQagdusBZg/0'
+    placeholderAvatar: 'https://mmbiz.qpic.cn/mmbiz/icTdbqWNOwNRna42FI242Lcia07jQodd2FJGIYQfG0LAJGFxM4FbnQP6yfMxBgJ0F3YRqJCJ1aPAK2dQagdusBZg/0',
+    activityWatcher: null,
+    lastShowTime: 0
   },
 
   onLoad() {
@@ -17,13 +21,35 @@ Page({
   },
 
   onShow() {
-    this.loadAnnouncements()
-    this.loadActivities()
+    const now = Date.now()
+
+    // 智能刷新：超过 30 秒才重新加载公告（公告变化较少）
+    if (now - this.data.lastShowTime > 30000) {
+      this.loadAnnouncements()
+    }
+
+    // 首次加载或超过 30 秒才全量加载活动
+    if (this.data.activities.length === 0 || now - this.data.lastShowTime > 30000) {
+      this.loadActivities()
+    }
+
     // 刷新管理员状态
     this.setData({ isAdmin: app.globalData.isAdmin })
-    // 更新TabBar选中状态
+
+    // 记录页面显示时间
+    this.setData({ lastShowTime: now })
+
+    // 同步 TabBar 选中状态
     if (typeof this.getTabBar === 'function' && this.getTabBar()) {
       this.getTabBar().setData({ selected: 0 })
+    }
+  },
+
+  onUnload() {
+    // 页面卸载时关闭监听
+    if (this.data.activityWatcher) {
+      this.data.activityWatcher.close()
+      this.setData({ activityWatcher: null })
     }
   },
 
@@ -58,8 +84,8 @@ Page({
     throw lastError
   },
 
-  // 加载活动列表 - 显示全部活动（测试模式）
-  async loadActivities() {
+  // 加载活动列表 - 智能刷新策略
+  async loadActivities(enableWatch = false) {
     this.setData({ loading: true })
     try {
       const openid = app.globalData.openid || wx.getStorageSync('openid')
@@ -68,7 +94,7 @@ Page({
 
       // 获取全部活动（带重试）
       let query = db.collection('activities').orderBy('createdAt', 'desc')
-      
+
       // 根据筛选条件过滤
       if (filter === 'upcoming') {
         query = db.collection('activities').where({
@@ -106,7 +132,7 @@ Page({
           const batchSize = 20
           for (let i = 0; i < userIdsArray.length; i += batchSize) {
             const batch = userIdsArray.slice(i, i + batchSize)
-            const usersRes = await this.requestWithRetry(() => 
+            const usersRes = await this.requestWithRetry(() =>
               db.collection('users').where({ _id: db.command.in(batch) }).get()
             )
             usersRes.data.forEach(u => {
@@ -120,11 +146,83 @@ Page({
 
       const formattedActivities = activities.map(act => this.formatActivity(act, openid, latestUsers))
       this.setData({ activities: formattedActivities, loading: false })
+
+      // 启用数据库监听（只监听最近 7 天的活动，减少性能影响）
+      if (!this.data.activityWatcher) {
+        this.startActivityWatcher(openid, latestUsers)
+      }
     } catch (e) {
       console.error('加载活动失败', e)
       this.setData({ loading: false })
-      wx.showToast({ title: '网络异常，请下拉刷新重试', icon: 'none', duration: 3000 })
+      wx.showToast({ title: '网络异常，请稍后重试', icon: 'none', duration: 2000 })
     }
+  },
+
+  // 启动数据库监听（实时更新）
+  startActivityWatcher(openid, latestUsers = {}) {
+    // 先关闭旧监听
+    if (this.data.activityWatcher) {
+      this.data.activityWatcher.close()
+    }
+
+    // 只监听最近 7 天创建的活动（减少监听范围）
+    const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
+
+    const watcher = db.collection('activities')
+      .where({
+        createdAt: db.command.gte(sevenDaysAgo)
+      })
+      .watch({
+        onChange: async (snapshot) => {
+          console.log('活动数据实时更新:', snapshot.docs.length)
+
+          // 重新获取用户信息（可能有新用户加入）
+          const allUserIds = new Set()
+          snapshot.docs.forEach(act => {
+            const regs = act.registrations || []
+            regs.forEach(r => {
+              if (r.openid) allUserIds.add(r.openid)
+            })
+          })
+
+          let newLatestUsers = { ...latestUsers }
+          if (allUserIds.size > 0) {
+            try {
+              const userIdsArray = Array.from(allUserIds)
+              const batchSize = 20
+              for (let i = 0; i < userIdsArray.length; i += batchSize) {
+                const batch = userIdsArray.slice(i, i + batchSize)
+                const usersRes = await db.collection('users').where({
+                  _id: db.command.in(batch)
+                }).get()
+                usersRes.data.forEach(u => {
+                  newLatestUsers[u._id] = u
+                })
+              }
+            } catch (e) {
+              console.log('实时更新用户信息失败', e)
+            }
+          }
+
+          // 更新活动列表
+          const formattedActivities = snapshot.docs.map(act =>
+            this.formatActivity(act, openid, newLatestUsers)
+          )
+          this.setData({
+            activities: formattedActivities,
+            latestUsers: newLatestUsers
+          })
+        },
+        onError: (err) => {
+          console.error('数据库监听失败', err)
+          // 监听失败后，回退到定时刷新
+          setTimeout(() => {
+            this.loadActivities(true)
+          }, 5000)
+        }
+      })
+
+    this.setData({ activityWatcher: watcher })
   },
 
   // 格式化活动数据
@@ -146,9 +244,8 @@ Page({
     const isCreator = act.createdBy === openid
 
     // 状态
-    const now = new Date()
     let statusText, statusClass, canEdit, canCancel, canDelete
-    if (act.status === 'finished' || actDate < now) {
+    if (act.status === 'finished') {
       statusText = '已结束'; statusClass = 'tag-gray'
       canEdit = false; canCancel = false; canDelete = isCreator
     } else if (act.status === 'ongoing') {
@@ -158,6 +255,7 @@ Page({
       statusText = '已取消'; statusClass = 'tag-red'
       canEdit = false; canCancel = false; canDelete = isCreator
     } else {
+      // open 状态：只有创建者可以编辑/取消
       statusText = '报名中'; statusClass = 'tag-green'
       canEdit = isCreator; canCancel = isCreator; canDelete = false
     }
@@ -217,7 +315,7 @@ Page({
         ...r,
         nickName: latestUser?.nickName || r.nickName,
         avatarUrl: latestUser?.avatarUrl || r.avatarUrl,
-        shortName: (latestUser?.nickName || r.nickName) ? (latestUser?.nickName || r.nickName).slice(0, 3) : '队员',
+        shortName: (latestUser?.nickName || r.nickName) ? (latestUser?.nickName || r.nickName).slice(0, 8) : '队员',
         firstPosition: getFirstPosition(latestUser?.positions || r.position) // 首选位置（前2个字）
       }
     })
@@ -301,27 +399,31 @@ Page({
   async cancelActivity(e) {
     // 阻止事件冒泡，防止触发卡片点击
     e.stopPropagation && e.stopPropagation()
-    
+
     const id = e.currentTarget.dataset.id
     const activity = this.data.activities.find(a => a._id === id)
     const openid = app.globalData.openid || wx.getStorageSync('openid')
-    
-    console.log('取消活动 - 活动ID:', id)
-    console.log('取消活动 - 当前用户:', openid)
-    console.log('取消活动 - 活动创建者:', activity?.createdBy)
-    console.log('取消活动 - 是否创建者:', activity?.createdBy === openid)
-    
+
+    console.log('========== 取消活动调试信息 ==========')
+    console.log('活动ID:', id)
+    console.log('当前用户 openid:', openid)
+    console.log('活动创建者 createdBy:', activity?.createdBy)
+    console.log('活动 status:', activity?.status)
+    console.log('是否创建者:', activity?.createdBy === openid)
+    console.log('活动对象:', activity)
+    console.log('========================================')
+
     // 权限检查：只有创建者可取消
     if (!activity) {
       wx.showToast({ title: '活动不存在', icon: 'none' })
       return
     }
-    
+
     if (activity.createdBy !== openid) {
       wx.showToast({ title: '只有发布者可取消活动', icon: 'none' })
       return
     }
-    
+
     // 状态检查：只有报名中的活动可取消
     if (activity.status !== 'open') {
       wx.showToast({ title: '该状态无法取消', icon: 'none' })
@@ -362,28 +464,40 @@ Page({
     const id = e.currentTarget.dataset.id
     const activity = this.data.activities.find(a => a._id === id)
     const openid = app.globalData.openid || wx.getStorageSync('openid')
-    
+
     // 权限检查：只有创建者可删除
     if (!activity || activity.createdBy !== openid) {
       wx.showToast({ title: '无权操作', icon: 'none' })
       return
     }
-    
+
     const res = await wx.showModal({
       title: '确认删除',
       content: '删除后无法恢复，是否确认删除该活动？',
       confirmColor: '#ff4444'
     })
-    
+
     if (!res.confirm) return
 
     wx.showLoading({ title: '删除中...' })
-    
+
     try {
-      await db.collection('activities').doc(id).remove()
-      wx.showToast({ title: '删除成功', icon: 'success' })
-      // 刷新列表
-      this.loadActivities()
+      // 调用云函数删除
+      const deleteRes = await wx.cloud.callFunction({
+        name: 'deleteActivity',
+        data: {
+          activityId: id,
+          openid: openid
+        }
+      })
+
+      if (deleteRes.result.success) {
+        wx.showToast({ title: '删除成功', icon: 'success' })
+        // 刷新列表
+        this.loadActivities()
+      } else {
+        wx.showToast({ title: deleteRes.result.message || '删除失败', icon: 'none' })
+      }
     } catch (e) {
       console.error('删除活动失败', e)
       wx.showToast({ title: '删除失败', icon: 'none' })

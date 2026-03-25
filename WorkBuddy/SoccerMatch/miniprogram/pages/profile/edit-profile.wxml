@@ -1,0 +1,72 @@
+<!--pages/profile/edit-profile.wxml-->
+<view class="container">
+  <view class="header">
+    <text class="header-title">编辑个人资料</text>
+    <text class="header-desc">完善你的信息，让队友认识你</text>
+  </view>
+
+  <!-- 头像部分 -->
+  <view class="section">
+    <view class="section-label">头像</view>
+    <view class="avatar-wrapper">
+      <!-- 微信最新头像选择方式：button open-type="chooseAvatar" -->
+      <button 
+        class="avatar-button" 
+        open-type="chooseAvatar" 
+        bindchooseavatar="onChooseAvatar"
+      >
+        <image 
+          class="avatar-image" 
+          src="{{tempAvatarUrl || userInfo.avatarUrl || placeholderAvatar}}" 
+          mode="aspectFill"
+        ></image>
+        <view class="avatar-mask">
+          <text class="camera-icon">📷</text>
+          <text class="camera-text">点击更换</text>
+        </view>
+      </button>
+    </view>
+  </view>
+
+  <!-- 昵称部分 -->
+  <view class="section">
+    <view class="section-label">昵称</view>
+    <view class="nickname-wrapper">
+      <!-- 微信最新昵称输入方式：input type="nickname" -->
+      <input 
+        class="nickname-input" 
+        type="nickname" 
+        placeholder="请输入昵称" 
+        value="{{tempNickName}}"
+        bindinput="onNickNameInput"
+        bindblur="onNickNameBlur"
+      ></input>
+    </view>
+    <view class="nickname-tips">
+      <text>使用微信昵称快速填写</text>
+      <text class="tips-icon">ℹ️</text>
+    </view>
+    <button 
+      class="quick-fill-btn" 
+      bindtap="useWechatName"
+    >
+      <image class="wechat-avatar-mini" src="{{wechatUserInfo.avatarUrl || placeholderAvatar}}"></image>
+      <text>使用微信昵称：{{wechatUserInfo.nickName || '微信用户'}}</text>
+    </button>
+  </view>
+
+  <!-- 保存按钮 -->
+  <view class="btn-wrapper">
+    <button class="save-btn" bindtap="onSave">保存</button>
+  </view>
+
+  <!-- 提示 -->
+  <view class="tips-section">
+    <text class="tips-title">💡 温馨提示</text>
+    <view class="tips-content">
+      <text>1. 头像和昵称将显示在活动报名列表中</text>
+      <text>2. 昵称长度限制为 2-20 个字符</text>
+      <text>3. 建议使用真实昵称，方便队友认识你</text>
+    </view>
+  </view>
+</view>

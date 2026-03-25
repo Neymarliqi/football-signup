@@ -66,6 +66,7 @@
     <text class="empty-sub">点击底部「+」按钮发布活动开始约球！</text>
   </view>
 
+
   <view wx:for="{{activities}}" wx:key="_id" class="activity-card" bindtap="goDetail" data-id="{{item._id}}">
     
     <!-- 活动状态标签 -->
@@ -117,7 +118,7 @@
       </view>
       <!-- 进度条 -->
       <view class="progress-bar-bg">
-        <view class="progress-bar-fill {{item.confirmedCount >= item.maxPlayers ? 'bar-full' : 'bar-normal'}}" style="width: {{item.progressPercent}}%"></view>
+        <view class="progress-bar-fill {{item.confirmedCount >= item.maxPlayers ? 'bar-full' : 'bar-normal'}}" style="width: {{item.progressPercent || 0}}"></view>
       </view>
     </view>
 
