@@ -108,21 +108,12 @@ Page({
       const registrations = act.registrations || []
       const userIds = registrations.map(r => r.openid).filter(id => id)
 
-      // 批量获取最新用户信息（带重试）
+      // 批量获取最新用户信息（带缓存）
       let latestUsers = {}
       if (userIds.length > 0) {
         try {
-          // 由于 in 查询最多支持 20 个，需要分批查询
-          const batchSize = 20
-          for (let i = 0; i < userIds.length; i += batchSize) {
-            const batch = userIds.slice(i, i + batchSize)
-            const usersRes = await this.requestWithRetry(() =>
-              db.collection('users').where({ _id: db.command.in(batch) }).get()
-            )
-            usersRes.data.forEach(u => {
-              latestUsers[u._id] = u
-            })
-          }
+          // 使用全局缓存系统
+          latestUsers = await app.fetchUsersWithCache(userIds)
         } catch (e) {
           console.log('获取用户信息失败', e)
         }
@@ -379,8 +370,8 @@ Page({
       this.pendingAction = action
       this.setData({
         showUserInfoModal: true,
-        tempAvatarUrl: '',
-        tempNickName: ''
+        tempAvatarUrl: userInfo?.avatarUrl || '',
+        tempNickName: userInfo?.nickName || ''
       })
       return
     }
@@ -420,8 +411,8 @@ Page({
       this.pendingAction = action
       this.setData({
         showUserInfoModal: true,
-        tempAvatarUrl: '',
-        tempNickName: ''
+        tempAvatarUrl: userInfo?.avatarUrl || '',
+        tempNickName: userInfo?.nickName || ''
       })
       return
     }
@@ -652,11 +643,13 @@ Page({
     try {
       let finalAvatarUrl = tempAvatarUrl
 
+
+
       // 如果选择了头像，上传到云存储
       if (tempAvatarUrl && !tempAvatarUrl.startsWith('cloud://') && !tempAvatarUrl.startsWith('http')) {
         try {
           const uploadRes = await wx.cloud.uploadFile({
-            cloudPath: `avatars/${Date.now()}.jpg`,
+            cloudPath: `avatars/${openid}_${Date.now()}.jpg`,
             filePath: tempAvatarUrl
           })
           finalAvatarUrl = uploadRes.fileID
@@ -673,28 +666,48 @@ Page({
 
       const openid = app.globalData.openid || wx.getStorageSync('openid')
 
-      // 保存到数据库 - 使用 openid 作为 _id，确保一致性
-      // 注意：set 方法的 data 中不能包含 _id，_id 在 doc() 中指定
-      await db.collection('users').doc(openid).set({
-        data: {
-          openid: openid,
-          nickName: tempNickName,
-          avatarUrl: finalAvatarUrl,
-          positions: [],
-          updatedAt: new Date()
-        }
-      })
+      // 获取当前用户信息（保留位置偏好）
+      const currentUserInfo = app.globalData.userInfo || wx.getStorageSync('userInfo') || {}
+      const positions = currentUserInfo.positions || []
 
-      // 更新全局数据和本地存储
+      // 保存到数据库 - 先尝试 update（保留已有数据），失败则用 set（新建文档）
+      try {
+        await db.collection('users').doc(openid).update({
+          data: {
+            nickName: tempNickName,
+            avatarUrl: finalAvatarUrl,
+            updatedAt: new Date()
+          }
+        })
+      } catch (e) {
+        // 文档不存在，使用 set 创建
+        await db.collection('users').doc(openid).set({
+          data: {
+            openid: openid,
+            nickName: tempNickName,
+            avatarUrl: finalAvatarUrl,
+            positions: positions,
+            createdAt: new Date(),
+            updatedAt: new Date()
+          }
+        })
+      }
+
+      // 更新全局数据和本地存储（保留位置偏好）
       const userInfo = {
         _id: openid,
         openid: openid,
         nickName: tempNickName,
         avatarUrl: finalAvatarUrl,
-        positions: []
+        positions: positions
       }
       app.globalData.userInfo = userInfo
       wx.setStorageSync('userInfo', userInfo)
+
+      // 清除全局缓存中的该用户信息（强制其他页面重新获取）
+      if (app.clearUserCache) {
+        app.clearUserCache(openid)
+      }
 
       wx.hideLoading()
       this.setData({ showUserInfoModal: false })

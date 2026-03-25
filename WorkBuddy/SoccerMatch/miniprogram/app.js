@@ -5,7 +5,11 @@ App({
     openid: '',
     isAdmin: false,
     // 默认管理员 openid 列表（实际项目中应存储在云数据库中）
-    adminList: []
+    adminList: [],
+    // 全局用户信息缓存（减少数据库查询）
+    usersCache: {},
+    // 缓存过期时间（5分钟）
+    cacheExpireTime: 5 * 60 * 1000
   },
 
   onLaunch() {
@@ -90,5 +94,68 @@ App({
         }
       }
     })
+  },
+
+  /**
+   * 批量获取用户信息（带缓存）
+   * @param {Array<string>} userIds - 用户 openid 数组
+   * @returns {Promise<Object>} - 用户信息映射 { openid: userInfo }
+   */
+  async fetchUsersWithCache(userIds) {
+    if (!userIds || userIds.length === 0) return {}
+
+    const db = wx.cloud.database()
+    const { usersCache, cacheExpireTime } = this.globalData
+    const now = Date.now()
+    const result = {}
+    const uncachedIds = []
+
+    // 先从缓存中查找
+    userIds.forEach(id => {
+      const cached = usersCache[id]
+      if (cached && (now - cached.timestamp < cacheExpireTime)) {
+        // 缓存有效，使用缓存
+        result[id] = cached.data
+      } else {
+        // 缓存过期或不存在，需要查询
+        uncachedIds.push(id)
+      }
+    })
+
+    // 批量查询未缓存的用户
+    if (uncachedIds.length > 0) {
+      try {
+        const batchSize = 20
+        for (let i = 0; i < uncachedIds.length; i += batchSize) {
+          const batch = uncachedIds.slice(i, i + batchSize)
+          const res = await db.collection('users').where({
+            _id: db.command.in(batch)
+          }).get()
+
+          // 更新缓存
+          res.data.forEach(user => {
+            result[user._id] = user
+            usersCache[user._id] = {
+              data: user,
+              timestamp: now
+            }
+          })
+        }
+      } catch (e) {
+        console.error('[fetchUsersWithCache] 查询用户信息失败', e)
+      }
+    }
+
+    return result
+  },
+
+  /**
+   * 清除单个用户的缓存
+   * @param {string} userId - 用户 openid
+   */
+  clearUserCache(userId) {
+    if (userId && this.globalData.usersCache) {
+      delete this.globalData.usersCache[userId]
+    }
   }
 })

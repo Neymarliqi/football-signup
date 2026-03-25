@@ -102,25 +102,17 @@ Page({
         
         return labels.join('/')
       }
-      
+
       // 获取所有报名用户的最新信息
       const confirmedRegs = registrations.filter(r => r.status === 'confirmed')
       const userIds = confirmedRegs.map(r => r.openid)
-      
-      // 批量获取最新用户信息（分批查询，每批最多20个）
+
+      // 批量获取最新用户信息（带缓存）
       let latestUsers = {}
       if (userIds.length > 0) {
         try {
-          const batchSize = 20
-          for (let i = 0; i < userIds.length; i += batchSize) {
-            const batch = userIds.slice(i, i + batchSize)
-            const usersRes = await db.collection('users').where({
-              _id: db.command.in(batch)
-            }).get()
-            usersRes.data.forEach(u => {
-              latestUsers[u._id] = u
-            })
-          }
+          // 使用全局缓存系统
+          latestUsers = await app.fetchUsersWithCache(userIds)
         } catch (e) {
           console.log('获取用户信息失败', e)
         }

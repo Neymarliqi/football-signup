@@ -932,30 +932,6 @@
 .modal-body {
   margin-bottom: 40rpx;
 }
-  text-align: center;
-  font-size: 26rpx;
-  color: #999;
-  margin-bottom: 30rpx;
-  position: relative;
-}
-
-.divider-text::before,
-.divider-text::after {
-  content: '';
-  position: absolute;
-  top: 50%;
-  width: 120rpx;
-  height: 1rpx;
-  background: #e5e5e5;
-}
-
-.divider-text::before {
-  left: 60rpx;
-}
-
-.divider-text::after {
-  right: 60rpx;
-}
 
 .form-row {
   margin-bottom: 30rpx;

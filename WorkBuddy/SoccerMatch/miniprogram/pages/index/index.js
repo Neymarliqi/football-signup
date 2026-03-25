@@ -123,22 +123,12 @@ Page({
         })
       })
 
-      // 批量获取最新用户信息（带重试）
+      // 批量获取最新用户信息（带缓存）
       let latestUsers = {}
       if (allUserIds.size > 0) {
         try {
-          const userIdsArray = Array.from(allUserIds)
-          // 由于 in 查询最多支持 20 个，需要分批查询
-          const batchSize = 20
-          for (let i = 0; i < userIdsArray.length; i += batchSize) {
-            const batch = userIdsArray.slice(i, i + batchSize)
-            const usersRes = await this.requestWithRetry(() =>
-              db.collection('users').where({ _id: db.command.in(batch) }).get()
-            )
-            usersRes.data.forEach(u => {
-              latestUsers[u._id] = u
-            })
-          }
+          // 使用全局缓存系统
+          latestUsers = await app.fetchUsersWithCache(Array.from(allUserIds))
         } catch (e) {
           console.log('获取用户信息失败', e)
         }
@@ -188,17 +178,8 @@ Page({
           let newLatestUsers = { ...latestUsers }
           if (allUserIds.size > 0) {
             try {
-              const userIdsArray = Array.from(allUserIds)
-              const batchSize = 20
-              for (let i = 0; i < userIdsArray.length; i += batchSize) {
-                const batch = userIdsArray.slice(i, i + batchSize)
-                const usersRes = await db.collection('users').where({
-                  _id: db.command.in(batch)
-                }).get()
-                usersRes.data.forEach(u => {
-                  newLatestUsers[u._id] = u
-                })
-              }
+              // 使用全局缓存系统
+              newLatestUsers = await app.fetchUsersWithCache(Array.from(allUserIds))
             } catch (e) {
               console.log('实时更新用户信息失败', e)
             }
