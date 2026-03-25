@@ -28,7 +28,7 @@ Page({
       this.loadAnnouncements()
     }
 
-      // 首次加载或超过 30 秒才全量加载活动
+    // 首次加载或超过 30 秒才全量加载活动
     if (this.data.activities.length === 0 || now - this.data.lastShowTime > 30000) {
       this.loadActivities(true, true) // 第二个参数 true，强制刷新用户缓存
     } else {
@@ -51,6 +51,7 @@ Page({
   // 强制刷新所有用户信息（onShow 时调用）
   async refreshUsersInfo() {
     try {
+      console.log('[refreshUsersInfo] 开始刷新用户信息')
       // 收集所有活动的所有用户 openid
       const allUserIds = new Set()
       this.data.activities.forEach(act => {
@@ -61,14 +62,23 @@ Page({
         })
       })
 
+      console.log('[refreshUsersInfo] 收集到的用户IDs:', Array.from(allUserIds))
+
       // 强制刷新用户缓存
       if (allUserIds.size > 0) {
         const latestUsers = await app.fetchUsersWithCache(Array.from(allUserIds), true) // true = 强制刷新
+        console.log('[refreshUsersInfo] 查询到的最新用户:', Object.keys(latestUsers).length, '个')
+        Object.values(latestUsers).forEach(u => {
+          console.log('  -', u.nickName, u.avatarUrl?.substring(0, 50))
+        })
+
         // 重新格式化活动列表，使用最新用户信息
-        const openid = app.globalData.openid
+        const openid = app.globalData.openid || wx.getStorageSync('openid')
         const formattedActivities = this.data.activities.map(act => this.formatActivity(act, openid, latestUsers))
         this.setData({ activities: formattedActivities })
-        console.log('[refreshUsersInfo] 已刷新用户信息')
+        console.log('[refreshUsersInfo] 已刷新用户信息，活动列表已更新')
+      } else {
+        console.log('[refreshUsersInfo] 没有用户需要刷新')
       }
     } catch (e) {
       console.error('[refreshUsersInfo] 刷新用户信息失败', e)
