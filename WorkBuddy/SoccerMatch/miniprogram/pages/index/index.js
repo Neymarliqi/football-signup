@@ -361,6 +361,7 @@ Page({
 
     return {
       ...actWithDefaults,
+      registrations, // 重要：保留 registrations 字段，用于后续刷新用户信息
       confirmedCount: confirmed.length,
       pendingCount: pending.length,
       leaveCount: leave.length,
