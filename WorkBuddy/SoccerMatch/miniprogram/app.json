@@ -1,4 +1,5 @@
 {
+  "lazyCodeLoading": "requiredComponents",
   "pages": [
     "pages/index/index",
     "pages/activity/detail",
@@ -9,9 +10,6 @@
     "pages/admin/admin",
     "pages/privacy/privacy",
     "pages/profile/edit-profile/edit-profile"
-  ],
-  "requiredPrivateInfos": [
-    "chooseNickname"
   ],
   "plugins": {
     "chooseLocation": {
@@ -47,7 +45,6 @@
       "desc": "获取您的位置用于显示踢球地点附近信息"
     }
   },
-
   "sitemapLocation": "sitemap.json",
   "usingComponents": {}
 }
