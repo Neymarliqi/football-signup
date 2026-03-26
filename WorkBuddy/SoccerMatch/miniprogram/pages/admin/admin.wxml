@@ -73,7 +73,7 @@
     <view class="section-title">👥 球员列表 ({{members.length}}人)</view>
     <view wx:if="{{members.length === 0}}" class="empty-tip">暂无球员</view>
     <view wx:for="{{members}}" wx:key="openid" class="member-item">
-      <image class="member-avatar" src="{{item.avatarUrl || placeholderAvatar}}" mode="aspectFill"></image>
+      <image class="member-avatar" src="{{item.displayAvatar}}" mode="aspectFill"></image>
       <view class="member-info">
         <view class="member-name">{{item.nickName || '未命名'}}</view>
         <view class="member-pos">{{item.position || '未设置位置'}}</view>

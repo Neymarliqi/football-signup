@@ -16,7 +16,6 @@ export async function requestWithRetry(requestFn, maxRetries = RETRY_CONFIG.maxR
       return await requestFn()
     } catch (e) {
       lastError = e
-      console.log(`[requestWithRetry] 请求失败，第${i + 1}次重试...`, e)
       if (i < maxRetries - 1) {
         await new Promise(resolve => setTimeout(resolve, delay * (i + 1)))
       }

@@ -38,6 +38,8 @@ Page({
       notice: '',
       status: 'open'
     },
+    // 注册弹窗
+    showRegisterModal: false,
     // 预设赛制类型
     presetMatchTypes: ['友谊赛', '11人制', '9人制', '8人制', '7人制', '5人制'],
     // 当前活动的自定义赛制类型（每个活动独立）
@@ -64,7 +66,6 @@ Page({
   },
 
   onLoad(options) {
-    console.log('create.js onLoad', options)
     if (options.id) {
       this.setData({ isEdit: true, activityId: options.id })
       this.loadActivity(options.id)
@@ -82,8 +83,6 @@ Page({
 
     wx.setNavigationBarTitle({ title: options.id ? '编辑活动' : '发布活动' })
   },
-
-
 
   // 保存自定义赛制类型（仅更新当前页面状态）
   saveCustomMatchTypes(types) {
@@ -196,7 +195,6 @@ Page({
       }
 
       // 调试：打印活动描述
-      console.log('加载活动 - description:', act.description)
       
       const form = {
         title: act.title || '',
@@ -414,7 +412,7 @@ Page({
   // 选择地点 - 使用腾讯地图选点插件（不传category，不显示分类导航栏）
   pickLocation() {
     const key = 'SXGBZ-RHQ6M-26V6Z-6UTTU-JGKUV-TVFJS'
-    const referer = '约球助手'
+    const referer = '来踢球'
     
     // 如果已有位置，以该位置为中心
     const location = this.data.form.latitude && this.data.form.longitude
@@ -432,6 +430,12 @@ Page({
 
   // 页面显示时获取选点结果
   onShow() {
+    // 注册检查：未注册用户弹出注册弹窗
+    if (!app.isUserRegistered()) {
+      this.setData({ showRegisterModal: true })
+      return
+    }
+
     const location = chooseLocation.getLocation()
     if (location) {
       this.setData({
@@ -443,6 +447,11 @@ Page({
       // 清除选点数据，防止再次进入页面时返回上次结果
       chooseLocation.setLocation(null)
     }
+  },
+
+  // 注册完成回调
+  onRegistered() {
+    this.setData({ showRegisterModal: false })
   },
 
   // 清除导航地址
@@ -482,7 +491,9 @@ Page({
   },
 
   async submit() {
-    if (!this.validate()) return
+    if (!this.validate()) {
+      return
+    }
 
     wx.showLoading({ title: '发布中...' })
     const { form, isEdit, activityId, customMatchTypes } = this.data
@@ -492,7 +503,6 @@ Page({
     const activityDate = new Date(`${form.date} ${form.startTime}`)
 
     // 调试：打印表单描述
-    console.log('保存活动 - form.description:', form.description)
     
     const data = {
       title: form.title.trim(),
@@ -521,7 +531,6 @@ Page({
     try {
       if (isEdit) {
         // 调试：打印要更新的数据
-        console.log('更新活动数据:', JSON.stringify(data))
         
         // 使用云函数更新活动，确保新字段能被正确添加
         const updateRes = await wx.cloud.callFunction({
@@ -531,8 +540,6 @@ Page({
             data: data
           }
         })
-        
-        console.log('云函数更新结果:', updateRes)
         
         if (updateRes.result && updateRes.result.success) {
           wx.hideLoading()
@@ -599,5 +606,15 @@ Page({
         }
       }
     })
+  },
+
+  // ==================== 头像昵称弹窗（游客创建用户） ====================
+
+  preventScroll() {
+    return
+  },
+
+  preventScroll() {
+    return
   }
 })

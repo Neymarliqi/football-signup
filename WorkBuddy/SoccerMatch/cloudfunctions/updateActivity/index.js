@@ -78,14 +78,10 @@ exports.main = async (event, context) => {
     // 添加服务器时间
     updateData.updatedAt = db.serverDate()
     
-    console.log('云函数更新活动数据:', JSON.stringify(updateData))
-    
     const result = await db.collection('activities').doc(activityId).update({
       data: updateData
     })
-    
-    console.log('云函数更新结果:', result)
-    
+
     return { 
       success: true, 
       message: '更新成功',

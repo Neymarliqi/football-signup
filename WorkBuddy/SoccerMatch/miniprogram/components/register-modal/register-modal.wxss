@@ -1,0 +1,200 @@
+/* components/register-modal/register-modal.wxss */
+
+.register-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 99999;
+}
+
+.modal-mask {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+}
+
+.modal-content {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: #fff;
+  border-radius: 32rpx 32rpx 0 0;
+  padding: 40rpx 30rpx;
+  padding-bottom: calc(40rpx + env(safe-area-inset-bottom));
+  animation: slideUp 0.3s ease-out;
+}
+
+@keyframes slideUp {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+
+.modal-header {
+  text-align: center;
+  margin-bottom: 40rpx;
+}
+
+.modal-title {
+  font-size: 36rpx;
+  font-weight: bold;
+  color: #1a1a2e;
+}
+
+.modal-body {
+  margin-bottom: 30rpx;
+}
+
+.form-row {
+  margin-bottom: 30rpx;
+}
+
+.form-label {
+  font-size: 28rpx;
+  color: #666;
+  margin-bottom: 16rpx;
+}
+
+.required {
+  color: #e74c3c;
+}
+
+/* 头像 */
+.avatar-row {
+  display: flex;
+  align-items: center;
+  gap: 24rpx;
+}
+
+.avatar-row .form-label {
+  margin-bottom: 0;
+  flex-shrink: 0;
+}
+
+.avatar-area {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.avatar-btn {
+  width: 120rpx;
+  height: 120rpx;
+  padding: 0;
+  border-radius: 50%;
+  border: 2rpx solid #eee;
+  background: #f5f5f5;
+  position: relative;
+  overflow: visible;
+  margin: 0;
+  line-height: normal;
+}
+
+.avatar-btn::after {
+  border: none;
+}
+
+.avatar-preview {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+}
+
+.avatar-tip {
+  margin-top: 10rpx;
+  font-size: 22rpx;
+  color: #999;
+  white-space: nowrap;
+}
+
+/* 昵称 */
+.nickname-input {
+  width: 100%;
+  height: 88rpx;
+  padding: 0 24rpx;
+  background: #f5f5f5;
+  border-radius: 16rpx;
+  font-size: 30rpx;
+  color: #333;
+  box-sizing: border-box;
+}
+
+/* 隐私勾选 */
+.privacy-row {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+  margin-top: 10rpx;
+  margin-bottom: 20rpx;
+}
+
+.checkbox {
+  width: 32rpx;
+  height: 32rpx;
+  border: 2rpx solid #ddd;
+  border-radius: 6rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: all 0.2s;
+}
+
+.checkbox.checked {
+  background: #07c160;
+  border-color: #07c160;
+}
+
+.check-icon {
+  font-size: 20rpx;
+  color: #fff;
+  font-weight: bold;
+}
+
+.privacy-text {
+  font-size: 22rpx;
+  color: #999;
+  line-height: 1.5;
+}
+
+.privacy-link {
+  color: #576b95;
+  text-decoration: underline;
+}
+
+/* 保存按钮 */
+.modal-footer {
+  margin-top: 20rpx;
+}
+
+.save-btn {
+  width: 100%;
+  height: 96rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 16rpx;
+  font-size: 32rpx;
+  font-weight: bold;
+  background: linear-gradient(135deg, #2ecc71, #27ae60);
+  color: #fff;
+  border: none;
+  padding: 0;
+  margin: 0;
+  line-height: 96rpx;
+}
+
+.save-btn::after {
+  border: none;
+}
+
+.save-btn.btn-disabled {
+  background: #ccc;
+  color: #fff;
+}

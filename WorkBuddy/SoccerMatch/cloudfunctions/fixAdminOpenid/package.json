@@ -1,9 +1,0 @@
-{
-  "name": "fixAdminOpenid",
-  "version": "1.0.0",
-  "description": "修复管理员openid",
-  "main": "index.js",
-  "dependencies": {
-    "wx-server-sdk": "~2.6.3"
-  }
-}

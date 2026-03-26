@@ -5,7 +5,7 @@
   <view class="profile-header" bindtap="goEditProfile">
     <!-- 头像 -->
     <view class="avatar-wrap">
-      <image class="profile-avatar" src="{{userInfo.avatarUrl || placeholderAvatar}}" mode="aspectFill"></image>
+      <image class="profile-avatar" src="{{userInfo.displayAvatar || userInfo.avatarUrl || placeholderAvatar}}" mode="aspectFill"></image>
     </view>
 
     <!-- 用户名 -->
@@ -95,10 +95,13 @@
   <view class="card">
     <view class="section-title">关于我们</view>
     <view class="about-item" bindtap="about">
-      <text class="about-name">约球助手</text>
+      <text class="about-name">来踢球</text>
       <text class="about-version">v{{version}}</text>
     </view>
   </view>
 
   <view style="height: 160rpx;"></view>
 </view>
+
+<!-- 注册弹窗 -->
+<register-modal show="{{showRegisterModal}}" bind:registered="onRegistered" />

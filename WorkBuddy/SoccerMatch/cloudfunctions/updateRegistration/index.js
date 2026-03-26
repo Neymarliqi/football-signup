@@ -65,21 +65,45 @@ exports.main = async (event, context) => {
       data: { registrations: newRegistrations, updatedAt: db.serverDate() }
     })
 
-    // 同步更新/创建 users 集合中的用户信息（确保头像昵称闭环）
+    // 同步用户信息到 users 集合（仅在用户不存在时创建，已存在时不覆盖头像昵称）
     try {
-      // 注意：set 方法的 data 中不能包含 _id，_id 在 doc() 中指定
-      await db.collection('users').doc(openid).set({
-        data: {
-          openid: openid,
-          nickName: nickName || '队员',
-          avatarUrl: avatarUrl || '',
-          positions: position || [],
-          updatedAt: db.serverDate()
-        }
-      })
-      console.log('[updateRegistration] 用户信息已同步到 users 集合')
+      const userRes = await db.collection('users').doc(openid).get()
+      if (userRes.data) {
+        // 用户已存在，不更新 nickName 和 avatarUrl（保留用户在编辑资料页设置的值）
+        // 注意：不更新 positions，因为前端传的是报名位置字符串，不是 users 表的对象数组格式
+      } else {
+        // 用户不存在，创建新记录（首次报名）
+        await db.collection('users').doc(openid).set({
+          data: {
+            openid: openid,
+            nickName: nickName || '队员',
+            avatarUrl: avatarUrl || '',
+            positions: [],
+            createdAt: db.serverDate(),
+            updatedAt: db.serverDate()
+          }
+        })
+      }
     } catch (userErr) {
-      console.error('[updateRegistration] 同步用户信息失败', userErr)
+      // 记录不存在（get 会抛错），创建新记录
+      if (userErr.errCode === -502001 || userErr.errCode === -502005) {
+        try {
+          await db.collection('users').doc(openid).set({
+            data: {
+              openid: openid,
+              nickName: nickName || '队员',
+              avatarUrl: avatarUrl || '',
+              positions: [],
+              createdAt: db.serverDate(),
+              updatedAt: db.serverDate()
+            }
+          })
+        } catch (setErr) {
+          console.error('[updateRegistration] 创建用户记录失败:', setErr)
+        }
+      } else {
+        console.error('[updateRegistration] 同步用户信息失败:', userErr)
+      }
       // 不影响报名主流程
     }
 

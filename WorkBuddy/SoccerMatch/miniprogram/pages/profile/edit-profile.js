@@ -8,7 +8,7 @@ Page({
     tempAvatarUrl: '',
     tempNickName: '',
     wechatUserInfo: {},
-    placeholderAvatar: 'https://mmbiz.qpic.cn/mmbiz/icTdbqWNOwNRna42FI242Lcia07jQodd2FJGIYQfG0LAJGFxM4FbnQP6yfMxBgJ0F3YRqJCJ1aPAK2dQagdusBZg/0'
+    placeholderAvatar: '/images/default-avatar.png'
   },
 
   onLoad() {
@@ -27,7 +27,6 @@ Page({
   // 微信头像选择 (使用微信官方 open-type="chooseAvatar" 方式)
   onChooseAvatar(e) {
     const { avatarUrl } = e.detail
-    console.log('[edit-profile] 选择头像:', avatarUrl)
     this.setData({
       tempAvatarUrl: avatarUrl
     })
@@ -99,7 +98,7 @@ Page({
     try {
       let finalAvatarUrl = userInfo.avatarUrl
 
-      // 如果有新头像，上传到云存储
+      // 如果有新头像，通过统一方法上传到云存储
       if (tempAvatarUrl) {
         const openid = app.globalData.openid || wx.getStorageSync('openid')
         if (!openid) {
@@ -107,15 +106,7 @@ Page({
           wx.showToast({ title: '获取用户信息失败', icon: 'none' })
           return
         }
-        const ext = tempAvatarUrl.match(/\.([^.]+)$/) ? tempAvatarUrl.match(/\.([^.]+)$/)[1] : 'jpg'
-        const cloudPath = `avatars/${openid}_${Date.now()}.${ext}`
-
-        const uploadRes = await wx.cloud.uploadFile({
-          cloudPath,
-          filePath: tempAvatarUrl
-        })
-
-        finalAvatarUrl = uploadRes.fileID
+        finalAvatarUrl = await app.uploadAvatar(tempAvatarUrl)
       }
 
       // 更新用户信息
@@ -129,16 +120,28 @@ Page({
       app.globalData.userInfo = updatedUserInfo
       wx.setStorageSync('userInfo', updatedUserInfo)
 
-      // 同步到云数据库
+      // 同步到云数据库 - 使用 merge: true，不存在则创建，存在则只合并指定字段
       const openid = app.globalData.openid || wx.getStorageSync('openid')
       if (openid) {
-        await db.collection('users').doc(openid).update({
-          data: {
-            nickName: updatedUserInfo.nickName,
-            avatarUrl: updatedUserInfo.avatarUrl,
-            updatedAt: db.serverDate()
+        try {
+          await db.collection('users').doc(openid).set({
+            data: {
+              openid: openid,
+              nickName: updatedUserInfo.nickName,
+              avatarUrl: updatedUserInfo.avatarUrl,
+              positions: updatedUserInfo.positions || [],
+              updatedAt: db.serverDate()
+            },
+            merge: true
+          })
+
+          // 清除用户缓存，确保其他页面看到最新数据
+          if (app.clearUserCache) {
+            app.clearUserCache(openid)
           }
-        })
+        } catch (err) {
+          console.error('[edit-profile] 云端保存失败:', err)
+        }
       }
 
       wx.hideLoading()

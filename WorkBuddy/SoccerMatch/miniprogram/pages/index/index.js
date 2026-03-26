@@ -11,9 +11,10 @@ Page({
     activeFilter: 'all',
     isAdmin: false,
     loading: true,
-    placeholderAvatar: 'https://mmbiz.qpic.cn/mmbiz/icTdbqWNOwNRna42FI242Lcia07jQodd2FJGIYQfG0LAJGFxM4FbnQP6yfMxBgJ0F3YRqJCJ1aPAK2dQagdusBZg/0',
     activityWatcher: null,
-    lastShowTime: 0
+    lastShowTime: 0,
+    // 注册弹窗
+    showRegisterModal: false
   },
 
   onLoad() {
@@ -21,6 +22,12 @@ Page({
   },
 
   onShow() {
+    // 注册检查：未注册用户弹出注册弹窗
+    if (!app.isUserRegistered()) {
+      this.setData({ showRegisterModal: true })
+      return
+    }
+
     const now = Date.now()
 
     // 智能刷新：超过 30 秒才重新加载公告（公告变化较少）
@@ -28,12 +35,20 @@ Page({
       this.loadAnnouncements()
     }
 
-    // 首次加载或超过 30 秒才全量加载活动
-    if (this.data.activities.length === 0 || now - this.data.lastShowTime > 30000) {
-      this.loadActivities(true, true) // 第二个参数 true，强制刷新用户缓存
+    // 先渲染后刷新策略（stale-while-revalidate）
+    // 1. 有内存缓存 → 直接用（秒开），后台静默刷新
+    // 2. 无内存缓存 → 尝试用本地 Storage 缓存渲染（冷启动秒开），同时拉网络
+    // 3. 30秒内返回 → 仅后台静默更新用户信息
+    if (this.data.activities.length > 0 && now - this.data.lastShowTime <= 30000) {
+      // 30秒内返回，后台静默刷新用户信息
+      this.silentRefreshUsers()
+    } else if (this.data.activities.length > 0) {
+      // 有数据但超过30秒，先展示后刷新
+      this.loadActivities(true, false) // 不强制刷新用户缓存
     } else {
-      // 如果活动列表已有，仅刷新用户信息（确保看到最新头像）
-      this.refreshUsersInfo()
+      // 首次加载：先尝试本地缓存快速渲染
+      this.loadActivitiesFromCache() // 先用缓存渲染
+      this.loadActivities(true, false) // 同时拉最新数据
     }
 
     // 刷新管理员状态
@@ -48,11 +63,17 @@ Page({
     }
   },
 
-  // 强制刷新所有用户信息（onShow 时调用）
-  async refreshUsersInfo() {
+  // 注册完成回调
+  onRegistered() {
+    this.setData({ showRegisterModal: false })
+    // 注册成功后加载数据
+    this.loadAnnouncements()
+    this.loadActivities(true, true)
+  },
+
+  // 后台静默刷新用户信息（不显示 loading，不影响页面交互）
+  async silentRefreshUsers() {
     try {
-      console.log('[refreshUsersInfo] 开始刷新用户信息')
-      // 收集所有活动的所有用户 openid
       const allUserIds = new Set()
       this.data.activities.forEach(act => {
         if (act.createdBy) allUserIds.add(act.createdBy)
@@ -62,26 +83,14 @@ Page({
         })
       })
 
-      console.log('[refreshUsersInfo] 收集到的用户IDs:', Array.from(allUserIds))
-
-      // 强制刷新用户缓存
       if (allUserIds.size > 0) {
-        const latestUsers = await app.fetchUsersWithCache(Array.from(allUserIds), true) // true = 强制刷新
-        console.log('[refreshUsersInfo] 查询到的最新用户:', Object.keys(latestUsers).length, '个')
-        Object.values(latestUsers).forEach(u => {
-          console.log('  -', u.nickName, u.avatarUrl?.substring(0, 50))
-        })
-
-        // 重新格式化活动列表，使用最新用户信息
+        const latestUsers = await app.fetchUsersWithCache(Array.from(allUserIds), false)
         const openid = app.globalData.openid || wx.getStorageSync('openid')
-        const formattedActivities = this.data.activities.map(act => this.formatActivity(act, openid, latestUsers))
+        const formattedActivities = await Promise.all(this.data.activities.map(act => this.formatActivity(act, openid, latestUsers)))
         this.setData({ activities: formattedActivities })
-        console.log('[refreshUsersInfo] 已刷新用户信息，活动列表已更新')
-      } else {
-        console.log('[refreshUsersInfo] 没有用户需要刷新')
       }
     } catch (e) {
-      console.error('[refreshUsersInfo] 刷新用户信息失败', e)
+      // 静默刷新失败不影响用户，忽略
     }
   },
 
@@ -90,6 +99,30 @@ Page({
     if (this.data.activityWatcher) {
       this.data.activityWatcher.close()
       this.setData({ activityWatcher: null })
+    }
+  },
+
+  // 从本地缓存快速渲染活动列表（冷启动秒开）
+  loadActivitiesFromCache() {
+    try {
+      const cached = wx.getStorageSync('activities_cache')
+      if (cached && cached.data && cached.data.length > 0) {
+        this.setData({ activities: cached.data, loading: false })
+      }
+    } catch (e) {
+      // 缓存读取失败，忽略
+    }
+  },
+
+  // 保存活动列表到本地缓存
+  saveActivitiesCache(activities) {
+    try {
+      wx.setStorageSync('activities_cache', {
+        data: activities,
+        timestamp: Date.now()
+      })
+    } catch (e) {
+      // 缓存写入失败，忽略
     }
   },
 
@@ -115,7 +148,6 @@ Page({
         return await requestFn()
       } catch (e) {
         lastError = e
-        console.log(`请求失败，第${i + 1}次重试...`, e)
         if (i < maxRetries - 1) {
           await new Promise(resolve => setTimeout(resolve, delay * (i + 1)))
         }
@@ -124,10 +156,14 @@ Page({
     throw lastError
   },
 
-  // 加载活动列表 - 智能刷新策略
+    // 加载活动列表 - 智能刷新策略
   // @param {boolean} forceRefreshUsers - 是否强制刷新用户缓存（默认 false）
   async loadActivities(enableWatch = false, forceRefreshUsers = false) {
-    this.setData({ loading: true })
+    // 如果已有缓存数据，不显示 loading（已由 loadActivitiesFromCache 秒渲染）
+    const hasCache = this.data.activities.length > 0
+    if (!hasCache) {
+      this.setData({ loading: true })
+    }
     try {
       const openid = app.globalData.openid || wx.getStorageSync('openid')
       const filter = this.data.activeFilter
@@ -171,12 +207,15 @@ Page({
           // 使用全局缓存系统（forceRefresh 参数在首次加载时使用）
           latestUsers = await app.fetchUsersWithCache(Array.from(allUserIds), forceRefresh || false)
         } catch (e) {
-          console.log('获取用户信息失败', e)
+          // 获取用户信息失败
         }
       }
 
-      const formattedActivities = activities.map(act => this.formatActivity(act, openid, latestUsers))
+      const formattedActivities = await Promise.all(activities.map(act => this.formatActivity(act, openid, latestUsers)))
       this.setData({ activities: formattedActivities, loading: false })
+
+      // 缓存活动列表到本地（冷启动秒开）
+      this.saveActivitiesCache(formattedActivities)
 
       // 启用数据库监听（只监听最近 7 天的活动，减少性能影响）
       if (!this.data.activityWatcher) {
@@ -205,8 +244,6 @@ Page({
       })
       .watch({
         onChange: async (snapshot) => {
-          console.log('活动数据实时更新:', snapshot.docs.length)
-
           // 重新获取用户信息（可能有新用户加入）
           const allUserIds = new Set()
           snapshot.docs.forEach(act => {
@@ -222,18 +259,20 @@ Page({
               // 使用全局缓存系统
               newLatestUsers = await app.fetchUsersWithCache(Array.from(allUserIds))
             } catch (e) {
-              console.log('实时更新用户信息失败', e)
+              // 实时更新用户信息失败
             }
           }
 
           // 更新活动列表
-          const formattedActivities = snapshot.docs.map(act =>
+          const formattedActivities = await Promise.all(snapshot.docs.map(act =>
             this.formatActivity(act, openid, newLatestUsers)
-          )
+          ))
           this.setData({
             activities: formattedActivities,
             latestUsers: newLatestUsers
           })
+          // 实时更新也写入缓存
+          this.saveActivitiesCache(formattedActivities)
         },
         onError: (err) => {
           console.error('数据库监听失败', err)
@@ -248,7 +287,7 @@ Page({
   },
 
   // 格式化活动数据
-  formatActivity(act, openid, latestUsers = {}) {
+  async formatActivity(act, openid, latestUsers = {}) {
     const registrations = act.registrations || []
     const confirmed = registrations.filter(r => r.status === 'confirmed')
     const pending = registrations.filter(r => r.status === 'pending')
@@ -331,15 +370,16 @@ Page({
     }
     
     // 显示前6人头像（首页卡片空间有限）- 使用最新用户信息
-    const confirmedPlayers = confirmed.slice(0, 6).map(r => {
+    // base64 直接用，不走云存储权限
+    const playerSlice = confirmed.slice(0, 6)
+    const confirmedPlayers = playerSlice.map(r => {
       const latestUser = latestUsers[r.openid]
-      console.log('[index] 处理球员:', r.openid, 'latestUser存在:', !!latestUser, '使用头像:', latestUser?.avatarUrl || r.avatarUrl)
       return {
         ...r,
         nickName: latestUser?.nickName || r.nickName,
-        avatarUrl: latestUser?.avatarUrl || r.avatarUrl,
+        displayAvatar: app.getDisplayAvatar(latestUser) || app.globalData.defaultAvatar,
         shortName: (latestUser?.nickName || r.nickName) ? (latestUser?.nickName || r.nickName).slice(0, 8) : '队员',
-        firstPosition: getFirstPosition(latestUser?.positions || r.position) // 首选位置（前2个字）
+        firstPosition: getFirstPosition(latestUser?.positions || r.position)
       }
     })
 
@@ -428,15 +468,6 @@ Page({
     const activity = this.data.activities.find(a => a._id === id)
     const openid = app.globalData.openid || wx.getStorageSync('openid')
 
-    console.log('========== 取消活动调试信息 ==========')
-    console.log('活动ID:', id)
-    console.log('当前用户 openid:', openid)
-    console.log('活动创建者 createdBy:', activity?.createdBy)
-    console.log('活动 status:', activity?.status)
-    console.log('是否创建者:', activity?.createdBy === openid)
-    console.log('活动对象:', activity)
-    console.log('========================================')
-
     // 权限检查：只有创建者可取消
     if (!activity) {
       wx.showToast({ title: '活动不存在', icon: 'none' })
@@ -471,7 +502,6 @@ Page({
           updatedAt: db.serverDate()
         }
       })
-      console.log('取消活动成功:', updateRes)
       wx.showToast({ title: '活动已取消', icon: 'success' })
       // 刷新列表
       this.loadActivities()

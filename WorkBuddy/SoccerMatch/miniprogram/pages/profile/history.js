@@ -1,6 +1,8 @@
 // pages/profile/history.js
 const app = getApp()
 const db = wx.cloud.database()
+const _ = db.command
+const $ = db.command.aggregate
 
 Page({
   data: {
@@ -52,23 +54,20 @@ Page({
       const page = isRefresh ? 0 : this.data.currentPage + 1
       const pageSize = this.data.pageSize
 
-      // 获取活动
+      // 服务端过滤：只查询我参与的活动（点表示法查询嵌套数组字段）
       const res = await db.collection('activities')
+        .where({
+          'registrations.openid': openid
+        })
         .orderBy('activityDate', 'desc')
         .skip(page * pageSize)
         .limit(pageSize)
         .get()
 
       const activities = res.data
-      
-      // 筛选出我参与的活动
-      const myActivities = activities.filter(act => {
-        const regs = act.registrations || []
-        return regs.some(r => r.openid === openid)
-      })
 
       // 处理数据
-      const newHistory = myActivities.map(act => {
+      const newHistory = activities.map(act => {
         const myReg = (act.registrations || []).find(r => r.openid === openid)
         const actDate = act.activityDate instanceof Date ? act.activityDate : new Date(act.activityDate)
 
@@ -112,24 +111,37 @@ Page({
     }
   },
 
-  // 计算统计数据
+  // 计算统计数据（聚合查询，服务端计算）
   async calculateStats(openid) {
     try {
-      const res = await db.collection('activities').get()
-      const allActivities = res.data
-      
-      const myActivities = allActivities.filter(act => {
-        const regs = act.registrations || []
-        return regs.some(r => r.openid === openid)
-      })
+      const res = await db.collection('activities')
+        .aggregate()
+        .match({
+          'registrations.openid': openid
+        })
+        .project({
+          myRegs: $.filter({
+            input: '$registrations',
+            as: 'r',
+            cond: $.eq(['$$r.openid', openid])
+          })
+        })
+        .project({
+          myStatus: $.arrayElemAt(['$myRegs', 0])
+        })
+        .project({
+          status: '$myStatus.status'
+        })
+        .end()
 
+      const records = res.list || []
       let totalGames = 0, confirmedCount = 0, pendingCount = 0, leaveCount = 0
 
-      myActivities.forEach(act => {
-        const myReg = (act.registrations || []).find(r => r.openid === openid)
-        if (myReg?.status === 'confirmed') { confirmedCount++; totalGames++ }
-        if (myReg?.status === 'pending') pendingCount++
-        if (myReg?.status === 'leave') leaveCount++
+      records.forEach(r => {
+        const status = r.status
+        if (status === 'confirmed') { confirmedCount++; totalGames++ }
+        else if (status === 'pending') pendingCount++
+        else if (status === 'leave') leaveCount++
       })
 
       return { totalGames, confirmedCount, pendingCount, leaveCount }

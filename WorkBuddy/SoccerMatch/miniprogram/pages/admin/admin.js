@@ -8,8 +8,7 @@ Page({
     announcements: [],
     members: [],
     showAnnouncementModal: false,
-    newAnnouncement: '',
-    placeholderAvatar: 'https://mmbiz.qpic.cn/mmbiz/icTdbqWNOwNRna42FI242Lcia07jQodd2FJGIYQfG0LAJGFxM4FbnQP6yfMxBgJ0F3YRqJCJ1aPAK2dQagdusBZg/0'
+    newAnnouncement: ''
   },
 
   onLoad() {
@@ -83,7 +82,12 @@ Page({
         .orderBy('updatedAt', 'desc')
         .limit(50)
         .get()
-      this.setData({ members: res.data })
+      // base64 直接用，不走云存储权限
+      const members = res.data.map(user => ({
+        ...user,
+        displayAvatar: app.getDisplayAvatar(user) || app.globalData.defaultAvatar
+      }))
+      this.setData({ members })
     } catch (e) { console.error(e) }
   },
 

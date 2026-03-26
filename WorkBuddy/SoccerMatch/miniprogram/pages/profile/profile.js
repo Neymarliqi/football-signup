@@ -11,7 +11,7 @@ Page({
     showAvatarSheet: false,
     showNameSheet: false,
     wechatUserInfo: {},
-    placeholderAvatar: 'https://mmbiz.qpic.cn/mmbiz/icTdbqWNOwNRna42FI242Lcia07jQodd2FJGIYQfG0LAJGFxM4FbnQP6yfMxBgJ0F3YRqJCJ1aPAK2dQagdusBZg/0',
+    placeholderAvatar: '/images/default-avatar.png',
     positions: [
       { value: 'ALL', label: '全能 ALL', emoji: '⭐' },
       { value: 'GK', label: '守门员 GK', emoji: '🧤' },
@@ -37,55 +37,26 @@ Page({
       leaveCount: 0
     },
     history: [],
-    version: '1.0.0'
-  },
-
-  data: {
-    userInfo: {},
-    shortOpenid: '',
-    editingName: false,
-    tempName: '',
-    showAvatarSheet: false,
-    showNameSheet: false,
-    wechatUserInfo: {},
-    placeholderAvatar: 'https://mmbiz.qpic.cn/mmbiz/icTdbqWNOwNRna42FI242Lcia07jQodd2FJGIYQfG0LAJGFxM4FbnQP6yfMxBgJ0F3YRqJCJ1aPAK2dQagdusBZg/0',
-    positions: [
-      { value: 'ALL', label: '全能 ALL', emoji: '⭐' },
-      { value: 'GK', label: '守门员 GK', emoji: '🧤' },
-      { value: 'LB', label: '左后卫 LB', emoji: '↩' },
-      { value: 'CB', label: '中后卫 CB', emoji: '🛡' },
-      { value: 'RB', label: '右后卫 RB', emoji: '↪' },
-      { value: 'LWB', label: '左翼卫 LWB', emoji: '⚡' },
-      { value: 'RWB', label: '右翼卫 RWB', emoji: '⚡' },
-      { value: 'CDM', label: '后腰 CDM', emoji: '🛡' },
-      { value: 'CM', label: '中场 CM', emoji: '⚙' },
-      { value: 'LM', label: '左中场 LM', emoji: '⚡' },
-      { value: 'RM', label: '右中场 RM', emoji: '⚡' },
-      { value: 'CAM', label: '前腰 CAM', emoji: '🎯' },
-      { value: 'LW', label: '左边锋 LW', emoji: '⚡' },
-      { value: 'RW', label: '右边锋 RW', emoji: '⚡' },
-      { value: 'ST', label: '中锋 ST', emoji: '🎯' },
-      { value: 'CF', label: '前锋 CF', emoji: '🎯' }
-    ],
-    myStats: {
-      totalGames: 0,
-      confirmedCount: 0,
-      pendingCount: 0,
-      leaveCount: 0
-    },
-    history: [],
-    version: '1.0.0'
+    version: '2.1.0',
+    // 注册弹窗
+    showRegisterModal: false
   },
 
   onLoad() {
     this.loadUserInfo()
     // 获取小程序版本号
     const accountInfo = wx.getAccountInfoSync()
-    const version = accountInfo.miniProgram.version || '1.0.0'
+    const version = accountInfo.miniProgram.version || '2.1.0'
     this.setData({ version })
   },
 
   onShow() {
+    // 注册检查：未注册用户弹出注册弹窗
+    if (!app.isUserRegistered()) {
+      this.setData({ showRegisterModal: true })
+      return
+    }
+
     // 智能加载：优先显示本地缓存（秒开）
     this.loadUserInfo()
 
@@ -98,7 +69,14 @@ Page({
     }
   },
 
-  loadUserInfo() {
+  // 注册完成回调
+  onRegistered() {
+    this.setData({ showRegisterModal: false })
+    this.loadUserInfo()
+    this.loadHistory(true)
+  },
+
+  async loadUserInfo() {
     const userInfo = app.globalData.userInfo || wx.getStorageSync('userInfo') || {}
     const openid = app.globalData.openid || wx.getStorageSync('openid') || ''
     const shortOpenid = openid ? openid.slice(-6).toUpperCase() : '------'
@@ -107,6 +85,9 @@ Page({
     if (!userInfo.positions) {
       userInfo.positions = []
     }
+    
+    // 处理头像：优先用 base64，不走云存储权限
+    userInfo.displayAvatar = app.getDisplayAvatar(userInfo)
     
     // 处理位置数据，添加选中状态和选择顺序
     // 兼容旧格式（字符串数组）和新格式（对象数组）
@@ -151,27 +132,20 @@ Page({
 
   // 使用微信头像
   chooseWechatAvatar(e) {
-    // 使用微信最新的头像选择方式：button open-type="chooseAvatar"
-    // 这个方法会在 button 组件触发时自动调用
     const { avatarUrl } = e.detail
-    
-    if (avatarUrl) {
-      // 获取到临时头像路径，上传到云存储
-      wx.cloud.uploadFile({
-        cloudPath: `avatars/${app.globalData.openid || wx.getStorageSync('openid')}_${Date.now()}.jpg`,
-        filePath: avatarUrl,
-        success: (res) => {
-          const userInfo = { ...this.data.userInfo, avatarUrl: res.fileID }
-          this.saveUserInfo(userInfo)
-          this.closeAvatarSheet()
-          wx.showToast({ title: '头像更新成功', icon: 'success' })
-        },
-        fail: (err) => {
-          console.error('上传头像失败', err)
-          wx.showToast({ title: '上传失败，请重试', icon: 'none' })
-        }
-      })
-    }
+    if (!avatarUrl) return
+
+    wx.showLoading({ title: '上传中...' })
+    app.uploadAvatar(avatarUrl).then(cloudUrl => {
+      const userInfo = { ...this.data.userInfo, avatarUrl: cloudUrl }
+      this.saveUserInfo(userInfo)
+      this.closeAvatarSheet()
+      wx.showToast({ title: '头像更新成功', icon: 'success' })
+    }).catch(() => {
+      wx.showToast({ title: '上传失败，请重试', icon: 'none' })
+    }).finally(() => {
+      wx.hideLoading()
+    })
   },
 
   // 从相册选择头像
@@ -197,17 +171,7 @@ Page({
         const tempPath = res.tempFiles[0].tempFilePath
         wx.showLoading({ title: '上传中...' })
         try {
-          // 上传到云存储
-          const openid = app.globalData.openid || wx.getStorageSync('openid')
-          const ext = tempPath.match(/\.([^.]+)$/) ? tempPath.match(/\.([^.]+)$/)[1] : 'jpg'
-          const cloudPath = `avatars/${openid}_${Date.now()}.${ext}`
-          
-          const uploadRes = await wx.cloud.uploadFile({
-            cloudPath,
-            filePath: tempPath
-          })
-          
-          const avatarUrl = uploadRes.fileID
+          const avatarUrl = await app.uploadAvatar(tempPath)
           const userInfo = { ...this.data.userInfo, avatarUrl }
           this.saveUserInfo(userInfo)
           wx.hideLoading()
@@ -402,23 +366,22 @@ Page({
     // 2. 同步更新所有已报名活动中的位置信息
     this.updateActivityPositions(userInfo.positions)
 
-    // 3. 异步同步到云数据库 - 使用 openid 作为 _id 确保一致性
+    // 3. 异步同步到云数据库 - 使用 merge: true
+    // merge: 不存在则创建，存在则只合并指定字段，不会覆盖其他字段
     const db = wx.cloud.database()
     const userData = {
       openid: openid,
-      nickName: userInfo.nickName,
-      avatarUrl: userInfo.avatarUrl,
+      nickName: userInfo.nickName || '',
+      avatarUrl: userInfo.avatarUrl || '',
       positions: userInfo.positions || [],
       updatedAt: db.serverDate()
     }
     
     try {
-      // 使用 set 方法，如果不存在则创建，存在则更新
-      // 注意：set 方法的 data 中不能包含 _id，_id 在 doc() 中指定
       await db.collection('users').doc(openid).set({
-        data: userData
+        data: userData,
+        merge: true
       })
-      console.log('[saveUserInfo] 云端同步成功')
     } catch (err) {
       console.error('[saveUserInfo] 云端同步失败', err)
     }
@@ -432,7 +395,7 @@ Page({
         data: { positions }
       })
       if (res.result.success) {
-        console.log('[updateActivityPositions] 更新成功:', res.result.message)
+        // 更新成功
       } else {
         console.error('[updateActivityPositions] 更新失败:', res.result.error)
       }
@@ -464,36 +427,54 @@ Page({
     this.syncHistory(openid)
   },
 
-  // 后台同步历史数据
+  // 后台同步历史数据（服务端过滤，避免全量拉取）
   async syncHistory(openid) {
     try {
-      // 获取所有活动用于统计
-      const res = await db.collection('activities')
-        .orderBy('activityDate', 'desc')
-        .get()
+      // 并行执行：统计数据聚合查询 + 前5条历史记录
+      const [statsRes, historyRes] = await Promise.all([
+        // 聚合查询统计数据
+        db.collection('activities')
+          .aggregate()
+          .match({ 'registrations.openid': openid })
+          .project({
+            myRegs: db.command.aggregate.filter({
+              input: '$registrations',
+              as: 'r',
+              cond: db.command.aggregate.eq(['$$r.openid', openid])
+            })
+          })
+          .project({
+            myStatus: db.command.aggregate.arrayElemAt(['$myRegs', 0])
+          })
+          .project({ status: '$myStatus.status' })
+          .end(),
+        // 查询最近5条参与记录
+        db.collection('activities')
+          .where({ 'registrations.openid': openid })
+          .orderBy('activityDate', 'desc')
+          .limit(5)
+          .get()
+      ])
 
-      const allActivities = res.data
-      const myActivities = allActivities.filter(act => {
-        const regs = act.registrations || []
-        return regs.some(r => r.openid === openid)
+      // 计算统计
+      const records = statsRes.list || []
+      let totalGames = 0, confirmedCount = 0, pendingCount = 0, leaveCount = 0
+      records.forEach(r => {
+        if (r.status === 'confirmed') { confirmedCount++; totalGames++ }
+        else if (r.status === 'pending') pendingCount++
+        else if (r.status === 'leave') leaveCount++
       })
 
-      let totalGames = 0, confirmedCount = 0, pendingCount = 0, leaveCount = 0
+      // 处理前5条历史记录
+      const statusMap = {
+        confirmed: { text: '✅ 报名', cls: 'tag-green' },
+        pending: { text: '⏳ 待定', cls: 'tag-yellow' },
+        leave: { text: '🙅 请假', cls: 'tag-red' }
+      }
 
-      const allHistory = myActivities.map(act => {
+      const allHistory = historyRes.data.map(act => {
         const myReg = (act.registrations || []).find(r => r.openid === openid)
         const actDate = act.activityDate instanceof Date ? act.activityDate : new Date(act.activityDate)
-
-        if (myReg?.status === 'confirmed') { confirmedCount++; totalGames++ }
-        if (myReg?.status === 'pending') pendingCount++
-        if (myReg?.status === 'leave') leaveCount++
-
-        const statusMap = {
-          confirmed: { text: '✅ 报名', cls: 'tag-green' },
-          pending: { text: '⏳ 待定', cls: 'tag-yellow' },
-          leave: { text: '🙅 请假', cls: 'tag-red' }
-        }
-
         return {
           ...act,
           myStatus: myReg?.status,
@@ -503,9 +484,8 @@ Page({
         }
       })
 
-      // 只显示前5条
       const displayHistory = allHistory.slice(0, 5)
-      const hasMore = allHistory.length > 5
+      const hasMore = historyRes.data.length === 5
 
       const newStats = { totalGames, confirmedCount, pendingCount, leaveCount }
 
@@ -521,7 +501,7 @@ Page({
           currentStats.leaveCount !== newStats.leaveCount) {
         this.setData({
           history: displayHistory,
-          historyTotal: allHistory.length,
+          historyTotal: records.length,
           hasMoreHistory: hasMore,
           myStats: newStats
         })
@@ -559,8 +539,8 @@ Page({
   about() {
     const { version } = this.data
     wx.showModal({
-      title: `约球助手 v${version}`,
-      content: '⚽ 专为足球队设计的约球报名小程序\n功能：活动报名、战术板、队员管理\n\n有建议欢迎联系管理员',
+      title: `来踢球 v${version}`,
+      content: '⚽ 专为足球队设计的足球活动报名小程序\n功能：活动报名、战术板、队员管理\n\n有建议欢迎联系管理员',
       showCancel: false
     })
   },

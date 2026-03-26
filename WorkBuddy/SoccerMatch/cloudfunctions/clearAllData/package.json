@@ -1,9 +1,0 @@
-{
-  "name": "clearAllData",
-  "version": "1.0.0",
-  "description": "清空所有活动数据",
-  "main": "index.js",
-  "dependencies": {
-    "wx-server-sdk": "latest"
-  }
-}

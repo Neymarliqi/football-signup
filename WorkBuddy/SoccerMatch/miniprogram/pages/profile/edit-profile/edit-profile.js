@@ -7,7 +7,7 @@ Page({
     userInfo: {},
     tempAvatarUrl: '',
     tempNickName: '',
-    placeholderAvatar: 'https://mmbiz.qpic.cn/mmbiz/icTdbqWNOwNRna42FI242Lcia07jQodd2FJGIYQfG0LAJGFxM4FbnQP6yfMxBgJ0F3YRqJCJ1aPAK2dQagdusBZg/0'
+    placeholderAvatar: '/images/default-avatar.png'
   },
 
   onLoad() {
@@ -62,24 +62,20 @@ Page({
       }
 
       let finalAvatarUrl = userInfo.avatarUrl
+      let avatarBase64 = userInfo.avatarBase64 || ''
 
-      // 2. 如果上传了新头像，先上传到云存储
-      // 注意：微信头像选择返回的是临时文件路径（http://tmp/...），必须上传到云存储
-      if (tempAvatarUrl && !tempAvatarUrl.startsWith('cloud://')) {
+      // 2. 如果上传了新头像，压缩转 base64（不走云存储）
+      if (tempAvatarUrl && !tempAvatarUrl.startsWith('cloud://') && !tempAvatarUrl.startsWith('data:image')) {
         try {
-          const ext = tempAvatarUrl.match(/\.([^.]+)$/) ? tempAvatarUrl.match(/\.([^.]+)$/)[1] : 'jpg'
-          const cloudPath = `avatars/${openid}_${Date.now()}.${ext}`
-
-          const uploadRes = await wx.cloud.uploadFile({
-            cloudPath,
-            filePath: tempAvatarUrl
-          })
-
-          finalAvatarUrl = uploadRes.fileID
-          console.log('[edit-profile] 头像已上传:', finalAvatarUrl)
+          const result = await app.uploadAvatar(tempAvatarUrl)
+          if (result.startsWith('data:image')) {
+            avatarBase64 = result
+            finalAvatarUrl = result
+          } else {
+            finalAvatarUrl = result
+          }
         } catch (e) {
-          console.error('[edit-profile] 头像上传失败:', e)
-          // 上传失败使用原头像
+          console.error('[edit-profile] 头像处理失败:', e)
         }
       }
 
@@ -88,30 +84,32 @@ Page({
         ...userInfo,
         nickName: finalNickName.trim(),
         avatarUrl: finalAvatarUrl,
-        openid  // 确保 openid 存在
+        avatarBase64,
+        openid
       }
 
       // 4. 更新本地缓存（优先）
       app.globalData.userInfo = updatedUserInfo
       wx.setStorageSync('userInfo', updatedUserInfo)
 
-      // 5. 异步保存到云端（不影响本地体验）
-      db.collection('users').doc(openid).update({
+      // 5. 异步保存到云端
+      db.collection('users').doc(openid).set({
         data: {
+          openid: openid,
           nickName: updatedUserInfo.nickName,
           avatarUrl: updatedUserInfo.avatarUrl,
-          openid: openid,
+          avatarBase64: updatedUserInfo.avatarBase64,
+          positions: updatedUserInfo.positions || [],
           updatedAt: db.serverDate()
-        }
+        },
+        merge: true
       }).catch(err => {
         console.error('[edit-profile] 云端保存失败:', err)
-        // 云端保存失败不影响用户体验，本地已保存
       })
 
       // 6. 主动清除自己的缓存（强制其他页面重新查询）
       if (app.clearUserCache) {
         app.clearUserCache(openid)
-        console.log('[edit-profile] 已清除用户缓存:', openid)
       }
 
       wx.hideLoading()

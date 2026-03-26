@@ -26,7 +26,7 @@
     "list": [
       {
         "pagePath": "pages/index/index",
-        "text": "约球"
+        "text": "首页"
       },
       {
         "pagePath": "pages/profile/profile",
@@ -37,7 +37,7 @@
   "window": {
     "backgroundTextStyle": "light",
     "navigationBarBackgroundColor": "#1a1a2e",
-    "navigationBarTitleText": "⚽ 约球",
+    "navigationBarTitleText": "⚽ 来踢球",
     "navigationBarTextStyle": "white"
   },
   "permission": {
@@ -46,5 +46,7 @@
     }
   },
   "sitemapLocation": "sitemap.json",
-  "usingComponents": {}
+  "usingComponents": {
+    "register-modal": "/components/register-modal/register-modal"
+  }
 }

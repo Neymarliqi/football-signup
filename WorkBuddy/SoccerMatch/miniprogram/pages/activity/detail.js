@@ -23,13 +23,8 @@ Page({
     loading: true,
     // 数据库监听器
     activityWatcher: null,
-    // 头像昵称弹窗
-    showUserInfoModal: false,
-    tempAvatarUrl: '',
-    tempNickName: '',
-    defaultAvatarUrl: 'https://mmbiz.qpic.cn/mmbiz/icTdbqWNOwNRna42FI242Lcia07jQodd2FJGIYQfG0LAJGFxM4FbnQP6yfMxBgJ0F3YRqJCJ1aPAK2dQagdusBZg/0',
-    // 本地默认头像不存在，使用网络默认头像
-    placeholderAvatar: 'https://mmbiz.qpic.cn/mmbiz/icTdbqWNOwNRna42FI242Lcia07jQodd2FJGIYQfG0LAJGFxM4FbnQP6yfMxBgJ0F3YRqJCJ1aPAK2dQagdusBZg/0',
+    // 注册弹窗
+    showRegisterModal: false,
     // 操作选择弹窗
     showActionSheet: false,
     // 请假原因弹窗
@@ -53,7 +48,6 @@ Page({
         return await requestFn()
       } catch (e) {
         lastError = e
-        console.log(`请求失败，第${i + 1}次重试...`, e)
         if (i < maxRetries - 1) {
           await new Promise(resolve => setTimeout(resolve, delay * (i + 1)))
         }
@@ -89,7 +83,20 @@ Page({
     if (localUserInfo) {
       app.globalData.userInfo = localUserInfo
     }
+
+    // 注册检查：未注册用户弹出注册弹窗（非tabBar页面，关闭即返回）
+    if (!app.isUserRegistered()) {
+      this.setData({ showRegisterModal: true })
+      return
+    }
+
     this.loadActivity(true) // 传入 true，强制刷新用户缓存
+  },
+
+  // 注册完成回调
+  onRegistered() {
+    this.setData({ showRegisterModal: false })
+    this.loadActivity(true)
   },
 
   async loadActivity(forceRefreshUsers = false) {
@@ -115,11 +122,10 @@ Page({
           // 使用全局缓存系统（onShow 时强制刷新）
           latestUsers = await app.fetchUsersWithCache(userIds, forceRefreshUsers)
         } catch (e) {
-          console.log('获取用户信息失败', e)
         }
       }
 
-      this.processActivity(act, openid, latestUsers)
+      await this.processActivity(act, openid, latestUsers)
       this.setData({ loading: false })
 
       // 启动数据库监听（只监听当前活动）
@@ -145,7 +151,6 @@ Page({
       .doc(activityId)
       .watch({
         onChange: async (snapshot) => {
-          console.log('活动详情实时更新:', snapshot.docs[0]?.title)
 
           const act = snapshot.docs[0]
           if (!act) return
@@ -160,12 +165,11 @@ Page({
             try {
               latestUsers = await app.fetchUsersWithCache(userIds)
             } catch (e) {
-              console.log('实时更新用户信息失败', e)
             }
           }
 
           // 更新活动数据
-          this.processActivity(act, openid, latestUsers)
+          await this.processActivity(act, openid, latestUsers)
         },
         onError: (err) => {
           console.error('活动详情监听失败', err)
@@ -179,11 +183,7 @@ Page({
     this.setData({ activityWatcher: watcher })
   },
 
-  processActivity(act, openid, latestUsers = {}) {
-    // 调试：打印活动数据
-    console.log('活动数据:', act)
-    console.log('description:', act.description)
-    
+  async processActivity(act, openid, latestUsers = {}) {
     const registrations = act.registrations || []
     const confirmed = registrations.filter(r => r.status === 'confirmed')
     const pending = registrations.filter(r => r.status === 'pending')
@@ -243,13 +243,14 @@ Page({
     }
     
     // 处理球员列表 - 使用最新用户信息
+    // base64 直接用，不走云存储权限
     const processPlayer = (r) => {
       const latestUser = latestUsers[r.openid]
       const posInfo = processPosition(latestUser?.positions || r.position)
       return { 
         ...r, 
         nickName: latestUser?.nickName || r.nickName,
-        avatarUrl: latestUser?.avatarUrl || r.avatarUrl,
+        displayAvatar: app.getDisplayAvatar(latestUser) || app.globalData.defaultAvatar,
         registerTimeText: fmtTime(r.registerTime),
         ...posInfo
       }
@@ -353,21 +354,8 @@ Page({
    */
   async onMainAction(e) {
     const action = e.currentTarget.dataset.action
-    const userInfo = app.globalData.userInfo
 
-    // 检查用户信息是否完整
-    if (!userInfo || !userInfo.avatarUrl || !userInfo.nickName) {
-      // 保存待执行的操作，获取用户信息后自动执行
-      this.pendingAction = action
-      this.setData({
-        showUserInfoModal: true,
-        tempAvatarUrl: userInfo?.avatarUrl || '',
-        tempNickName: userInfo?.nickName || ''
-      })
-      return
-    }
-
-    // 已有头像，显示阅读确认弹窗
+    // 显示阅读确认弹窗
     this.pendingAction = action
     this.showConfirmModal()
   },
@@ -393,20 +381,6 @@ Page({
   async onSheetSelect(e) {
     const action = e.currentTarget.dataset.action
     this.closeActionSheet()
-
-    const userInfo = app.globalData.userInfo
-
-    // 检查用户信息是否完整
-    if (!userInfo || !userInfo.avatarUrl || !userInfo.nickName) {
-      // 保存待执行的操作，获取用户信息后自动执行
-      this.pendingAction = action
-      this.setData({
-        showUserInfoModal: true,
-        tempAvatarUrl: userInfo?.avatarUrl || '',
-        tempNickName: userInfo?.nickName || ''
-      })
-      return
-    }
 
     // 已有头像，待定/请假直接执行，不需要阅读确认弹窗
     wx.showLoading({ title: '处理中...' })
@@ -594,159 +568,6 @@ Page({
 
   // ==================== 头像昵称弹窗 ====================
 
-  /**
-   * 选择头像 - 使用新版 API
-   */
-  onChooseAvatar(e) {
-    const { avatarUrl } = e.detail
-    this.setData({ tempAvatarUrl: avatarUrl })
-  },
-
-  /**
-   * 输入昵称
-   */
-  onNickNameInput(e) {
-    this.setData({ tempNickName: e.detail.value })
-  },
-
-  /**
-   * 关闭头像昵称弹窗
-   */
-  closeUserInfoModal() {
-    this.setData({ showUserInfoModal: false })
-    // 清除待执行的操作
-    this.pendingAction = null
-  },
-
-  /**
-   * 保存用户信息（首次报名弹窗）
-   * 优化策略：先保存到本地缓存，再异步保存到云端
-   */
-  async saveUserInfo() {
-    const { tempAvatarUrl, tempNickName } = this.data
-
-    if (!tempNickName.trim()) {
-      wx.showToast({ title: '请输入昵称', icon: 'none' })
-      return
-    }
-
-    wx.showLoading({ title: '保存中...' })
-
-    try {
-      // 1. 先获取 openid
-      let openid = app.globalData.openid || wx.getStorageSync('openid')
-      if (!openid) {
-        try {
-          const res = await wx.cloud.callFunction({ name: 'getOpenid' })
-          openid = res.result.openid
-          app.globalData.openid = openid
-          wx.setStorageSync('openid', openid)
-        } catch (e) {
-          console.error('[saveUserInfo] 获取 openid 失败', e)
-          wx.hideLoading()
-          wx.showToast({ title: '获取用户信息失败', icon: 'none' })
-          return
-        }
-      }
-
-      let finalAvatarUrl = tempAvatarUrl
-
-      // 2. 如果选择了头像，上传到云存储
-      // 注意：微信头像选择返回的是临时文件路径（http://tmp/...），必须上传到云存储
-      if (tempAvatarUrl && !tempAvatarUrl.startsWith('cloud://')) {
-        try {
-          const ext = tempAvatarUrl.match(/\.([^.]+)$/) ? tempAvatarUrl.match(/\.([^.]+)$/)[1] : 'jpg'
-          const uploadRes = await wx.cloud.uploadFile({
-            cloudPath: `avatars/${openid}_${Date.now()}.${ext}`,
-            filePath: tempAvatarUrl
-          })
-          finalAvatarUrl = uploadRes.fileID
-          console.log('[saveUserInfo] 头像已上传:', finalAvatarUrl)
-        } catch (e) {
-          console.error('[saveUserInfo] 上传头像失败', e)
-          finalAvatarUrl = this.data.defaultAvatarUrl
-        }
-      }
-
-      // 如果没有头像，使用默认头像
-      if (!finalAvatarUrl) {
-        finalAvatarUrl = this.data.defaultAvatarUrl
-      }
-
-      // 3. 获取当前用户信息（保留位置偏好）
-      const currentUserInfo = app.globalData.userInfo || wx.getStorageSync('userInfo') || {}
-      const positions = currentUserInfo.positions || []
-
-      // 4. 构建更新后的用户信息
-      const userInfo = {
-        _id: openid,
-        openid: openid,
-        nickName: tempNickName,
-        avatarUrl: finalAvatarUrl,
-        positions: positions
-      }
-
-      // 5. 更新本地缓存（优先）
-      app.globalData.userInfo = userInfo
-      wx.setStorageSync('userInfo', userInfo)
-
-      // 6. 异步保存到云端（不影响用户体验）
-      db.collection('users').doc(openid).update({
-        data: {
-          nickName: tempNickName,
-          avatarUrl: finalAvatarUrl,
-          openid: openid,
-          positions: positions,
-          updatedAt: db.serverDate()
-        }
-      }).catch(err => {
-        // 如果文档不存在，使用 set 创建
-        if (err.errCode === -502001 || err.errCode === -502005) {
-          db.collection('users').doc(openid).set({
-            data: {
-              openid: openid,
-              nickName: tempNickName,
-              avatarUrl: finalAvatarUrl,
-              positions: positions,
-              createdAt: db.serverDate(),
-              updatedAt: db.serverDate()
-            }
-          }).catch(setErr => {
-            console.error('[saveUserInfo] 云端保存失败:', setErr)
-          })
-        } else {
-          console.error('[saveUserInfo] 云端保存失败:', err)
-        }
-      })
-
-      // 7. 清除全局缓存中的该用户信息
-      if (app.clearUserCache) {
-        app.clearUserCache(openid)
-        console.log('[saveUserInfo] 已清除用户缓存，强制其他页面重新查询:', openid)
-      }
-
-      wx.hideLoading()
-      this.setData({ showUserInfoModal: false })
-
-      // 8. 如果有待执行的操作
-      if (this.pendingAction) {
-        // 只有报名操作需要阅读确认弹窗，待定/请假直接执行
-        if (this.pendingAction === 'confirmed') {
-          this.showConfirmModal()
-        } else {
-          wx.showLoading({ title: '处理中...' })
-          await this.doRegister(this.pendingAction, '')
-        }
-      } else {
-        wx.showToast({ title: '保存成功', icon: 'success' })
-        this.loadActivity()
-      }
-    } catch (e) {
-      wx.hideLoading()
-      console.error('保存用户信息失败', e)
-      wx.showToast({ title: '保存失败', icon: 'error' })
-    }
-  },
 
   // ==================== 其他功能 ====================
 

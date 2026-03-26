@@ -2,7 +2,7 @@
 <view class="container">
   <!-- 足球场 -->
   <view class="field-container">
-    <view class="field" id="field" bindtap="onFieldTap">
+    <view class="field" id="field">
       <!-- 场地线条 -->
       <view class="field-lines">
         <!-- 外边框 -->
@@ -26,7 +26,7 @@
       <view 
         wx:for="{{onFieldPlayers}}" 
         wx:key="openid"
-        class="player {{selectedPlayer === item.openid ? 'selected' : ''}} {{draggingPlayer === item.openid ? 'dragging' : ''}}"
+        class="player {{draggingPlayer === item.openid ? 'dragging' : ''}}"
         style="left: {{item.x}}%; top: {{item.y}}%; {{draggingPlayer === item.openid ? 'z-index: 100;' : ''}}"
         bindtouchstart="onPlayerDragStart"
         bindtouchmove="onPlayerDragMove"

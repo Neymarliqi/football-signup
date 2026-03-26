@@ -1,0 +1,40 @@
+<view class="register-modal" wx:if="{{show}}" catchtouchmove="preventScroll">
+  <view class="modal-mask"></view>
+  <view class="modal-content">
+    <!-- 头部 -->
+    <view class="modal-header">
+      <text class="modal-title">欢迎来踢球</text>
+    </view>
+    <!-- 表单 -->
+    <view class="modal-body">
+      <!-- 头像 -->
+      <view class="form-row avatar-row">
+        <view class="form-label">头像 <text class="required">*</text></view>
+        <view class="avatar-area">
+          <button class="avatar-btn" open-type="chooseAvatar" bind:chooseavatar="onChooseAvatar">
+            <image class="avatar-preview" src="{{tempAvatarUrl || '/images/default-avatar.png'}}" mode="aspectFill"></image>
+          </button>
+          <view class="avatar-tip">点击选择</view>
+        </view>
+      </view>
+      <!-- 昵称 -->
+      <view class="form-row">
+        <view class="form-label">昵称 <text class="required">*</text></view>
+        <view class="nickname-wrapper">
+          <input class="nickname-input" id="nicknameInput" type="nickname" placeholder="请输入昵称" value="{{tempNickName}}" bindinput="onNickNameInput" bindblur="onNickNameBlur" bindchange="onNickNameChange" maxlength="20" />
+        </view>
+      </view>
+      <!-- 隐私勾选 -->
+      <view class="privacy-row" bindtap="goPrivacy">
+        <view class="checkbox {{privacyChecked ? 'checked' : ''}}" catchtap="togglePrivacy">
+          <text class="check-icon" wx:if="{{privacyChecked}}">✓</text>
+        </view>
+        <text class="privacy-text" bindtap="goPrivacy">勾选确保已阅读<text class="privacy-link">隐私保护</text></text>
+      </view>
+    </view>
+    <!-- 底部按钮 -->
+    <view class="modal-footer">
+      <button class="save-btn {{canSave ? '' : 'btn-disabled'}}" bindtap="onSave">保存</button>
+    </view>
+  </view>
+</view>

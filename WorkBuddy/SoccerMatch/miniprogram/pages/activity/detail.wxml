@@ -179,7 +179,7 @@
       <view class="player-avatar-grid" wx:if="{{confirmedPlayers.length > 0}}">
         <view wx:for="{{confirmedPlayers}}" wx:key="openid" class="avatar-grid-item">
           <view class="avatar-with-position">
-            <image class="grid-avatar" src="{{item.avatarUrl || placeholderAvatar}}" mode="aspectFill"></image>
+            <image class="grid-avatar" src="{{item.displayAvatar}}" mode="aspectFill"></image>
             <!-- 首选位置标签（位置1）-->
             <view class="position-tag-on-avatar" wx:if="{{item.firstPosition}}">{{item.firstPosition}}</view>
           </view>
@@ -195,7 +195,7 @@
       <view class="player-avatar-grid" wx:if="{{pendingPlayers.length > 0}}">
         <view wx:for="{{pendingPlayers}}" wx:key="openid" class="avatar-grid-item">
           <view class="avatar-with-position">
-            <image class="grid-avatar" src="{{item.avatarUrl || placeholderAvatar}}" mode="aspectFill"></image>
+            <image class="grid-avatar" src="{{item.displayAvatar}}" mode="aspectFill"></image>
             <!-- 首选位置标签（位置1）-->
             <view class="position-tag-on-avatar" wx:if="{{item.firstPosition}}">{{item.firstPosition}}</view>
           </view>
@@ -211,7 +211,7 @@
       <view class="player-avatar-grid" wx:if="{{leavePlayers.length > 0}}">
         <view wx:for="{{leavePlayers}}" wx:key="openid" class="avatar-grid-item">
           <view class="avatar-with-position">
-            <image class="grid-avatar" src="{{item.avatarUrl || placeholderAvatar}}" mode="aspectFill"></image>
+            <image class="grid-avatar" src="{{item.displayAvatar}}" mode="aspectFill"></image>
             <!-- 首选位置标签（位置1）-->
             <view class="position-tag-on-avatar" wx:if="{{item.firstPosition}}">{{item.firstPosition}}</view>
           </view>
@@ -304,32 +304,8 @@
   </view>
 </view>
 
-<!-- 头像昵称弹窗 -->
-<view class="user-info-modal" wx:if="{{showUserInfoModal}}">
-  <view class="modal-mask" bindtap="closeUserInfoModal"></view>
-  <view class="modal-content">
-    <view class="modal-header">
-      <text class="modal-title">完善个人信息</text>
-      <view class="modal-close" bindtap="closeUserInfoModal">✕</view>
-    </view>
-    <view class="modal-body">
-      <view class="form-row">
-        <view class="form-label">头像</view>
-        <button class="avatar-btn" open-type="chooseAvatar" bind:chooseavatar="onChooseAvatar">
-          <image class="avatar-preview" src="{{tempAvatarUrl || defaultAvatarUrl}}" mode="aspectFill"></image>
-        </button>
-      </view>
-      <view class="form-row">
-        <view class="form-label">昵称</view>
-        <input class="nickname-input" type="nickname" placeholder="请输入昵称" value="{{tempNickName}}" bindinput="onNickNameInput" bindblur="onNickNameInput" />
-      </view>
-    </view>
-    <view class="modal-footer">
-      <view class="modal-btn modal-btn-cancel" bindtap="closeUserInfoModal">取消</view>
-      <button class="modal-btn modal-btn-confirm" bindtap="saveUserInfo">保存并报名</button>
-    </view>
-  </view>
-</view>
+<!-- 注册弹窗 -->
+<register-modal show="{{showRegisterModal}}" bind:registered="onRegistered" />
 
 <!-- 阅读活动描述确认弹窗 -->
 <view class="confirm-modal" wx:if="{{showConfirmModal}}" catchtouchmove="preventScroll">

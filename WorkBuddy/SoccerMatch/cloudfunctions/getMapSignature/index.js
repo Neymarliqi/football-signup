@@ -30,7 +30,6 @@ function generateSignature(path, params, sk) {
   const paramStr = sortedKeys.map(key => `${key}=${params[key]}`).join('&')
   // 拼接签名字符串：路径?参数字符串SK
   const signStr = `${path}?${paramStr}${sk}`
-  console.log('[签名字符串]', signStr)
   return crypto.createHash('md5').update(signStr).digest('hex').toLowerCase()
 }
 
@@ -48,11 +47,8 @@ async function callApi(path, params) {
   queryParts.push(`sig=${sig}`)
   const url = `${CONFIG.BASE_URL}${path}?${queryParts.join('&')}`
   
-  console.log('[请求URL]', url)
-  
   const response = await fetch(url)
   const data = await response.json()
-  console.log('[API响应]', JSON.stringify(data).substring(0, 200))
   return data
 }
 

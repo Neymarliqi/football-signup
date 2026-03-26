@@ -12,7 +12,6 @@ Page({
     canEdit: false,
     isCreator: false,
     isParticipant: false,
-    selectedPlayer: null,
     fieldRect: null,
     // 拖拽相关
     draggingPlayer: null,
@@ -80,13 +79,14 @@ Page({
           return labels.join('/')
         }
 
+        // base64 直接用，不走云存储权限
         const confirmedPlayers = confirmedRegs.map(r => {
           const latestUser = latestUsers[r.openid]
           return {
             openid: r.openid,
             nickName: latestUser?.nickName || r.nickName,
             shortName: this.getShortName(latestUser?.nickName || r.nickName),
-            avatarUrl: latestUser?.avatarUrl || r.avatarUrl,
+            avatarUrl: app.getDisplayAvatar(latestUser) || app.globalData.defaultAvatar,
             positionLabel: getPositionLabelString(latestUser?.positions || r.position),
             isOnField: false,
             x: 50,
@@ -118,7 +118,6 @@ Page({
           benchPlayers: newBench
         })
 
-        console.log('[refreshUsersInfo] 已刷新战术板用户信息')
       }
     } catch (e) {
       console.error('[refreshUsersInfo] 刷新用户信息失败', e)
@@ -136,21 +135,10 @@ Page({
       const actRes = await db.collection('activities').doc(activityId).get()
       const activity = actRes.data
       
-      // 检查权限
+      // 检查权限（所有人可查看，只有报名者和创建者可编辑保存）
       const isCreator = activity.createdBy === openid
       const registrations = activity.registrations || []
       const isParticipant = registrations.some(r => r.openid === openid && r.status === 'confirmed')
-      
-      if (!isCreator && !isParticipant) {
-        wx.hideLoading()
-        wx.showModal({
-          title: '提示',
-          content: '只有报名成功的队员可以查看战术板',
-          showCancel: false,
-          success: () => wx.navigateBack()
-        })
-        return
-      }
       
       this.setData({ 
         canEdit: isCreator || isParticipant,
@@ -209,18 +197,18 @@ Page({
           // 使用全局缓存系统
           latestUsers = await app.fetchUsersWithCache(userIds)
         } catch (e) {
-          console.log('获取用户信息失败', e)
         }
       }
       
       // 获取已确认的球员（使用最新用户信息）
+      // base64 直接用，不走云存储权限
       const confirmedPlayers = confirmedRegs.map(r => {
         const latestUser = latestUsers[r.openid]
         return {
           openid: r.openid,
           nickName: latestUser?.nickName || r.nickName,
           shortName: this.getShortName(latestUser?.nickName || r.nickName),
-          avatarUrl: latestUser?.avatarUrl || r.avatarUrl,
+          avatarUrl: app.getDisplayAvatar(latestUser) || app.globalData.defaultAvatar,
           positionLabel: getPositionLabelString(latestUser?.positions || r.position),
           isOnField: false,
           x: 50,
@@ -274,125 +262,8 @@ Page({
 
   getShortName(nickName) {
     if (!nickName) return '未知'
-    // 取前8个字符，显示更多
     return nickName.length > 8 ? nickName.substring(0, 8) : nickName
   },
-
-  // 点击球场空白处 - 移动选中的球员
-  onFieldTap(e) {
-    if (!this.data.canEdit) return
-    
-    const { selectedPlayer, onFieldPlayers, fieldRect } = this.data
-    
-    // 如果没有选中球员，不做任何事
-    if (!selectedPlayer) return
-    
-    // 获取点击位置
-    const { x, y } = e.detail
-    
-    if (!fieldRect) {
-      this.getFieldRect()
-      return
-    }
-    
-    // 计算相对球场的百分比位置
-    const relativeX = ((x - fieldRect.left) / fieldRect.width) * 100
-    const relativeY = ((y - fieldRect.top) / fieldRect.height) * 100
-    
-    // 限制在球场范围内
-    const clampedX = Math.max(5, Math.min(95, relativeX))
-    const clampedY = Math.max(5, Math.min(95, relativeY))
-    
-    // 更新球员位置
-    const updatedPlayers = onFieldPlayers.map(p => {
-      if (p.openid === selectedPlayer) {
-        return { ...p, x: clampedX, y: clampedY }
-      }
-      return p
-    })
-    
-    this.setData({ 
-      onFieldPlayers: updatedPlayers,
-      selectedPlayer: null
-    })
-  },
-
-  // 点击场上球员 - 选中/取消选中
-  onPlayerTap(e) {
-    if (!this.data.canEdit) return
-    
-    const { openid } = e.currentTarget.dataset
-    const { selectedPlayer } = this.data
-    
-    // 如果点击的是已选中的球员，取消选中
-    if (selectedPlayer === openid) {
-      this.setData({ selectedPlayer: null })
-    } else {
-      // 选中该球员
-      this.setData({ selectedPlayer: openid })
-    }
-    
-    // 阻止冒泡
-    e.stopPropagation()
-  },
-
-  // 长按场上球员 - 下场
-  onPlayerLongPress(e) {
-    if (!this.data.canEdit) return
-    
-    const { openid, index } = e.currentTarget.dataset
-    const { onFieldPlayers, benchPlayers } = this.data
-    
-    // 找到该球员
-    const player = onFieldPlayers.find(p => p.openid === openid)
-    if (!player) return
-    
-    // 移回替补席
-    const updatedOnField = onFieldPlayers.filter(p => p.openid !== openid)
-    const updatedBench = [...benchPlayers, { ...player, isOnField: false }]
-    
-    this.setData({
-      onFieldPlayers: updatedOnField,
-      benchPlayers: updatedBench,
-      selectedPlayer: null
-    })
-    
-    e.stopPropagation()
-  },
-
-  // 点击替补球员 - 上场
-  addToField(e) {
-    if (!this.data.canEdit) {
-      wx.showToast({ title: '只有队长可以编辑', icon: 'none' })
-      return
-    }
-    
-    const player = e.currentTarget.dataset.player
-    const { onFieldPlayers, benchPlayers } = this.data
-    
-    // 默认放在球场底部中间
-    const defaultX = 50
-    const defaultY = 85
-    
-    // 如果有其他球员，稍微错开位置
-    const offsetX = (onFieldPlayers.length % 3 - 1) * 15
-    const offsetY = Math.floor(onFieldPlayers.length / 3) * 10
-    
-    const newPlayer = {
-      ...player,
-      isOnField: true,
-      x: defaultX + offsetX,
-      y: Math.max(20, defaultY - offsetY)
-    }
-    
-    this.setData({
-      onFieldPlayers: [...onFieldPlayers, newPlayer],
-      benchPlayers: benchPlayers.filter(p => p.openid !== player.openid),
-      selectedPlayer: player.openid
-    })
-  },
-
-
 
   // 保存战术
   async saveTactics() {
@@ -542,7 +413,6 @@ Page({
           dragStartPos: null
         })
         
-
       } else {
         // 从球场内拖动 - 更新位置
         const updatedPlayers = onFieldPlayers.map(p => {
@@ -579,7 +449,6 @@ Page({
           dragStartPos: null
         })
         
-
       } else {
         // 从替补区拖出但未进球场 - 回到原位
         this.setData({

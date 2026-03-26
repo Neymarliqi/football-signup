@@ -3,7 +3,7 @@
   <scroll-view class="privacy-content" scroll-y>
     <!-- 头部说明 -->
     <view class="privacy-header">
-      <text class="app-name">约球助手</text>
+      <text class="app-name">来踢球</text>
       <text class="update-time">更新日期：2026年3月23日</text>
     </view>
 

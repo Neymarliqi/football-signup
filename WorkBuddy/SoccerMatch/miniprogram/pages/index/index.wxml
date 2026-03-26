@@ -6,7 +6,7 @@
     <view class="header-inner">
       <view class="header-title">
         <text class="ball-icon">⚽</text>
-        <text class="title-text">约球助手</text>
+        <text class="title-text">来踢球</text>
       </view>
       <view class="header-sub">随时随地，召集队友</view>
     </view>
@@ -63,7 +63,7 @@
   <view wx:elif="{{!loading && activities.length === 0}}" class="empty-state">
     <text style="font-size: 100rpx;">⚽</text>
     <text>暂无活动</text>
-    <text class="empty-sub">点击底部「+」按钮发布活动开始约球！</text>
+    <text class="empty-sub">点击底部「+」按钮发布活动开始踢球！</text>
   </view>
 
 
@@ -132,7 +132,7 @@
       <view class="avatar-list">
         <view wx:for="{{item.confirmedPlayers}}" wx:for-item="player" wx:key="openid" class="avatar-item">
           <view class="avatar-with-position">
-            <image class="avatar-sm" src="{{player.avatarUrl || placeholderAvatar}}" mode="aspectFill"></image>
+            <image class="avatar-sm" src="{{player.displayAvatar}}" mode="aspectFill"></image>
             <view class="position-tag-sm" wx:if="{{player.firstPosition}}">{{player.firstPosition}}</view>
           </view>
           <text class="avatar-name">{{player.shortName}}</text>
@@ -170,3 +170,6 @@
   <!-- 底部安全区 -->
   <view style="height: 160rpx;"></view>
 </view>
+
+<!-- 注册弹窗 -->
+<register-modal show="{{showRegisterModal}}" bind:registered="onRegistered" />
