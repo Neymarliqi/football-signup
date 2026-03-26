@@ -22,13 +22,19 @@ Page({
   },
 
   onShow() {
-    // 注册检查：未注册用户弹出注册弹窗
-    if (!app.isUserRegistered()) {
-      this.setData({ showRegisterModal: true })
+    const now = Date.now()
+
+    // 检测全局标记：TabBar 发布按钮触发的注册检查
+    if (app.globalData._needRegisterForPublish) {
+      app.globalData._needRegisterForPublish = false
+      if (!app.isUserRegistered()) {
+        this.setData({ showRegisterModal: true })
+        return
+      }
+      // 已注册，直接跳转发布页
+      wx.navigateTo({ url: '/pages/activity/create' })
       return
     }
-
-    const now = Date.now()
 
     // 智能刷新：超过 30 秒才重新加载公告（公告变化较少）
     if (now - this.data.lastShowTime > 30000) {
@@ -69,6 +75,20 @@ Page({
     // 注册成功后加载数据
     this.loadAnnouncements()
     this.loadActivities(true, true)
+    // 如果是从发布按钮触发的注册，注册成功后跳转发布页
+    if (app.globalData._needRegisterForPublish) {
+      app.globalData._needRegisterForPublish = false
+      setTimeout(() => {
+        wx.navigateTo({ url: '/pages/activity/create' })
+      }, 300)
+    }
+  },
+
+  // 关闭注册弹窗（用户选择暂不注册）
+  onCloseRegister() {
+    this.setData({ showRegisterModal: false })
+    // 清理可能残留的发布注册标记
+    app.globalData._needRegisterForPublish = false
   },
 
   // 后台静默刷新用户信息（不显示 loading，不影响页面交互）

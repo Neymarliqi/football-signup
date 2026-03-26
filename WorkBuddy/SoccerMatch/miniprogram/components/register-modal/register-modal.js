@@ -34,6 +34,11 @@ Component({
   methods: {
     preventScroll() {},
 
+    // 关闭弹窗
+    onClose() {
+      this.triggerEvent('close')
+    },
+
     onChooseAvatar(e) {
       const { avatarUrl } = e.detail
       this.setData({ tempAvatarUrl: avatarUrl })

@@ -84,12 +84,6 @@ Page({
       app.globalData.userInfo = localUserInfo
     }
 
-    // 注册检查：未注册用户弹出注册弹窗（非tabBar页面，关闭即返回）
-    if (!app.isUserRegistered()) {
-      this.setData({ showRegisterModal: true })
-      return
-    }
-
     this.loadActivity(true) // 传入 true，强制刷新用户缓存
   },
 
@@ -97,6 +91,39 @@ Page({
   onRegistered() {
     this.setData({ showRegisterModal: false })
     this.loadActivity(true)
+    // 注册完成后执行之前被拦截的操作
+    if (this._pendingAction) {
+      const action = this._pendingAction
+      this._pendingAction = null
+      // 延迟执行，确保数据已刷新
+      setTimeout(() => {
+        if (action === 'confirmed') {
+          // 先设置 pendingAction，再弹确认弹窗（confirmRegister 依赖 this.pendingAction）
+          this.pendingAction = action
+          this.showConfirmModal()
+        } else {
+          // 待定/请假直接执行
+          wx.showLoading({ title: '处理中...' })
+          this.doRegister(action, '')
+        }
+      }, 300)
+    }
+  },
+
+  // 关闭注册弹窗
+  onCloseRegister() {
+    this.setData({ showRegisterModal: false })
+    this._pendingAction = null
+  },
+
+  // 检查注册状态，未注册则弹窗
+  checkRegisterBeforeAction(action) {
+    if (!app.isUserRegistered()) {
+      this._pendingAction = action
+      this.setData({ showRegisterModal: true })
+      return false
+    }
+    return true
   },
 
   async loadActivity(forceRefreshUsers = false) {
@@ -355,6 +382,9 @@ Page({
   async onMainAction(e) {
     const action = e.currentTarget.dataset.action
 
+    // 注册检查：未注册用户先引导注册
+    if (!this.checkRegisterBeforeAction(action)) return
+
     // 显示阅读确认弹窗
     this.pendingAction = action
     this.showConfirmModal()
@@ -381,6 +411,9 @@ Page({
   async onSheetSelect(e) {
     const action = e.currentTarget.dataset.action
     this.closeActionSheet()
+
+    // 注册检查：未注册用户先引导注册
+    if (!this.checkRegisterBeforeAction(action)) return
 
     // 已有头像，待定/请假直接执行，不需要阅读确认弹窗
     wx.showLoading({ title: '处理中...' })

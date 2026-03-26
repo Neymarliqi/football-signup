@@ -1,8 +1,9 @@
 <view class="register-modal" wx:if="{{show}}" catchtouchmove="preventScroll">
-  <view class="modal-mask"></view>
+  <view class="modal-mask" catchtap="onClose"></view>
   <view class="modal-content">
     <!-- 头部 -->
     <view class="modal-header">
+      <view class="close-btn" catchtap="onClose">✕</view>
       <text class="modal-title">欢迎来踢球</text>
     </view>
     <!-- 表单 -->

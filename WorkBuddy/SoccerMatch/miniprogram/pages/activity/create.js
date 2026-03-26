@@ -430,12 +430,6 @@ Page({
 
   // 页面显示时获取选点结果
   onShow() {
-    // 注册检查：未注册用户弹出注册弹窗
-    if (!app.isUserRegistered()) {
-      this.setData({ showRegisterModal: true })
-      return
-    }
-
     const location = chooseLocation.getLocation()
     if (location) {
       this.setData({
@@ -452,6 +446,17 @@ Page({
   // 注册完成回调
   onRegistered() {
     this.setData({ showRegisterModal: false })
+    // 注册完成后自动提交
+    if (this._pendingSubmit) {
+      this._pendingSubmit = false
+      setTimeout(() => this.submit(), 300)
+    }
+  },
+
+  // 关闭注册弹窗
+  onCloseRegister() {
+    this.setData({ showRegisterModal: false })
+    this._pendingSubmit = false
   },
 
   // 清除导航地址
@@ -492,6 +497,13 @@ Page({
 
   async submit() {
     if (!this.validate()) {
+      return
+    }
+
+    // 注册检查：未注册用户先引导注册
+    if (!app.isUserRegistered()) {
+      this._pendingSubmit = true
+      this.setData({ showRegisterModal: true })
       return
     }
 

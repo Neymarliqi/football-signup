@@ -39,6 +39,26 @@ Component({
 
     // 跳转到发布页面
     goToPublish() {
+      const app = getApp()
+      if (!app.isUserRegistered()) {
+        // 如果当前在首页，直接设置标记让首页弹窗（不需要switchTab）
+        if (this.data.selected === 0) {
+          app.globalData._needRegisterForPublish = true
+          // 获取首页页面实例，直接弹窗
+          const pages = getCurrentPages()
+          const currentPage = pages[pages.length - 1]
+          if (currentPage && currentPage.setData) {
+            currentPage.setData({ showRegisterModal: true })
+          }
+          return
+        }
+        // 不在首页，设置标记并切到首页
+        app.globalData._needRegisterForPublish = true
+        wx.switchTab({
+          url: '/pages/index/index'
+        })
+        return
+      }
       // 使用 navigateTo 跳转到非 tabBar 页面
       wx.navigateTo({
         url: '/pages/activity/create',

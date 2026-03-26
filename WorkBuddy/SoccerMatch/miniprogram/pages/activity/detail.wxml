@@ -305,7 +305,7 @@
 </view>
 
 <!-- 注册弹窗 -->
-<register-modal show="{{showRegisterModal}}" bind:registered="onRegistered" />
+<register-modal show="{{showRegisterModal}}" bind:registered="onRegistered" bind:close="onCloseRegister" />
 
 <!-- 阅读活动描述确认弹窗 -->
 <view class="confirm-modal" wx:if="{{showConfirmModal}}" catchtouchmove="preventScroll">

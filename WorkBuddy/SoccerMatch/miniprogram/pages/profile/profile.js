@@ -51,12 +51,6 @@ Page({
   },
 
   onShow() {
-    // 注册检查：未注册用户弹出注册弹窗
-    if (!app.isUserRegistered()) {
-      this.setData({ showRegisterModal: true })
-      return
-    }
-
     // 智能加载：优先显示本地缓存（秒开）
     this.loadUserInfo()
 
@@ -74,6 +68,29 @@ Page({
     this.setData({ showRegisterModal: false })
     this.loadUserInfo()
     this.loadHistory(true)
+    // 注册完成后执行之前被拦截的操作
+    if (this._pendingAction === 'editProfile') {
+      this._pendingAction = null
+      setTimeout(() => {
+        wx.navigateTo({ url: '/pages/profile/edit-profile/edit-profile' })
+      }, 300)
+    }
+  },
+
+  // 关闭注册弹窗
+  onCloseRegister() {
+    this.setData({ showRegisterModal: false })
+    this._pendingAction = null
+  },
+
+  // 检查注册状态，未注册则弹窗
+  checkRegisterBeforeAction(action) {
+    if (!app.isUserRegistered()) {
+      this._pendingAction = action
+      this.setData({ showRegisterModal: true })
+      return false
+    }
+    return true
   },
 
   async loadUserInfo() {
@@ -299,6 +316,9 @@ Page({
 
   // 选择位置（多选，按选择顺序排序，参考微信图片选择逻辑）
   selectPosition(e) {
+    // 注册检查：未注册用户先引导注册
+    if (!this.checkRegisterBeforeAction('selectPosition')) return
+
     const pos = e.currentTarget.dataset.pos
     const currentPositions = this.data.userInfo.positions || []
     
@@ -547,6 +567,9 @@ Page({
 
   // 跳转到编辑页面
   goEditProfile() {
+    // 注册检查：未注册用户先引导注册
+    if (!this.checkRegisterBeforeAction('editProfile')) return
+
     wx.navigateTo({
       url: '/pages/profile/edit-profile/edit-profile'
     })
