@@ -14,6 +14,10 @@ Page({
     leaveCount: 0,
     totalCount: 0,
     progressPercent: 0,
+    isUnlimited: false,
+    isFull: false,
+    isDeadlinePassed: false,
+    deadlineText: '',
     myStatus: null,
     myStatusText: '',
     myStatusClass: '',
@@ -217,7 +221,12 @@ Page({
     const leave = registrations.filter(r => r.status === 'leave')
     const myReg = registrations.find(r => r.openid === openid)
 
-    const progressPercent = Math.min(Math.round((confirmed.length / act.maxPlayers) * 100), 100)
+    // 是否不限人数（999 代表不限）
+    const isUnlimited = act.maxPlayers === 999
+    // 是否满员（仅限制人数时有意义）
+    const isFull = !isUnlimited && confirmed.length >= act.maxPlayers
+    // 进度条百分比（不限人数时为 0，不显示进度条）
+    const progressPercent = isUnlimited ? 0 : Math.min(Math.round((confirmed.length / act.maxPlayers) * 100), 100)
 
     // 格式化报名时间
     const fmtTime = (ts) => {
@@ -290,6 +299,23 @@ Page({
     // 活动状态
     const now = new Date()
     const actDate = act.activityDate instanceof Date ? act.activityDate : new Date(act.activityDate)
+
+    // 报名截止时间判断（方案B：截止后仅报名按钮禁用，待定/请假仍可操作）
+    let isDeadlinePassed = false
+    let deadlineText = ''
+    if (act.deadline) {
+      const deadline = act.deadline instanceof Date ? act.deadline : new Date(act.deadline)
+      if (now >= deadline) {
+        isDeadlinePassed = true
+        // 格式化截止时间用于提示文字
+        const m = deadline.getMonth() + 1
+        const d = deadline.getDate()
+        const h = String(deadline.getHours()).padStart(2, '0')
+        const min = String(deadline.getMinutes()).padStart(2, '0')
+        deadlineText = `${m}月${d}日 ${h}:${min}`
+      }
+    }
+
     let statusText, statusClass, effectiveStatus
     if (act.status === 'finished' || actDate < now) {
       statusText = '已结束'; statusClass = 'tag-gray'; effectiveStatus = 'finished'
@@ -352,6 +378,10 @@ Page({
       leaveCount: leave.length,
       totalCount: registrations.length,
       progressPercent,
+      isUnlimited,
+      isFull,
+      isDeadlinePassed,
+      deadlineText,
       myStatus,
       myStatusText,
       myStatusClass,
@@ -563,8 +593,8 @@ Page({
     // 从本地存储获取最新的 userInfo（确保位置数据是最新的）
     const userInfo = wx.getStorageSync('userInfo') || app.globalData.userInfo || {}
 
-    // 检查是否已满员（报名状态时）
-    if (status === 'confirmed' && confirmedCount >= activity.maxPlayers) {
+    // 检查是否已满员（不限人数时跳过）
+    if (status === 'confirmed' && this.data.isFull) {
       wx.showToast({ title: '报名人数已满！', icon: 'none' })
       return
     }

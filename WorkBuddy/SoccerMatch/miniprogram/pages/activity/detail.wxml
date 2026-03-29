@@ -108,8 +108,8 @@
           <view class="info-grid-content">
             <view class="info-grid-label">人数</view>
             <view class="info-grid-value">
-              <text class="{{confirmedCount >= activity.maxPlayers ? 'text-danger' : 'text-primary'}}">{{confirmedCount}}</text>
-              <text class="text-gray">/{{activity.maxPlayers}}人</text>
+              <text class="{{isFull ? 'text-danger' : 'text-primary'}}">{{confirmedCount}}</text>
+              <text class="text-gray">/ {{isUnlimited ? '不限' : activity.maxPlayers + '人'}}</text>
             </view>
           </view>
         </view>
@@ -161,14 +161,18 @@
           <view class="stat-num">{{leaveCount}}</view>
           <view class="stat-label">🙅 请假</view>
         </view>
-        <view class="stat-item stat-gray">
+        <view class="stat-item stat-gray" wx:if="{{!isUnlimited}}">
           <view class="stat-num">{{activity.maxPlayers - confirmedCount}}</view>
           <view class="stat-label">🪑 空位</view>
         </view>
+        <view class="stat-item stat-gray" wx:else>
+          <view class="stat-num">∞</view>
+          <view class="stat-label">🪑 空位</view>
+        </view>
       </view>
-      <!-- 进度条 -->
-      <view class="progress-bar-bg mt-20">
-        <view class="progress-bar-fill {{confirmedCount >= activity.maxPlayers ? 'bar-full' : 'bar-normal'}}" style="width: {{progressPercent}}%"></view>
+      <!-- 进度条（不限人数时隐藏） -->
+      <view class="progress-bar-bg mt-20" wx:if="{{!isUnlimited}}">
+        <view class="progress-bar-fill {{isFull ? 'bar-full' : 'bar-normal'}}" style="width: {{progressPercent}}%"></view>
       </view>
     </view>
 
@@ -244,16 +248,25 @@
       <view class="action-bar-content">
         <!-- 左侧：主操作按钮（报名）-->
         <view class="action-bar-left">
-          <!-- 未报名/待定/请假 -> 报名（高亮可点击） -->
-          <view wx:if="{{!myStatus || myStatus === 'pending' || myStatus === 'leave'}}" 
-                class="btn-primary {{confirmedCount >= activity.maxPlayers ? 'btn-disabled' : ''}}"
-                bindtap="{{confirmedCount >= activity.maxPlayers ? '' : 'onMainAction'}}" data-action="confirmed">
-            报名
-          </view>
-          <!-- 已报名 -> 报名（置灰不可点击） -->
+          <!-- 已报名 -> 置灰不可点 -->
           <view wx:if="{{myStatus === 'confirmed'}}" class="btn-primary btn-disabled">
             报名
           </view>
+          <!-- 未报名/待定/请假 -->
+          <block wx:elif="{{!myStatus || myStatus === 'pending' || myStatus === 'leave'}}">
+            <!-- 截止时间已到 -> 置灰 -->
+            <view wx:if="{{isDeadlinePassed}}" class="btn-primary btn-disabled">
+              报名截止
+            </view>
+            <!-- 满员（限制人数） -> 置灰 -->
+            <view wx:elif="{{isFull}}" class="btn-primary btn-disabled">
+              人数已满
+            </view>
+            <!-- 正常可报名 -->
+            <view wx:else class="btn-primary" bindtap="onMainAction" data-action="confirmed">
+              报名
+            </view>
+          </block>
         </view>
 
         <!-- 中间：功能操作按钮（待定/请假）-->
@@ -279,9 +292,13 @@
         </view>
       </view>
 
-      <!-- 满员提示 -->
-      <view class="full-tip" wx:if="{{confirmedCount >= activity.maxPlayers && myStatus !== 'confirmed'}}">
+      <!-- 满员提示（截止未到但已满员） -->
+      <view class="full-tip" wx:if="{{isFull && !isDeadlinePassed && myStatus !== 'confirmed'}}">
         ⚠️ 当前人数已满！可选择待定候补
+      </view>
+      <!-- 截止时间提示 -->
+      <view class="full-tip" wx:if="{{isDeadlinePassed && myStatus !== 'confirmed'}}">
+        🔒 报名已截止（{{deadlineText}}），待定/请假仍可操作
       </view>
     </view>
 
