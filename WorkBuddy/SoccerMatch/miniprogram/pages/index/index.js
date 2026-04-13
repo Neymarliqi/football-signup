@@ -53,8 +53,8 @@ Page({
       this.loadActivities(true, false) // 不强制刷新用户缓存
     } else {
       // 首次加载：先尝试本地缓存快速渲染
-      this.loadActivitiesFromCache() // 先用缓存渲染
-      this.loadActivities(true, false) // 同时拉最新数据
+      const hasCache = this.loadActivitiesFromCache() // true=有缓存骨架消失，false=无缓存骨架保持
+      this.loadActivities(true, false, !hasCache) // 无缓存时强制显示骨架
     }
 
     // 刷新管理员状态
@@ -123,14 +123,19 @@ Page({
   },
 
   // 从本地缓存快速渲染活动列表（冷启动秒开）
+  // 注意：只更新数据，不控制 loading 状态，让骨架屏保持到网络数据回来
   loadActivitiesFromCache() {
     try {
       const cached = wx.getStorageSync('activities_cache')
       if (cached && cached.data && cached.data.length > 0) {
+        // 有缓存时：骨架屏立即消失，替换为缓存数据
         this.setData({ activities: cached.data, loading: false })
+        return true
       }
+      // 无缓存时：保持 loading=true，骨架屏继续显示，直到网络数据回来
+      return false
     } catch (e) {
-      // 缓存读取失败，忽略
+      return false
     }
   },
 
@@ -177,11 +182,13 @@ Page({
   },
 
     // 加载活动列表 - 智能刷新策略
+  // @param {boolean} enableWatch - 是否启用数据库监听（默认 false）
   // @param {boolean} forceRefreshUsers - 是否强制刷新用户缓存（默认 false）
-  async loadActivities(enableWatch = false, forceRefreshUsers = false) {
-    // 如果已有缓存数据，不显示 loading（已由 loadActivitiesFromCache 秒渲染）
-    const hasCache = this.data.activities.length > 0
-    if (!hasCache) {
+  // @param {boolean} showLoading - 是否显示骨架屏/loading（默认 false，有缓存时为 false）
+  async loadActivities(enableWatch = false, forceRefreshUsers = false, showLoading = false) {
+    // 如果已有内存缓存数据，不显示 loading（已由 loadActivitiesFromCache 秒渲染）
+    const hasMemoryCache = this.data.activities.length > 0
+    if (!hasMemoryCache && showLoading) {
       this.setData({ loading: true })
     }
     try {
