@@ -153,8 +153,8 @@ Page({
     if (!avatarUrl) return
 
     wx.showLoading({ title: '上传中...' })
-    app.uploadAvatar(avatarUrl).then(cloudUrl => {
-      const userInfo = { ...this.data.userInfo, avatarUrl: cloudUrl }
+    app.uploadAvatar(avatarUrl).then(cloudPath => {
+      const userInfo = { ...this.data.userInfo, cloudPath }
       this.saveUserInfo(userInfo)
       this.closeAvatarSheet()
       wx.showToast({ title: '头像更新成功', icon: 'success' })
@@ -188,8 +188,8 @@ Page({
         const tempPath = res.tempFiles[0].tempFilePath
         wx.showLoading({ title: '上传中...' })
         try {
-          const avatarUrl = await app.uploadAvatar(tempPath)
-          const userInfo = { ...this.data.userInfo, avatarUrl }
+          const cloudPath = await app.uploadAvatar(tempPath)
+          const userInfo = { ...this.data.userInfo, cloudPath }
           this.saveUserInfo(userInfo)
           wx.hideLoading()
           wx.showToast({ title: '头像更新成功', icon: 'success' })
@@ -392,7 +392,7 @@ Page({
     const userData = {
       openid: openid,
       nickName: userInfo.nickName || '',
-      avatarUrl: userInfo.avatarUrl || '',
+      cloudPath: userInfo.cloudPath || '',
       positions: userInfo.positions || [],
       updatedAt: db.serverDate()
     }

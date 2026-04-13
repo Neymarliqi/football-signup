@@ -10,7 +10,7 @@
       >
         <image 
           class="avatar-img" 
-          src="{{tempAvatarUrl || userInfo.avatarUrl || placeholderAvatar}}" 
+          src="{{tempAvatarUrl || userInfo.displayAvatar || placeholderAvatar}}" 
           mode="aspectFill"
         ></image>
       </button>

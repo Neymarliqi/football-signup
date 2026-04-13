@@ -61,30 +61,22 @@ Page({
         return
       }
 
-      let finalAvatarUrl = userInfo.avatarUrl
-      let avatarBase64 = userInfo.avatarBase64 || ''
+      let cloudPath = userInfo.cloudPath || ''
 
-      // 2. 如果上传了新头像，压缩转 base64（不走云存储）
+      // 2. 如果上传了新头像，上传到云存储
       if (tempAvatarUrl && !tempAvatarUrl.startsWith('cloud://') && !tempAvatarUrl.startsWith('data:image')) {
         try {
-          const result = await app.uploadAvatar(tempAvatarUrl)
-          if (result.startsWith('data:image')) {
-            avatarBase64 = result
-            finalAvatarUrl = result
-          } else {
-            finalAvatarUrl = result
-          }
+          cloudPath = await app.uploadAvatar(tempAvatarUrl, openid)
         } catch (e) {
-          console.error('[edit-profile] 头像处理失败:', e)
+          console.error('[edit-profile] 头像上传失败:', e)
         }
       }
 
-      // 3. 构建更新后的用户信息
+      // 3. 构建更新后的用户信息（存 cloudPath，兼容字段保留）
       const updatedUserInfo = {
         ...userInfo,
         nickName: finalNickName.trim(),
-        avatarUrl: finalAvatarUrl,
-        avatarBase64,
+        cloudPath,
         openid
       }
 
@@ -97,8 +89,7 @@ Page({
         data: {
           openid: openid,
           nickName: updatedUserInfo.nickName,
-          avatarUrl: updatedUserInfo.avatarUrl,
-          avatarBase64: updatedUserInfo.avatarBase64,
+          cloudPath: cloudPath,
           positions: updatedUserInfo.positions || [],
           updatedAt: db.serverDate()
         },

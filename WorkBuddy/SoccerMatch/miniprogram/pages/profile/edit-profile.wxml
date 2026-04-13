@@ -17,7 +17,7 @@
       >
         <image 
           class="avatar-image" 
-          src="{{tempAvatarUrl || userInfo.avatarUrl || placeholderAvatar}}" 
+          src="{{tempAvatarUrl || userInfo.displayAvatar || placeholderAvatar}}" 
           mode="aspectFill"
         ></image>
         <view class="avatar-mask">

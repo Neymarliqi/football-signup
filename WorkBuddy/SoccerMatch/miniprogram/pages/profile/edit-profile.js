@@ -17,6 +17,8 @@ Page({
 
   loadUserInfo() {
     const userInfo = app.globalData.userInfo || wx.getStorageSync('userInfo') || {}
+    // 计算可显示的头像（支持 cloudPath / base64 / cloud:// 兼容）
+    userInfo.displayAvatar = app.getDisplayAvatar(userInfo)
     this.setData({
       userInfo,
       wechatUserInfo: userInfo,
@@ -96,39 +98,39 @@ Page({
     wx.showLoading({ title: '保存中...' })
 
     try {
-      let finalAvatarUrl = userInfo.avatarUrl
+      const openid = app.globalData.openid || wx.getStorageSync('openid')
+      if (!openid) {
+        wx.hideLoading()
+        wx.showToast({ title: '获取用户信息失败', icon: 'none' })
+        return
+      }
 
-      // 如果有新头像，通过统一方法上传到云存储
+      let cloudPath = userInfo.cloudPath || ''
+
+      // 如果有新头像，上传到云存储
       if (tempAvatarUrl) {
-        const openid = app.globalData.openid || wx.getStorageSync('openid')
-        if (!openid) {
-          wx.hideLoading()
-          wx.showToast({ title: '获取用户信息失败', icon: 'none' })
-          return
-        }
-        finalAvatarUrl = await app.uploadAvatar(tempAvatarUrl)
+        cloudPath = await app.uploadAvatar(tempAvatarUrl, openid) || cloudPath
       }
 
       // 更新用户信息
       const updatedUserInfo = {
         ...userInfo,
         nickName: tempNickName.trim(),
-        avatarUrl: finalAvatarUrl
+        cloudPath
       }
 
       // 保存到全局数据和本地存储
       app.globalData.userInfo = updatedUserInfo
       wx.setStorageSync('userInfo', updatedUserInfo)
 
-      // 同步到云数据库 - 使用 merge: true，不存在则创建，存在则只合并指定字段
-      const openid = app.globalData.openid || wx.getStorageSync('openid')
+      // 同步到云数据库
       if (openid) {
         try {
           await db.collection('users').doc(openid).set({
             data: {
               openid: openid,
               nickName: updatedUserInfo.nickName,
-              avatarUrl: updatedUserInfo.avatarUrl,
+              cloudPath: cloudPath,
               positions: updatedUserInfo.positions || [],
               updatedAt: db.serverDate()
             },

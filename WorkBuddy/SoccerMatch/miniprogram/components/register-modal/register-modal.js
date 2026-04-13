@@ -100,16 +100,16 @@ Component({
           wx.setStorageSync('openid', openid)
         }
 
-        // 2. 上传头像（统一通过 app.uploadAvatar）
-        const finalAvatarUrl = await app.uploadAvatar(tempAvatarUrl)
+        // 2. 上传头像到云存储，返回 cloudPath
+        const cloudPath = await app.uploadAvatar(tempAvatarUrl, openid)
 
-        // 3. 创建用户记录
-        await app.createUser(tempNickName.trim(), finalAvatarUrl)
+        // 3. 创建用户记录（存 cloudPath）
+        await app.createUser(tempNickName.trim(), cloudPath)
 
         wx.showToast({ title: '欢迎加入！', icon: 'success' })
 
         // 4. 通知父组件注册完成
-        this.triggerEvent('registered', { nickName: tempNickName.trim(), avatarUrl: finalAvatarUrl })
+        this.triggerEvent('registered', { nickName: tempNickName.trim(), cloudPath })
       } catch (e) {
         console.error('[register-modal] 注册失败', e)
         wx.showToast({ title: '注册失败，请重试', icon: 'error' })

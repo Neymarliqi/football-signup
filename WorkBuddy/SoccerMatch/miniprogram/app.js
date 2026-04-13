@@ -59,8 +59,9 @@ App({
             this.globalData.usersCache[openid] = {
               data: {
                 nickName: data.nickName,
-                avatarBase64: data.avatarBase64,
-                positions: data.positions,
+                cloudPath: data.cloudPath || '',
+                avatarBase64: data.avatarBase64 || '',
+                positions: data.positions || [],
                 openid
               },
               timestamp: now
@@ -180,8 +181,9 @@ App({
           // Storage 命中 → 回填内存缓存 + 返回结果
           result[id] = {
             nickName: storageData.nickName,
-            avatarBase64: storageData.avatarBase64,
-            positions: storageData.positions,
+            cloudPath: storageData.cloudPath || '',
+            avatarBase64: storageData.avatarBase64 || '',
+            positions: storageData.positions || [],
             openid: id,
             _fromStorage: true // 标记来源，便于调试
           }
@@ -253,6 +255,7 @@ App({
     try {
       wx.setStorageSync(`user_${openid}`, {
         nickName: userData.nickName || '',
+        cloudPath: userData.cloudPath || '',
         avatarBase64: userData.avatarBase64 || '',
         positions: userData.positions || [],
         cachedAt: Date.now()
@@ -339,18 +342,19 @@ App({
   },
 
   /**
-   * 处理头像：压缩并转为 base64（不依赖云存储）
+   * 处理头像：压缩后上传至云存储（v2.2.0 云存储方案）
    * @param {string} tempPath - 原始头像路径（chooseAvatar 返回的临时路径）
-   * @returns {Promise<string>} base64 字符串（data:image/jpeg;base64,xxx）
+   * @param {string} [openid] - 可选，默认取当前用户 openid
+   * @returns {Promise<string>} cloudPath（云存储路径，如 avatars/xxx.jpg）
    */
-  async uploadAvatar(tempPath) {
-    if (!tempPath) return this.globalData.defaultAvatar
+  async uploadAvatar(tempPath, openid) {
+    if (!tempPath) return ''
 
-    // 已经是 base64，直接返回
-    if (tempPath.startsWith('data:image')) return tempPath
-
-    // 已经是云存储路径，返回默认（兼容旧数据）
+    // 已经是 cloudPath，直接返回（兼容旧数据）
     if (tempPath.startsWith('cloud://')) return tempPath
+
+    // 已经是 base64，不走云存储（懒迁移：旧 base64 用户暂不迁移）
+    if (tempPath.startsWith('data:image')) return ''
 
     let filePath = tempPath
 
@@ -363,91 +367,94 @@ App({
         filePath = savedPath
       } catch (e) {
         console.error('[uploadAvatar] 保存临时文件失败', e)
-        return this.globalData.defaultAvatar
+        return ''
       }
     }
 
+    // 压缩图片
+    const compressedPath = await this._compressAvatar(filePath)
+    if (!compressedPath) return ''
+
+    // 上传到云存储
+    const uid = openid || this.globalData.openid || wx.getStorageSync('openid')
+    if (!uid) return ''
+
+    const cloudPath = `avatars/${uid}.jpg`
+
     try {
-      // 压缩图片到 100x100 后转 base64
-      const base64 = await this.compressImageToBase64(filePath, 100)
-      return base64
+      const uploadRes = await wx.cloud.uploadFile({
+        cloudPath,
+        filePath: compressedPath
+      })
+      // 上传成功后返回 cloudPath（不含 fileID 前缀，保持简洁）
+      return cloudPath
     } catch (e) {
-      console.error('[uploadAvatar] 图片处理失败', e)
-      return this.globalData.defaultAvatar
+      console.error('[uploadAvatar] 云存储上传失败', e)
+      return ''
     }
   },
 
   /**
-   * 压缩图片并转为 base64
+   * 压缩头像图片（内部方法，供 uploadAvatar 使用）
    * @param {string} filePath - 图片文件路径
-   * @param {number} maxSize - 压缩后的最大边长（像素）
-   * @returns {Promise<string>} base64 字符串（data:image/jpeg;base64,xxx）
+   * @returns {Promise<string>} 压缩后的临时文件路径
    */
-  compressImageToBase64(filePath, maxSize = 100) {
-    return new Promise((resolve, reject) => {
+  _compressAvatar(filePath) {
+    return new Promise((resolve) => {
       wx.compressImage({
         src: filePath,
         quality: 70,
-        compressedWidth: maxSize,
-        compressedHeight: maxSize,
-        success: (res) => {
-          const fs = wx.getFileSystemManager()
-          fs.readFile({
-            filePath: res.tempFilePath,
-            encoding: 'base64',
-            success: (readRes) => {
-              resolve('data:image/jpeg;base64,' + readRes.data)
-            },
-            fail: (e) => {
-              // compressImage 可能在某些基础库不支持 compressedWidth/Height
-              // 降级：直接读取原文件
-              fs.readFile({
-                filePath: filePath,
-                encoding: 'base64',
-                success: (readRes) => {
-                  resolve('data:image/jpeg;base64,' + readRes.data)
-                },
-                fail: reject
-              })
-            }
-          })
-        },
-        fail: () => {
-          // compressImage 失败，直接读原文件
-          const fs = wx.getFileSystemManager()
-          fs.readFile({
-            filePath: filePath,
-            encoding: 'base64',
-            success: (readRes) => {
-              resolve('data:image/jpeg;base64,' + readRes.data)
-            },
-            fail: reject
-          })
-        }
+        compressedWidth: 200,
+        compressedHeight: 200,
+        success: (res) => resolve(res.tempFilePath),
+        fail: () => resolve(filePath) // 降级：使用原文件
       })
     })
   },
 
   /**
-   * 获取用户可显示的头像URL（同步，优先 base64）
-   * 优先级：avatarBase64 > avatarUrl(cloud://转https) > 默认头像
-   * @param {Object} user - 用户信息对象（含 avatarBase64 和/或 avatarUrl）
+   * 根据 cloudPath 构造云存储公开访问 URL（同步，无需 getTempFileURL）
+   * 云存储权限设为"所有用户可读"时，可直接拼接 HTTP 地址使用
+   * @param {string} cloudPath - 云存储路径（ avatars/xxx.jpg）
+   * @returns {string} HTTPS 公开 URL
+   */
+  getCloudStorageUrl(cloudPath) {
+    if (!cloudPath) return ''
+    if (cloudPath.startsWith('https://')) return cloudPath
+    if (cloudPath.startsWith('data:image')) return cloudPath
+    if (!cloudPath.startsWith('avatars/')) return ''
+
+    // 从 globalData 取环境 ID（初始化时已设置）
+    const envId = 'cloud1-5gbn5i1p97239e9d'
+    // 云存储公开 URL 格式
+    return `https://${envId}.tcloudbaseapp.com/${cloudPath}`
+  },
+
+  /**
+   * 获取用户可显示的头像URL（同步）
+   * 优先级：cloudPath（云存储） > avatarBase64（旧数据兼容） > avatarUrl > 默认头像
+   * @param {Object} user - 用户信息对象
    * @returns {string} 可直接用于 <image src> 的URL
    */
   getDisplayAvatar(user) {
     if (!user) return this.globalData.defaultAvatar
 
-    // 优先用 base64（不走云存储，零权限问题）
+    // 优先：cloudPath（云存储方案，v2.2.0+）
+    if (user.cloudPath) {
+      const url = this.getCloudStorageUrl(user.cloudPath)
+      if (url) return url
+    }
+
+    // 兼容：旧 base64 数据（懒迁移，不主动迁移）
     if (user.avatarBase64) return user.avatarBase64
 
-    // 兼容旧的 cloud://（尝试从缓存取）
+    // 兼容：旧的 cloud://（从缓存取）
     if (user.avatarUrl) {
       if (user.avatarUrl.startsWith('data:image')) return user.avatarUrl
       if (user.avatarUrl.startsWith('https://')) return user.avatarUrl
       if (user.avatarUrl.startsWith('cloud://')) {
         const cached = this.globalData._fileUrlCache[user.avatarUrl]
         if (cached) return cached
-        // 缓存没有就返回默认头像（不再异步转换）
       }
     }
 
@@ -542,25 +549,20 @@ App({
   /**
    * 创建用户记录（新用户首次填写头像昵称后调用）
    * @param {string} nickName - 昵称
-   * @param {string} avatarUrl - 头像（base64 或 cloud:// 兼容）
+   * @param {string} cloudPath - 头像云存储路径（avatars/xxx.jpg），空字符串表示不上传头像
    * @param {string[]} positions - 位置偏好
    * @returns {Promise<Object>} 创建后的用户信息
    */
-  async createUser(nickName, avatarUrl, positions = []) {
+  async createUser(nickName, cloudPath, positions = []) {
     const openid = this.globalData.openid || wx.getStorageSync('openid')
     if (!openid) throw new Error('openid 不存在')
 
     const db = wx.cloud.database()
 
-    // 区分 base64 和旧的 cloud:// 路径
-    const avatarBase64 = avatarUrl && avatarUrl.startsWith('data:image') ? avatarUrl : ''
-    const finalAvatarUrl = avatarUrl // 保留原始值（兼容旧数据）
-
     const userInfo = {
       openid,
       nickName,
-      avatarUrl: finalAvatarUrl,
-      avatarBase64,
+      cloudPath: cloudPath || '',
       positions,
       createdAt: db.serverDate(),
       updatedAt: db.serverDate()
