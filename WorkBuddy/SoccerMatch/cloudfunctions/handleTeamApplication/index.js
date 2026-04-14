@@ -50,20 +50,20 @@ exports.main = async (event, context) => {
       }
     }
 
-    // 查找申请记录
+    // 查找 pending 状态的申请记录
+    console.log('[handleTeamApplication] 查询申请记录, teamId:', teamId, 'targetOpenid:', targetOpenid)
     const applyRes = await db.collection('team_applications')
-      .where({ teamId, openid: targetOpenid })
+      .where({ teamId, openid: targetOpenid, status: 'pending' })
       .get()
 
+    console.log('[handleTeamApplication] 申请查询结果:', applyRes.data)
+
     if (!applyRes.data || applyRes.data.length === 0) {
-      return { success: false, message: '没有找到该申请' }
+      console.log('[handleTeamApplication] 没有pending申请记录')
+      return { success: false, message: '没有待处理的申请' }
     }
 
     const apply = applyRes.data[0]
-
-    if (apply.status !== 'pending') {
-      return { success: false, message: '该申请已处理过' }
-    }
 
     const now = db.serverDate()
 
