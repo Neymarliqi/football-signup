@@ -530,39 +530,6 @@ Page({
     }
   },
 
-  // ========== 审批申请 ==========
-  async handleApplication(e) {
-    const { openid, action } = e.currentTarget.dataset
-    const { teamId } = this.data
-    const label = action === 'approve' ? '通过' : '拒绝'
-
-    wx.showModal({
-      title: `确认${label}`,
-      content: action === 'approve' ? '确定让该用户加入球队？' : '确定拒绝该申请？',
-      success: async (res) => {
-        if (!res.confirm) return
-        wx.showLoading({ title: '处理中...' })
-        try {
-          const result = await wx.cloud.callFunction({
-            name: 'handleTeamApplication',
-            data: { teamId, targetOpenid: openid, action }
-          })
-          wx.hideLoading()
-          if (result.result.success) {
-            wx.showToast({ title: action === 'approve' ? '已通过' : '已拒绝', icon: 'success' })
-            this.loadApplications()
-            this.loadMembers()
-          } else {
-            wx.showToast({ title: result.result.message || '操作失败', icon: 'none' })
-          }
-        } catch (e) {
-          wx.hideLoading()
-          wx.showToast({ title: '操作失败', icon: 'none' })
-        }
-      }
-    })
-  },
-
   // ========== 分享邀请 ==========
   shareTeam() {
     const { team } = this.data
