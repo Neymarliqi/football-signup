@@ -377,6 +377,15 @@ Page({
     const { teamId } = this.data
     const targetOpenid = e.currentTarget.dataset.openid
     const action = e.currentTarget.dataset.action
+
+    console.log('[handleApplication] 触发, teamId:', teamId, 'targetOpenid:', targetOpenid, 'action:', action)
+
+    if (!teamId || !targetOpenid || !action) {
+      wx.showToast({ title: '参数错误', icon: 'none' })
+      console.error('[handleApplication] 参数缺失:', { teamId, targetOpenid, action })
+      return
+    }
+
     const confirmText = action === 'approve' ? '通过' : '拒绝'
     wx.showModal({
       title: `确认${confirmText}`,
@@ -385,11 +394,13 @@ Page({
         if (!res.confirm) return
         wx.showLoading({ title: '处理中...' })
         try {
+          console.log('[handleApplication] 调用云函数, data:', { teamId, targetOpenid, action })
           const result = await wx.cloud.callFunction({
             name: 'handleTeamApplication',
             data: { teamId, targetOpenid, action }
           })
           wx.hideLoading()
+          console.log('[handleApplication] 云函数返回:', result.result)
           if (result.result.success) {
             wx.showToast({ title: action === 'approve' ? '已通过' : '已拒绝', icon: 'success' })
             this.loadApplications()
@@ -401,6 +412,7 @@ Page({
           }
         } catch (e) {
           wx.hideLoading()
+          console.error('[handleApplication] 调用异常:', e)
           wx.showToast({ title: '操作失败', icon: 'none' })
         }
       }
