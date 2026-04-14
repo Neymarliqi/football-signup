@@ -399,8 +399,10 @@ Page({
           }
           // ========== 首次触发处理结束 ==========
 
-          // 获取增量变更，而不是整个 docs 数组
-          const changes = snapshot.docChanges()
+          // 获取增量变更（新版本 snapshot.docChanges 是数组，旧版本是方法）
+          const changes = typeof snapshot.docChanges === 'function' 
+            ? snapshot.docChanges() 
+            : snapshot.docChanges || []
           console.log('[index] watcher docChanges:', changes?.length, changes)
           if (!changes || changes.length === 0) return
 
