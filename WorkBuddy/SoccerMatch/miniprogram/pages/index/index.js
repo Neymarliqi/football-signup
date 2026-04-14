@@ -92,7 +92,7 @@ Page({
   },
 
   // 后台静默刷新用户信息（不显示 loading，不影响页面交互）
-  // 注意：forceRefresh=true 确保新注册用户的信息能及时加载
+  // 注意：forceRefresh=true 确保新注册用户的信息能及时加载到缓存
   async silentRefreshUsers() {
     try {
       const allUserIds = new Set()
@@ -105,11 +105,8 @@ Page({
       })
 
       if (allUserIds.size > 0) {
-        // forceRefresh=true 确保新注册用户的信息能及时加载到缓存
-        const latestUsers = await app.fetchUsersWithCache(Array.from(allUserIds), true)
-        const openid = app.globalData.openid || wx.getStorageSync('openid')
-        const formattedActivities = await Promise.all(this.data.activities.map(act => this.formatActivity(act, openid, latestUsers)))
-        this.setData({ activities: formattedActivities })
+        // 只刷新缓存，不重新格式化（首页不再显示用户信息）
+        await app.fetchUsersWithCache(Array.from(allUserIds), true)
       }
     } catch (e) {
       // 静默刷新失败不影响用户，忽略
@@ -290,31 +287,11 @@ Page({
       this._cachedVisibleTeamIds = visibleTeamIds
       // ========== 球队权限判断结束 ==========
 
-      // 收集所有需要查询的用户ID
-      const allUserIds = new Set()
-      activities.forEach(act => {
-        const regs = act.registrations || []
-        regs.forEach(r => {
-          if (r.openid) allUserIds.add(r.openid)
-        })
-      })
-
-      // 批量获取最新用户信息（带缓存）
-      let latestUsers = {}
-      if (allUserIds.size > 0) {
-        try {
-          // 使用全局缓存系统（forceRefresh 参数在首次加载时使用）
-          latestUsers = await app.fetchUsersWithCache(Array.from(allUserIds), forceRefreshUsers || false)
-        } catch (e) {
-          // 获取用户信息失败
-        }
-      }
-
       console.log('[index] 开始格式化, activities:', activities.length)
       const formattedActivities = await Promise.all(activities.map(act => {
         try {
           // 传入 visibleTeamIds 用于判断用户是否有权限查看该活动
-          const result = this.formatActivity(act, openid, latestUsers, visibleTeamIds)
+          const result = this.formatActivity(act, openid, {}, visibleTeamIds)
           return result
         } catch (e) {
           console.error('[index] formatActivity 异常:', e, 'act:', act)
@@ -406,29 +383,6 @@ Page({
           // 权限只在首次加载时查询，实时更新复用缓存
           const currentVisibleTeamIds = this._cachedVisibleTeamIds || new Set()
 
-          // 获取需要更新的活动 ID 集合
-          const changedIds = new Set(changes.map(c => c.docId))
-          
-          // 收集所有需要查询的用户ID
-          const allUserIds = new Set()
-          changes.forEach(change => {
-            // 只有 doc 存在时才收集用户ID
-            if (change.doc) {
-              const regs = change.doc.registrations || []
-              regs.forEach(r => {
-                if (r.openid) allUserIds.add(r.openid)
-              })
-            }
-          })
-
-          let newLatestUsers = {}
-          if (allUserIds.size > 0) {
-            try {
-              newLatestUsers = await app.fetchUsersWithCache(Array.from(allUserIds), true)
-            } catch (e) {
-            }
-          }
-
           // 格式化变更的活动
           const formatChange = async (change) => {
             const act = change.doc
@@ -439,7 +393,7 @@ Page({
               return { _id: change.docId, _deleted: true }
             }
             
-            const formatted = await this.formatActivity(act, currentOpenid, newLatestUsers, currentVisibleTeamIds)
+            const formatted = await this.formatActivity(act, currentOpenid, {}, currentVisibleTeamIds)
             return formatted
           }
 
