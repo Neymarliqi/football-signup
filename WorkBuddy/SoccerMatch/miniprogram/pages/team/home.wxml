@@ -150,7 +150,7 @@
   <!-- 活动/成员Tab：发布 + 邀请（仅创建者/管理员） -->
   <view wx:elif="{{(activeTab === '活动' || activeTab === '成员') && (myRole === 'creator' || myRole === 'admin')}}" class="fixed-bottom-bar">
     <view class="bottom-bar-btn btn-publish" bindtap="publishActivity">发布活动</view>
-    <view class="bottom-bar-btn btn-share" bindtap="shareTeam">邀请成员</view>
+    <button class="bottom-bar-btn btn-share" open-type="share">邀请成员</button>
   </view>
 
 </view>

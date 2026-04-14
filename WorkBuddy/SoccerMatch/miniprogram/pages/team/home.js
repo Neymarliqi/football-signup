@@ -441,24 +441,20 @@ Page({
 
   // ========== 分享邀请 ==========
   shareTeam() {
-    const { teamId, team } = this.data
-    wx.showModal({
-      title: '邀请加入',
-      content: `分享「${team.name}」给朋友，他们可以扫码或点击链接加入球队`,
-      confirmText: '分享',
-      success: async (res) => {
-        if (res.confirm) {
-          try {
-            // 生成分享信息
-            wx.showShareMenu({
-              withShareTicket: true,
-              menus: ['shareAppMessage', 'shareTimeline']
-            })
-          } catch (e) {}
-          // 实际分享由微信自动处理
-          this.setData({ shareReady: true })
-        }
-      }
+    const { team } = this.data
+    // 微信小程序只能通过右上角"..."菜单分享
+    // 先开启分享菜单，然后提示用户
+    try {
+      wx.showShareMenu({
+        withShareTicket: true,
+        menus: ['shareAppMessage', 'shareTimeline']
+      })
+    } catch (e) {}
+    // 提示用户通过右上角分享
+    wx.showToast({
+      title: '点击右上角"···"分享',
+      icon: 'none',
+      duration: 2000
     })
   },
 

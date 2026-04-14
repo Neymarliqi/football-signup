@@ -396,12 +396,21 @@
   border-radius: 50rpx;
   font-size: 28rpx;
   font-weight: bold;
+  /* 去掉 button 默认样式 */
+  border: none;
+  outline: none;
+  line-height: 1;
+}
+
+.bottom-bar-btn::after {
+  border: none;
 }
 
 .btn-share {
   background: #fff;
   color: #2ecc71;
   border: 2rpx solid #2ecc71;
+  box-sizing: border-box;
 }
 
 .btn-publish {
