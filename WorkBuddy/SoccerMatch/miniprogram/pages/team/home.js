@@ -338,6 +338,70 @@ Page({
     })
   },
 
+  // ========== 申请审批 ==========
+  async loadApplications() {
+    const { teamId } = this.data
+    this.setData({ loadingApplications: true, applications: [] })
+    try {
+      const res = await wx.cloud.callFunction({
+        name: 'getTeamApplications',
+        data: { teamId }
+      })
+      if (res.result && res.result.applications) {
+        const openids = res.result.applications.map(a => a.openid)
+        const usersMap = await app.fetchUsersWithCache(openids)
+        const applications = res.result.applications.map(a => {
+          const user = usersMap[a.openid] || {}
+          return {
+            ...a,
+            nickName: user.nickName || '未知用户',
+            displayAvatar: app.getDisplayAvatar(user),
+            appliedAtText: formatTime(a.appliedAt)
+          }
+        })
+        this.setData({ applications })
+      }
+    } catch (e) {
+      console.error('[team] loadApplications error:', e)
+    } finally {
+      this.setData({ loadingApplications: false })
+    }
+  },
+
+  async handleApplication(e) {
+    const { teamId } = this.data
+    const targetOpenid = e.currentTarget.dataset.openid
+    const action = e.currentTarget.dataset.action
+    const confirmText = action === 'approve' ? '通过' : '拒绝'
+    wx.showModal({
+      title: `确认${confirmText}`,
+      content: action === 'approve' ? '确定通过该申请？用户将直接加入球队' : '确定拒绝该申请？用户可以重新申请',
+      success: async (res) => {
+        if (!res.confirm) return
+        wx.showLoading({ title: '处理中...' })
+        try {
+          const result = await wx.cloud.callFunction({
+            name: 'handleTeamApplication',
+            data: { teamId, targetOpenid, action }
+          })
+          wx.hideLoading()
+          if (result.result.success) {
+            wx.showToast({ title: action === 'approve' ? '已通过' : '已拒绝', icon: 'success' })
+            this.loadApplications()
+            if (action === 'approve') {
+              this.loadMembers()
+            }
+          } else {
+            wx.showToast({ title: result.result.message || '操作失败', icon: 'none' })
+          }
+        } catch (e) {
+          wx.hideLoading()
+          wx.showToast({ title: '操作失败', icon: 'none' })
+        }
+      }
+    })
+  },
+
   // ========== 成员操作 ==========
   async toggleAdmin(e) {
     const { teamId } = this.data
