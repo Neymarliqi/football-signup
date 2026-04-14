@@ -22,6 +22,15 @@ Page({
     loadingApplications: false
   },
 
+  // 缓存加载状态（避免重复加载）
+  _cacheTimestamps: {
+    members: 0,
+    activities: 0,
+    casuals: 0,
+    applications: 0
+  },
+  _cacheValidDuration: 30000, // 30秒缓存有效期
+
   onLoad(options) {
     const teamId = options.teamId
     if (!teamId) {
@@ -76,7 +85,11 @@ Page({
   },
 
   // ========== 成员列表 ==========
-  async loadMembers() {
+  async loadMembers(force = false) {
+    // 缓存检查：30秒内不重复加载
+    if (!force && Date.now() - this._cacheTimestamps.members < this._cacheValidDuration && this.data.members.length > 0) {
+      return
+    }
     this.setData({ loadingMembers: true })
     try {
       const res = await db.collection('team_members')
@@ -106,6 +119,7 @@ Page({
       })
 
       this.setData({ members, loadingMembers: false })
+      this._cacheTimestamps.members = Date.now()
     } catch (e) {
       console.error('loadMembers error', e)
       this.setData({ loadingMembers: false })
@@ -113,7 +127,11 @@ Page({
   },
 
   // ========== 活动列表 ==========
-  async loadActivities() {
+  async loadActivities(force = false) {
+    // 缓存检查：30秒内不重复加载
+    if (!force && Date.now() - this._cacheTimestamps.activities < this._cacheValidDuration && this.data.activities.length > 0) {
+      return
+    }
     this.setData({ loadingActivities: true })
     try {
       const res = await db.collection('activities')
@@ -151,6 +169,7 @@ Page({
       })
 
       this.setData({ activities, loadingActivities: false })
+      this._cacheTimestamps.activities = Date.now()
     } catch (e) {
       console.error('loadActivities error', e)
       this.setData({ loadingActivities: false })
@@ -158,7 +177,11 @@ Page({
   },
 
   // ========== 散客列表 ==========
-  async loadCasuals() {
+  async loadCasuals(force = false) {
+    // 缓存检查：30秒内不重复加载
+    if (!force && Date.now() - this._cacheTimestamps.casuals < this._cacheValidDuration && this.data.casuals.length > 0) {
+      return
+    }
     this.setData({ loadingCasuals: true })
     try {
       const res = await db.collection('team_casuals')
@@ -179,6 +202,7 @@ Page({
       })
 
       this.setData({ casuals, loadingCasuals: false })
+      this._cacheTimestamps.casuals = Date.now()
     } catch (e) {
       console.error('loadCasuals error', e)
       this.setData({ loadingCasuals: false })
@@ -335,7 +359,11 @@ Page({
   },
 
   // ========== 申请列表 ==========
-  async loadApplications() {
+  async loadApplications(force = false) {
+    // 缓存检查：30秒内不重复加载
+    if (!force && Date.now() - this._cacheTimestamps.applications < this._cacheValidDuration && this.data.applications.length > 0) {
+      return
+    }
     this.setData({ loadingApplications: true })
     try {
       const res = await db.collection('team_applications')
@@ -357,6 +385,7 @@ Page({
       })
 
       this.setData({ applications, loadingApplications: false })
+      this._cacheTimestamps.applications = Date.now()
     } catch (e) {
       console.error('loadApplications error', e)
       this.setData({ loadingApplications: false })

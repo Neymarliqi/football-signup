@@ -312,20 +312,12 @@ Page({
     const pendingPlayers = pending.slice(0, MAX_DISPLAY).map(processPlayer)
     const leavePlayers = leave.slice(0, MAX_DISPLAY).map(processPlayer)
 
-    // ========== 球队信息处理 ==========
-    let teamLogo = ''
+    // ========== 球队信息处理（异步，不阻塞页面渲染）==========
     let isTeamActivity = false
     if (act.teamId) {
       isTeamActivity = true
-      // 查询球队 Logo
-      try {
-        const teamRes = await db.collection('teams').doc(act.teamId).get()
-        if (teamRes.data && teamRes.data.logoPath) {
-          teamLogo = teamRes.data.logoPath
-        }
-      } catch (e) {
-        // 查询失败不影响主流程
-      }
+      // 异步查询球队 Logo，不等待完成
+      this._loadTeamLogoAsync(act.teamId)
     }
     // ========== 球队信息处理结束 ==========
 
@@ -829,6 +821,21 @@ Page({
       wx.hideLoading()
       console.error('删除活动失败', e)
       wx.showToast({ title: '删除失败', icon: 'none' })
+    }
+  },
+
+  // 异步加载球队 Logo（不阻塞页面渲染）
+  async _loadTeamLogoAsync(teamId) {
+    if (!teamId) return
+    try {
+      const teamRes = await db.collection('teams').doc(teamId).get()
+      if (teamRes.data && teamRes.data.logoPath) {
+        this.setData({
+          'activity.teamLogo': teamRes.data.logoPath
+        })
+      }
+    } catch (e) {
+      // 查询失败不影响主流程
     }
   },
 

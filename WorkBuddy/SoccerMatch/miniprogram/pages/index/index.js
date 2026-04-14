@@ -247,49 +247,47 @@ Page({
       })
       console.log('[index] 活动统计: 公开=', publicActivities, '球队=', teamIds.size, 'openid=', openid)
 
-      // 查询用户所属的球队（作为成员）
-      let myTeamIds = new Set()
-      if (openid && teamIds.size > 0) {
-        try {
-          const teamMembersRes = await db.collection('team_members')
-            .where({
-              openid: openid,
-              teamId: db.command.in(Array.from(teamIds))
-            })
-            .get()
-          console.log('[index] 球队成员查询结果:', teamMembersRes.data.length, teamMembersRes.data.map(m => m.teamId))
-          teamMembersRes.data.forEach(member => {
-            myTeamIds.add(member.teamId)
+      // 并行查询球队成员和散客记录
+      const visibleTeamIdsPromise = openid && teamIds.size > 0
+        ? Promise.all([
+            db.collection('team_members')
+              .where({ openid: openid, teamId: db.command.in(Array.from(teamIds)) })
+              .get(),
+            db.collection('team_casuals')
+              .where({ openid: openid, teamId: db.command.in(Array.from(teamIds)) })
+              .get()
+          ]).then(([membersRes, casualsRes]) => {
+            const myTeamIds = new Set(membersRes.data.map(m => m.teamId))
+            const casualTeamIds = new Set(casualsRes.data.map(c => c.teamId))
+            return new Set([...myTeamIds, ...casualTeamIds])
+          }).catch(e => {
+            console.error('[index] 球队权限查询失败', e)
+            return new Set()
           })
-        } catch (e) {
-          console.error('[index] 查询球队成员失败', e)
-        }
-      } else {
-        console.log('[index] 跳过球队成员查询: openid=', openid, 'teamIds.size=', teamIds.size)
+        : Promise.resolve(new Set())
+
+      // 收集所有需要查询的用户ID（提前执行，不等待权限查询）
+      const allUserIds = new Set()
+      activities.forEach(act => {
+        const regs = act.registrations || []
+        regs.forEach(r => {
+          if (r.openid) allUserIds.add(r.openid)
+        })
+      })
+
+      // 批量获取最新用户信息（带缓存）
+      let latestUsers = {}
+      if (allUserIds.size > 0) {
+        try {
+          latestUsers = await app.fetchUsersWithCache(Array.from(allUserIds), forceRefreshUsers || false)
+        } catch (e) {}
       }
 
-      // 查询用户作为散客报名的球队
-      let casualTeamIds = new Set()
-      if (openid && teamIds.size > 0) {
-        try {
-          const casualsRes = await db.collection('team_casuals')
-            .where({
-              openid: openid,
-              teamId: db.command.in(Array.from(teamIds))
-            })
-            .get()
-          console.log('[index] 散客查询结果:', casualsRes.data.length, casualsRes.data.map(c => c.teamId))
-          casualsRes.data.forEach(casual => {
-            casualTeamIds.add(casual.teamId)
-          })
-        } catch (e) {
-          console.error('[index] 查询散客记录失败', e)
-        }
-      }
-
-      // 合并：用户有权查看的 teamId 集合
-      const visibleTeamIds = new Set([...myTeamIds, ...casualTeamIds])
+      // 等待权限查询完成
+      const visibleTeamIds = await visibleTeamIdsPromise
       console.log('[index] 最终可见球队:', Array.from(visibleTeamIds))
+      // 缓存 visibleTeamIds 供 watcher 使用
+      this._cachedVisibleTeamIds = visibleTeamIds
       // ========== 球队权限判断结束 ==========
 
       // 收集所有需要查询的用户ID
@@ -323,26 +321,21 @@ Page({
           return null
         }
       }))
-      // 过滤掉 null（无权限查看的球队活动返回 null）
-      const validActivities = formattedActivities.filter(a => a !== null)
-      console.log('[index] 格式化完成, 有效数据:', validActivities.length)
-
-      // 根据筛选条件三次过滤
-      // 1. 首先根据筛选标签过滤（状态）
-      // 2. 全部标签不再过滤状态（显示所有可见活动）
-      let filteredActivities = validActivities
-      if (filter === 'upcoming') {
-        // 未开始：只显示 effectiveStatus 为 open 的活动
-        filteredActivities = validActivities.filter(item => item.effectiveStatus === 'open')
-      } else if (filter === 'ongoing') {
-        // 进行中：只显示 effectiveStatus 为 ongoing 的活动
-        filteredActivities = validActivities.filter(item => item.effectiveStatus === 'ongoing')
-      } else if (filter === 'finished') {
-        // 已结束：显示 effectiveStatus 为 finished 或 cancelled 的活动
-        filteredActivities = validActivities.filter(item =>
-          item.effectiveStatus === 'finished' || item.effectiveStatus === 'cancelled'
-        )
-      }
+      // 过滤掉 null（无权限查看的球队活动返回 null）并根据筛选条件一次遍历
+      const filteredActivities = validActivities.filter(item => {
+        if (!item) return false
+        // 根据筛选条件过滤
+        switch (filter) {
+          case 'upcoming':
+            return item.effectiveStatus === 'open'
+          case 'ongoing':
+            return item.effectiveStatus === 'ongoing'
+          case 'finished':
+            return item.effectiveStatus === 'finished' || item.effectiveStatus === 'cancelled'
+          default:
+            return true
+        }
+      })
       console.log('[index] 筛选后数据:', filteredActivities.length, 'filter:', filter)
 
       // 更新活动列表（查询成功就更新，不管是否为空）
@@ -409,26 +402,9 @@ Page({
           // 从当前页面的 activities 中获取 openid（避免闭包 stale 问题）
           const currentOpenid = app.globalData.openid || wx.getStorageSync('openid')
 
-          // ========== 重新查询可见球队权限 ==========
-          let currentVisibleTeamIds = visibleTeamIds
-          if (currentOpenid) {
-            try {
-              const teamMembersRes = await db.collection('team_members')
-                .where({ openid: currentOpenid })
-                .get()
-              const myTeamIds = new Set(teamMembersRes.data.map(m => m.teamId))
-
-              const casualsRes = await db.collection('team_casuals')
-                .where({ openid: currentOpenid })
-                .get()
-              const casualTeamIds = new Set(casualsRes.data.map(c => c.teamId))
-
-              currentVisibleTeamIds = new Set([...myTeamIds, ...casualTeamIds])
-            } catch (e) {
-              console.error('[index] watcher 权限查询失败', e)
-            }
-          }
-          // ========== 权限查询结束 ==========
+          // 使用缓存的 visibleTeamIds，简化 watcher 逻辑
+          // 权限只在首次加载时查询，实时更新复用缓存
+          const currentVisibleTeamIds = this._cachedVisibleTeamIds || new Set()
 
           // 获取需要更新的活动 ID 集合
           const changedIds = new Set(changes.map(c => c.docId))
