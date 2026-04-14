@@ -111,6 +111,56 @@
   color: rgba(255,255,255,0.8);
 }
 
+/* 非成员状态栏 */
+.non-member-bar {
+  padding: 24rpx 32rpx;
+  background: #f8f8f8;
+  border-bottom: 1rpx solid #eee;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.pending-status {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+  padding: 20rpx 32rpx;
+  background: #fff3cd;
+  border-radius: 40rpx;
+  border: 1rpx solid #ffeeba;
+}
+
+.pending-icon {
+  font-size: 32rpx;
+}
+
+.pending-text {
+  font-size: 28rpx;
+  color: #856404;
+  font-weight: 500;
+}
+
+.apply-status {
+  display: flex;
+  align-items: center;
+  gap: 24rpx;
+}
+
+.apply-text {
+  font-size: 28rpx;
+  color: #666;
+}
+
+.btn-apply {
+  padding: 16rpx 40rpx;
+  background: linear-gradient(135deg, #2ecc71, #27ae60);
+  color: #fff;
+  border-radius: 40rpx;
+  font-size: 28rpx;
+  font-weight: 500;
+}
+
 /* Tab */
 .team-tabs {
   display: flex;
@@ -259,16 +309,27 @@
 
 .member-actions {
   display: flex;
-  gap: 16rpx;
+  gap: 12rpx;
+  align-items: center;
 }
 
-.action-text {
-  font-size: 24rpx;
-  color: #2ecc71;
+.action-btn {
+  padding: 10rpx 16rpx;
+  border-radius: 30rpx;
+  font-size: 22rpx;
+  font-weight: 500;
 }
 
-.action-text.danger {
+.action-admin {
+  background: #e8f8f0;
+  color: #27ae60;
+  border: 1rpx solid #27ae60;
+}
+
+.action-remove {
+  background: #fdf2f2;
   color: #e74c3c;
+  border: 1rpx solid #e74c3c;
 }
 
 /* 活动卡片 */

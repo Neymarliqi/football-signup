@@ -33,6 +33,18 @@
           bindtap="switchTab" data-tab="{{item}}">{{item}}</view>
   </view>
 
+  <!-- ====== 非成员状态栏 ====== -->
+  <view wx:if="{{myRole === null}}" class="non-member-bar">
+    <view wx:if="{{hasPendingApplication}}" class="pending-status">
+      <text class="pending-icon">⏳</text>
+      <text class="pending-text">已申请，等待审批</text>
+    </view>
+    <view wx:else class="apply-status">
+      <text class="apply-text">您还不是球队成员</text>
+      <view class="btn-apply" bindtap="joinTeam">申请加入</view>
+    </view>
+  </view>
+
   <!-- ====== 成员 Tab ====== -->
   <view wx:if="{{activeTab === '成员'}}" class="tab-content">
     <view wx:if="{{loadingMembers}}" class="empty-tip">加载中...</view>
@@ -51,11 +63,14 @@
               <text class="member-role {{item.roleClass}}">{{item.roleText}}</text>
             </view>
           </view>
-          <view wx:if="{{myRole === 'creator' && item.openid !== myOpenid}}" class="member-actions">
-            <text wx:if="{{item.role !== 'creator'}}" class="action-text" bindtap="toggleAdmin" data-openid="{{item.openid}}" data-current="{{item.role}}">
-              {{item.role === 'admin' ? '取消管理员' : '设为管理员'}}
-            </text>
-            <text wx:if="{{item.role !== 'creator'}}" class="action-text danger" bindtap="removeMember" data-openid="{{item.openid}}">移除</text>
+          <view wx:if="{{(myRole === 'creator' || myRole === 'admin') && item.openid !== myOpenid}}" class="member-actions">
+            <view wx:if="{{myRole === 'creator' && item.role !== 'creator' && item.role !== 'admin'}}" class="action-btn action-admin" bindtap="toggleAdmin" data-openid="{{item.openid}}">
+              设为管理员
+            </view>
+            <view wx:if="{{myRole === 'creator' && item.role === 'admin'}}" class="action-btn action-admin" bindtap="toggleAdmin" data-openid="{{item.openid}}">
+              取消管理员
+            </view>
+            <view wx:if="{{item.role !== 'creator'}}" class="action-btn action-remove" bindtap="removeMember" data-openid="{{item.openid}}">移除</view>
           </view>
         </view>
       </view>

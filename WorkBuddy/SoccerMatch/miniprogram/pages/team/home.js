@@ -19,7 +19,8 @@ Page({
     loadingMembers: false,
     loadingActivities: false,
     loadingCasuals: false,
-    loadingApplications: false
+    loadingApplications: false,
+    hasPendingApplication: false // 非成员：是否有待审批的申请
   },
 
   // 缓存加载状态（避免重复加载）
@@ -43,6 +44,32 @@ Page({
     this.loadActivities()
   },
 
+  onShow() {
+    // 每次显示页面时检查申请状态（非成员时）
+    if (this.data.myRole === null && this.data.teamId) {
+      this.checkPendingApplication()
+    }
+  },
+
+  // ========== 检查是否有待审批的申请 ==========
+  async checkPendingApplication() {
+    const openid = app.globalData.openid || wx.getStorageSync('openid')
+    if (!openid) return
+
+    try {
+      const res = await db.collection('team_applications')
+        .where({ teamId: this.data.teamId, openid, status: 'pending' })
+        .get()
+
+      const hasPending = res.data && res.data.length > 0
+      if (this.data.hasPendingApplication !== hasPending) {
+        this.setData({ hasPendingApplication: hasPending })
+      }
+    } catch (e) {
+      console.error('checkPendingApplication error', e)
+    }
+  },
+
   async loadTeamInfo() {
     const openid = app.globalData.openid || wx.getStorageSync('openid')
     this.setData({ myOpenid: openid })
@@ -57,9 +84,10 @@ Page({
         const team = allTeams.find(t => t._id === this.data.teamId)
 
         if (team) {
+          // 已是成员
           const displayLogo = team.logoPath ? app.getDisplayAvatar({ cloudPath: team.logoPath }) : ''
           const displayCover = team.coverPath ? app.getDisplayAvatar({ cloudPath: team.coverPath }) : ''
-          this.setData({ team, myRole: team.myRole, displayLogo, displayCover })
+          this.setData({ team, myRole: team.myRole, displayLogo, displayCover, hasPendingApplication: false })
         } else {
           // 非成员，从云端直接拉取球队信息
           const cloudTeam = await db.collection('teams').doc(this.data.teamId).get()
@@ -67,11 +95,41 @@ Page({
             const displayLogo = cloudTeam.data.logoPath ? app.getDisplayAvatar({ cloudPath: cloudTeam.data.logoPath }) : ''
             const displayCover = cloudTeam.data.coverPath ? app.getDisplayAvatar({ cloudPath: cloudTeam.data.coverPath }) : ''
             this.setData({ team: cloudTeam.data, myRole: null, displayLogo, displayCover })
+            // 检查是否有待审批的申请
+            this.checkPendingApplication()
+            // 如果是 qrcode 模式，自动加入
+            if (cloudTeam.data.joinMethod === 'qrcode') {
+              this.autoJoinTeam()
+            }
           }
         }
       }
     } catch (e) {
       console.error('loadTeamInfo error', e)
+    }
+  },
+
+  // ========== 自动加入球队（qrcode 模式）==========
+  async autoJoinTeam() {
+    const { teamId, team } = this.data
+    if (!teamId || !team) return
+
+    wx.showLoading({ title: '加入中...' })
+    try {
+      const res = await wx.cloud.callFunction({
+        name: 'joinTeam',
+        data: { teamId }
+      })
+      wx.hideLoading()
+      if (res.result.success && res.result.type === 'direct') {
+        wx.showToast({ title: '加入成功', icon: 'success' })
+        // 重新加载球队信息
+        this.loadTeamInfo()
+        this.loadMembers()
+      }
+    } catch (e) {
+      wx.hideLoading()
+      console.error('autoJoinTeam error', e)
     }
   },
 
@@ -291,7 +349,7 @@ Page({
       })
       if (res.result.success) {
         wx.showToast({ title: res.result.message, icon: 'success' })
-        this.loadMembers()
+        this.loadMembers(true) // 强制刷新
       } else {
         wx.showToast({ title: res.result.message, icon: 'none' })
       }
@@ -315,7 +373,7 @@ Page({
           })
           if (result.result.success) {
             wx.showToast({ title: '已移除', icon: 'success' })
-            this.loadMembers()
+            this.loadMembers(true) // 强制刷新
           } else {
             wx.showToast({ title: result.result.message, icon: 'none' })
           }
@@ -359,9 +417,11 @@ Page({
         if (res.result.type === 'direct') {
           wx.showToast({ title: '加入成功', icon: 'success' })
           this.loadTeamInfo()
+          this.loadMembers()
         } else {
+          // 申请模式：更新申请状态
           wx.showToast({ title: '申请已提交，请等待审批', icon: 'success' })
-          this.loadTeamInfo()
+          this.setData({ hasPendingApplication: true })
         }
       } else {
         wx.showToast({ title: res.result.message, icon: 'none' })

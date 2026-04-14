@@ -37,15 +37,14 @@ exports.main = async (event, context) => {
     }
     const myRole = myMemberRes.data[0].role
 
-    // 仅创建者可操作
-    if (myRole !== 'creator') {
-      return { success: false, error: 'NO_PERMISSION', message: '仅球队创建者可操作成员' }
-    }
-
     const now = db.serverDate()
 
     // ========== setAdmin：设置/取消管理员 ==========
+    // 仅创建者可操作
     if (action === 'setAdmin') {
+      if (myRole !== 'creator') {
+        return { success: false, error: 'NO_PERMISSION', message: '仅创建者可设置管理员' }
+      }
       if (!targetOpenid) {
         return { success: false, error: 'TARGET_REQUIRED', message: '目标用户openid不能为空' }
       }
@@ -71,7 +70,11 @@ exports.main = async (event, context) => {
     }
 
     // ========== removeMember：移除成员 ==========
+    // 创建者和管理员都可操作
     if (action === 'removeMember') {
+      if (myRole !== 'creator' && myRole !== 'admin') {
+        return { success: false, error: 'NO_PERMISSION', message: '无权移除成员' }
+      }
       if (!targetOpenid) {
         return { success: false, error: 'TARGET_REQUIRED', message: '目标用户openid不能为空' }
       }

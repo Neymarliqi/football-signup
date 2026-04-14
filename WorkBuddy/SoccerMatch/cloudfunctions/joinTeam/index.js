@@ -57,9 +57,9 @@ exports.main = async (event, context) => {
 
     } else {
       // 申请加入：写入待审批记录
-      // 先查是否已有申请
+      // 先查是否有 pending 状态的申请（rejected 后可重新申请）
       const applyRes = await db.collection('team_applications')
-        .where({ teamId, openid })
+        .where({ teamId, openid, status: 'pending' })
         .get()
 
       if (applyRes.data && applyRes.data.length > 0) {
