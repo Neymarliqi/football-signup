@@ -314,9 +314,11 @@ Page({
 
     // ========== 球队信息处理（异步，不阻塞页面渲染）==========
     let isTeamActivity = false
+    let teamLogo = ''
     if (act.teamId) {
       isTeamActivity = true
-      // 异步查询球队 Logo，不等待完成
+      teamLogo = act.teamLogo || ''  // 先用活动记录中保存的 Logo
+      // 异步查询最新 Logo，不等待完成
       this._loadTeamLogoAsync(act.teamId)
     }
     // ========== 球队信息处理结束 ==========
