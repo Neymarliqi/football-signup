@@ -299,7 +299,7 @@ Page({
         }
       }))
       // 过滤掉 null（无权限查看的球队活动返回 null）并根据筛选条件一次遍历
-      const filteredActivities = validActivities.filter(item => {
+      const filteredActivities = formattedActivities.filter(item => {
         if (!item) return false
         // 根据筛选条件过滤
         switch (filter) {
