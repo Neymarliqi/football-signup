@@ -291,7 +291,7 @@ Page({
       const formattedActivities = await Promise.all(activities.map(act => {
         try {
           // 传入 visibleTeamIds 用于判断用户是否有权限查看该活动
-          const result = this.formatActivity(act, openid, {}, visibleTeamIds)
+          const result = this.formatActivity(act, openid, latestUsers, visibleTeamIds)
           return result
         } catch (e) {
           console.error('[index] formatActivity 异常:', e, 'act:', act)
