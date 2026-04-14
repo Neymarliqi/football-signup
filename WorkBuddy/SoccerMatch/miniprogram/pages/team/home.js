@@ -8,7 +8,7 @@ Page({
     teamId: '',
     team: {},
     myOpenid: '',
-    myRole: null, // null=非成员, 'creator', 'admin', 'member'
+    myRole: 'loading', // 'loading'=加载中, null=非成员, 'creator'/'admin'/'member'=成员
     tabs: ['活动', '成员', '散客', '申请'],
     activeTab: '活动',
     members: [],

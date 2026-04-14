@@ -33,8 +33,13 @@
           bindtap="switchTab" data-tab="{{item}}">{{item}}</view>
   </view>
 
+  <!-- ====== 加载中状态 ====== -->
+  <view wx:if="{{myRole === 'loading'}}" class="loading-bar">
+    <text class="loading-text">加载中...</text>
+  </view>
+
   <!-- ====== 非成员状态栏 ====== -->
-  <view wx:if="{{myRole === null}}" class="non-member-bar">
+  <view wx:elif="{{myRole === null}}" class="non-member-bar">
     <view wx:if="{{hasPendingApplication}}" class="pending-status">
       <text class="pending-icon">⏳</text>
       <text class="pending-text">已申请，等待审批</text>

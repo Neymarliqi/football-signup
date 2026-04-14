@@ -111,6 +111,21 @@
   color: rgba(255,255,255,0.8);
 }
 
+/* 加载中状态栏 */
+.loading-bar {
+  padding: 24rpx 32rpx;
+  background: #f8f8f8;
+  border-bottom: 1rpx solid #eee;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.loading-text {
+  font-size: 28rpx;
+  color: #999;
+}
+
 /* 非成员状态栏 */
 .non-member-bar {
   padding: 24rpx 32rpx;
