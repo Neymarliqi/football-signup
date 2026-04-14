@@ -20,13 +20,21 @@ exports.main = async (event, context) => {
       .where({ teamId, openid })
       .get()
 
-    if (!memberRes.data || memberRes.data.length === 0) {
-      return { success: false, message: '您不是球队成员' }
-    }
+    let isCreator = false
 
-    const myRole = memberRes.data[0].role
-    if (myRole !== 'creator' && myRole !== 'admin') {
-      return { success: false, message: '只有管理员可以查看申请' }
+    if (!memberRes.data || memberRes.data.length === 0) {
+      // team_members 为空，检查是否是球队创建者
+      const teamRes = await db.collection('teams').doc(teamId).get()
+      if (teamRes.data && teamRes.data.creatorOpenid === openid) {
+        isCreator = true
+      } else {
+        return { success: false, message: '您不是球队成员' }
+      }
+    } else {
+      const myRole = memberRes.data[0].role
+      if (myRole !== 'creator' && myRole !== 'admin') {
+        return { success: false, message: '只有管理员可以查看申请' }
+      }
     }
 
     // 只查询 pending 状态的申请

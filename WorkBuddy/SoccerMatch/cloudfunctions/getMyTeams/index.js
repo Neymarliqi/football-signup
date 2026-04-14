@@ -19,20 +19,33 @@ exports.main = async (event, context) => {
       .where({ openid })
       .get()
 
-    if (!memberRes.data || memberRes.data.length === 0) {
+    // 同时查询我创建的球队（可能在 team_members 中没有记录）
+    const createdTeamsRes = await db.collection('teams')
+      .where({ creatorOpenid: openid })
+      .field({ _id: true })
+      .get()
+
+    const createdTeamIds = createdTeamsRes.data.map(t => t._id)
+    const memberTeamIds = memberRes.data ? memberRes.data.map(m => m.teamId) : []
+
+    // 合并所有相关球队ID
+    const allTeamIds = [...new Set([...createdTeamIds, ...memberTeamIds])]
+
+    if (allTeamIds.length === 0) {
       return { success: true, createdTeams: [], joinedTeams: [] }
     }
 
-    const teamIds = memberRes.data.map(m => m.teamId)
     const myMemberships = {}
-    memberRes.data.forEach(m => {
-      myMemberships[m.teamId] = m
-    })
+    if (memberRes.data) {
+      memberRes.data.forEach(m => {
+        myMemberships[m.teamId] = m
+      })
+    }
 
     // 批量查询球队详情
     const teamRes = await db.collection('teams')
       .where({
-        _id: db.command.in(teamIds)
+        _id: db.command.in(allTeamIds)
       })
       .get()
 
@@ -41,16 +54,26 @@ exports.main = async (event, context) => {
     const joinedTeams = []
 
     teamRes.data.forEach(team => {
+      // 检查是否是创建者（teams.creatorOpenid 匹配）
+      const isCreator = team.creatorOpenid === openid
       const member = myMemberships[team._id]
-      if (!member) return
+
+      // 如果既不是成员也不是创建者，跳过
+      if (!member && !isCreator) return
+
+      // 确定角色
+      let myRole = member ? member.role : 'creator'
+      if (isCreator && (!member || member.role !== 'creator')) {
+        myRole = 'creator'
+      }
 
       const item = {
         ...team,
-        myRole: member.role,
-        joinedAt: member.joinedAt
+        myRole,
+        joinedAt: member ? member.joinedAt : team.createdAt
       }
 
-      if (member.role === 'creator') {
+      if (myRole === 'creator') {
         createdTeams.push(item)
       } else {
         joinedTeams.push(item)
