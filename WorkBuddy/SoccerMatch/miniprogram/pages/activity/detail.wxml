@@ -237,7 +237,7 @@
     </view>
 
     <!-- 底部操作栏 -->
-    <view class="bottom-action-bar" wx:if="{{activity.status !== 'finished' && activity.status !== 'cancelled'}}">
+    <view class="bottom-action-bar" wx:if="{{activity.effectiveStatus !== 'finished' && activity.effectiveStatus !== 'cancelled' && activity.effectiveStatus !== 'ongoing'}}">
       <!-- 当前状态显示 -->
       <view class="my-status-bar" wx:if="{{myStatus}}">
         <text class="my-status-text">当前状态：</text>

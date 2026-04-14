@@ -1,0 +1,1421 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>来踢球 · 球队管理原型</title>
+<style>
+/* ============================================================
+   微信 rpx → 浏览器 px 换算：1rpx = 0.5px（标准换算）
+   ============================================================ */
+:root {
+  --green:       #2ecc71;
+  --green-dark:  #27ae60;
+  --blue:        #3498db;
+  --blue-dark:   #2980b9;
+  --yellow:      #f39c12;
+  --yellow-bg:   #fef9e7;
+  --red:         #e74c3c;
+  --red-bg:      #fdecea;
+  --gray:        #999;
+  --gray-bg:     #f0f0f0;
+  --blue-bg:     #eaf4fd;
+  --green-bg:    #e8f8f0;
+  --bg:          #f5f5f5;
+  --white:       #fff;
+  --text:        #333;
+  --text-light:  #666;
+  --border:      #eee;
+  --shadow:       0 2px 10px rgba(0,0,0,0.08);
+  --radius-card:  10px;
+  --radius-tag:   15px;
+  --radius-btn:   25px;
+  --padding:      15px;
+  --fz-sm:        12px;
+  --fz-md:        14px;
+  --fz-lg:        17px;
+  --fz-xl:        22px;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Helvetica, sans-serif;
+  font-size: 14px;
+  color: var(--text);
+  background: #111;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  min-height: 100vh;
+  padding: 20px;
+}
+
+.phone-frame {
+  width: 390px;
+  min-height: 844px;
+  background: var(--bg);
+  border-radius: 40px;
+  overflow: hidden;
+  position: relative;
+  box-shadow: 0 0 0 8px #1a1a1a, 0 0 0 10px #333, 0 20px 60px rgba(0,0,0,0.6);
+  flex-shrink: 0;
+}
+.phone-notch {
+  position: absolute;
+  top: 0; left: 50%;
+  transform: translateX(-50%);
+  width: 120px; height: 28px;
+  background: #1a1a1a;
+  border-radius: 0 0 20px 20px;
+  z-index: 200;
+}
+
+.page-view {
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding-bottom: 90px;
+  -webkit-overflow-scrolling: touch;
+  background: var(--bg);
+}
+.page-view::-webkit-scrollbar { display: none; }
+.page-view { display: none; }
+.page-view.active { display: block; }
+
+.tabbar {
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  height: 60px;
+  background: var(--white);
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  border-top: 1px solid var(--border);
+  z-index: 100;
+}
+.tab-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  color: var(--gray);
+  font-size: 11px;
+  cursor: pointer;
+  padding: 6px 16px;
+  transition: color 0.2s;
+  border: none;
+  background: none;
+}
+.tab-item.active { color: var(--green); }
+.tab-icon { font-size: 22px; line-height: 1; }
+.tabbar .tab-plus {
+  width: 48px; height: 48px;
+  background: linear-gradient(135deg, var(--green), var(--green-dark));
+  border-radius: 50%;
+  color: #fff;
+  font-size: 28px;
+  line-height: 48px;
+  text-align: center;
+  margin-top: -20px;
+  box-shadow: 0 2px 10px rgba(46,204,113,0.4);
+  cursor: pointer;
+  border: none;
+}
+
+.card {
+  background: var(--white);
+  border-radius: var(--radius-card);
+  padding: var(--padding);
+  margin-bottom: 12px;
+  box-shadow: var(--shadow);
+}
+
+.tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border-radius: var(--radius-tag);
+  font-size: var(--fz-sm);
+  font-weight: bold;
+}
+.tag-green  { background: var(--green-bg);  color: var(--green); }
+.tag-yellow { background: var(--yellow-bg); color: var(--yellow); }
+.tag-red    { background: var(--red-bg);   color: var(--red); }
+.tag-gray   { background: var(--gray-bg);  color: var(--gray); }
+.tag-blue   { background: var(--blue-bg);  color: var(--blue); }
+.tag-orange { background: #fff3e0; color: #e67e22; }
+
+.btn-primary {
+  background: linear-gradient(135deg, var(--green), var(--green-dark));
+  color: #fff;
+  border-radius: var(--radius-btn);
+  padding: 11px 25px;
+  font-size: 15px;
+  font-weight: bold;
+  border: none;
+  text-align: center;
+  cursor: pointer;
+  display: inline-block;
+}
+.btn-secondary {
+  background: linear-gradient(135deg, var(--blue), var(--blue-dark));
+  color: #fff;
+  border-radius: var(--radius-btn);
+  padding: 11px 25px;
+  font-size: 15px;
+  font-weight: bold;
+  border: none;
+  text-align: center;
+  cursor: pointer;
+  display: inline-block;
+}
+.btn-danger {
+  background: linear-gradient(135deg, var(--red), #c0392b);
+  color: #fff;
+  border-radius: var(--radius-btn);
+  padding: 11px 25px;
+  font-size: 15px;
+  font-weight: bold;
+  border: none;
+  text-align: center;
+  cursor: pointer;
+  display: inline-block;
+}
+.btn-ghost {
+  background: transparent;
+  color: var(--text-light);
+  border-radius: var(--radius-btn);
+  padding: 11px 20px;
+  font-size: 15px;
+  border: 1px solid var(--border);
+  text-align: center;
+  cursor: pointer;
+  display: inline-block;
+}
+.btn-sm { padding: 7px 16px; font-size: 13px; }
+.btn-full { width: 100%; }
+
+.divider { height: 1px; background: var(--border); margin: 12px 0; }
+
+.flex-between { display: flex; align-items: center; justify-content: space-between; }
+.flex { display: flex; }
+.flex-center { display: flex; align-items: center; justify-content: center; }
+.flex-col { display: flex; flex-direction: column; }
+.flex-1 { flex: 1; }
+.gap-8 { gap: 4px; }
+.mb-10 { margin-bottom: 5px; }
+.text-primary { color: var(--green); }
+.text-blue { color: var(--blue); }
+.text-gray { color: var(--gray); }
+.text-red { color: var(--red); }
+.text-sm { font-size: var(--fz-sm); }
+.text-md { font-size: var(--fz-md); }
+.text-lg { font-size: var(--fz-lg); }
+.text-bold { font-weight: bold; }
+
+.avatar-sm  { width: 30px; height: 30px; border-radius: 50%; background: #e0e0e0; }
+.avatar-md  { width: 40px; height: 40px; border-radius: 50%; background: #e0e0e0; }
+.avatar-lg  { width: 60px; height: 60px; border-radius: 50%; background: #e0e0e0; }
+
+.section-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+.section-title { font-size: var(--fz-md); font-weight: bold; color: var(--text); }
+.section-subtitle { font-size: var(--fz-sm); color: var(--gray); font-weight: normal; margin-left: 4px; }
+.section-more { font-size: var(--fz-sm); color: var(--gray); cursor: pointer; }
+
+/* ===== 首页 ===== */
+.header-banner {
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+  border-radius: 12px;
+  padding: 20px 15px;
+  margin: 10px;
+  position: relative;
+  overflow: hidden;
+}
+.header-banner::after {
+  content: '⚽';
+  position: absolute;
+  right: -10px; bottom: -10px;
+  font-size: 80px;
+  opacity: 0.08;
+  transform: rotate(15deg);
+}
+.header-title { display: flex; align-items: center; gap: 8px; }
+.ball-icon { font-size: 24px; }
+.title-text { font-size: var(--fz-xl); font-weight: bold; color: #fff; letter-spacing: 2px; }
+.header-sub { font-size: 13px; color: rgba(255,255,255,0.6); margin-top: 6px; }
+.admin-btn {
+  position: absolute; top: 15px; right: 15px;
+  background: rgba(255,255,255,0.15); color: #fff;
+  padding: 6px 12px; border-radius: 15px; font-size: 13px;
+  backdrop-filter: blur(4px);
+}
+
+.announce-wrap {
+  background: linear-gradient(135deg, #fff9e6, #fffbf0);
+  border: 1px solid var(--yellow);
+  border-radius: 10px; padding: 10px 12px;
+  margin: 0 10px 12px;
+  display: flex; align-items: center; gap: 8px;
+}
+.announce-header { display: flex; align-items: center; gap: 4px; flex-shrink: 0; }
+.announce-icon { font-size: 16px; }
+.announce-title { font-size: 13px; font-weight: bold; color: var(--yellow); }
+.announce-text { font-size: 13px; color: #7a6000; line-height: 30px; }
+
+.filter-bar {
+  display: flex; gap: 8px;
+  padding: 0 10px 12px;
+  overflow-x: auto;
+}
+.filter-bar::-webkit-scrollbar { display: none; }
+.filter-item {
+  flex-shrink: 0;
+  padding: 6px 14px;
+  border-radius: 15px;
+  font-size: var(--fz-sm);
+  color: var(--text-light);
+  background: var(--white);
+  cursor: pointer;
+  border: 1px solid var(--border);
+  transition: all 0.2s;
+}
+.filter-item.active {
+  background: linear-gradient(135deg, var(--green), var(--green-dark));
+  color: #fff; border-color: var(--green);
+}
+
+.team-zone { margin: 0 10px 12px; display: flex; gap: 10px; }
+.team-zone-card {
+  flex: 1;
+  background: var(--white);
+  border-radius: var(--radius-card);
+  padding: 12px;
+  box-shadow: var(--shadow);
+  display: flex; align-items: center; gap: 8px;
+  cursor: pointer;
+  border: none;
+  width: 100%;
+  text-align: left;
+}
+.team-zone-card:active { opacity: 0.85; }
+.team-zone-card.primary { background: linear-gradient(135deg, #1a1a2e, #0f3460); color: #fff; }
+.zone-icon { font-size: 22px; }
+.zone-content { flex: 1; }
+.zone-title { font-size: var(--fz-md); font-weight: bold; }
+.zone-title.white { color: #fff; }
+.zone-sub { font-size: var(--fz-sm); margin-top: 2px; }
+.zone-sub.white { color: rgba(255,255,255,0.6); }
+.zone-sub { color: var(--gray); }
+.zone-arrow { font-size: 14px; color: var(--gray); }
+.zone-arrow.white { color: rgba(255,255,255,0.5); }
+
+.activity-card {
+  background: var(--white);
+  border-radius: var(--radius-card);
+  padding: var(--padding);
+  margin: 0 10px 12px;
+  box-shadow: var(--shadow);
+  cursor: pointer;
+}
+.card-top { margin-bottom: 6px; }
+.act-time-badge { font-size: var(--fz-sm); color: var(--gray); }
+.act-title { font-size: var(--fz-lg); font-weight: bold; color: var(--text); margin: 6px 0; }
+.act-team-tag {
+  display: inline-flex; align-items: center; gap: 3px;
+  background: var(--blue-bg); color: var(--blue);
+  padding: 3px 8px; border-radius: 10px;
+  font-size: var(--fz-sm); font-weight: bold; margin-bottom: 6px;
+}
+.act-info-row { display: flex; gap: 16px; margin-bottom: 4px; }
+.act-info-item { display: flex; align-items: center; gap: 4px; font-size: var(--fz-sm); color: var(--text-light); }
+.register-section { margin-top: 8px; }
+.register-label { font-size: var(--fz-sm); color: var(--text-light); }
+.count-num { font-weight: bold; font-size: var(--fz-md); }
+.count-ok { color: var(--green); }
+.count-sep { color: var(--gray); margin: 0 2px; }
+.count-max { color: var(--gray); }
+.progress-bar-bg { height: 5px; background: var(--gray-bg); border-radius: 3px; overflow: hidden; margin-top: 5px; }
+.progress-bar-fill { height: 100%; border-radius: 3px; transition: width 0.3s; }
+.bar-normal { background: linear-gradient(90deg, var(--green), var(--green-dark)); }
+.players-section { margin-top: 8px; }
+.players-title { font-size: var(--fz-sm); color: var(--text-light); margin-bottom: 6px; }
+.avatar-list { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.avatar-item { display: flex; flex-direction: column; align-items: center; gap: 3px; }
+.avatar-with-position { position: relative; }
+.position-tag-sm {
+  position: absolute; bottom: -2px; left: 50%; transform: translateX(-50%);
+  background: rgba(0,0,0,0.6); color: #fff;
+  font-size: 9px; padding: 1px 3px; border-radius: 4px; white-space: nowrap;
+}
+.avatar-name { font-size: 10px; color: var(--text-light); max-width: 35px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.more-circle {
+  width: 30px; height: 30px; border-radius: 50%;
+  background: var(--gray-bg); color: var(--gray);
+  font-size: var(--fz-sm); display: flex; align-items: center; justify-content: center;
+}
+.my-status-row { display: flex; align-items: center; gap: 6px; margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--border); }
+.my-status-label { font-size: var(--fz-sm); color: var(--text-light); }
+.card-btns { display: flex; align-items: center; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+.card-btn {
+  padding: 7px 16px; border-radius: 15px;
+  font-size: var(--fz-sm); font-weight: bold; cursor: pointer; border: none;
+}
+.btn-view { background: var(--green-bg); color: var(--green); }
+.btn-tactics { background: var(--blue-bg); color: var(--blue); }
+.action-link { font-size: var(--fz-sm); color: var(--gray); cursor: pointer; text-decoration: underline; }
+.action-divider { width: 1px; height: 16px; background: var(--border); }
+
+/* ===== 我的页面 ===== */
+.profile-header {
+  background: var(--white);
+  padding: 20px 15px;
+  margin: 10px;
+  border-radius: 12px;
+  display: flex; align-items: center; gap: 12px;
+  box-shadow: var(--shadow);
+  cursor: pointer;
+}
+.name-wrap { flex: 1; }
+.display-name { font-size: var(--fz-lg); font-weight: bold; }
+.uid-text { font-size: var(--fz-sm); color: var(--gray); margin-top: 3px; }
+.edit-arrow { font-size: 18px; color: var(--gray); }
+
+.position-grid { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+.pos-option {
+  display: flex; flex-direction: column; align-items: center; gap: 3px;
+  width: 60px; padding: 8px 4px;
+  border-radius: 8px; background: var(--gray-bg); cursor: pointer; position: relative;
+}
+.pos-option-active { background: var(--green-bg); }
+.pos-emoji { font-size: 20px; }
+.pos-label { font-size: var(--fz-sm); color: var(--text-light); }
+.pos-order-badge {
+  position: absolute; top: -4px; right: -4px;
+  background: var(--green); color: #fff;
+  font-size: 9px; font-weight: bold;
+  width: 18px; height: 18px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+}
+
+.stats-row { display: flex; justify-content: space-around; margin-top: 10px; }
+.stat-block { text-align: center; }
+.stat-num { font-size: 24px; font-weight: bold; }
+.text-danger { color: var(--red); }
+.stat-label { font-size: var(--fz-sm); color: var(--gray); margin-top: 2px; }
+
+.history-item {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 10px 0; border-bottom: 1px solid var(--border); cursor: pointer;
+}
+.history-item:last-child { border-bottom: none; }
+.history-item:active { opacity: 0.7; }
+.history-left { flex: 1; }
+.history-title { font-size: var(--fz-md); font-weight: bold; }
+.history-date { font-size: var(--fz-sm); color: var(--gray); margin-top: 3px; }
+
+/* 我的球队 */
+.team-cards-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px; }
+.team-card-item {
+  background: var(--gray-bg);
+  border-radius: 8px;
+  padding: 10px;
+  display: flex; flex-direction: column; align-items: center; gap: 5px;
+  cursor: pointer; border: none; text-align: center;
+}
+.team-card-item:active { opacity: 0.8; }
+.team-card-item.captain { background: linear-gradient(135deg, #1a1a2e, #0f3460); color: #fff; }
+.team-card-logo { font-size: 32px; }
+.team-card-name { font-size: var(--fz-md); font-weight: bold; color: var(--text); }
+.team-card-name.white { color: #fff; }
+.team-card-role { font-size: var(--fz-sm); color: var(--gray); }
+.team-card-role.white { color: rgba(255,255,255,0.6); }
+.team-card-badge {
+  display: inline-flex; align-items: center; gap: 2px;
+  background: var(--green-bg); color: var(--green);
+  padding: 2px 6px; border-radius: 10px;
+  font-size: 10px; font-weight: bold;
+}
+.team-card-badge.white { background: rgba(46,204,113,0.25); color: #6effb0; }
+.team-add-card {
+  background: var(--white);
+  border: 1px dashed var(--green);
+  border-radius: 8px;
+  padding: 10px;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 5px;
+  cursor: pointer;
+}
+.team-add-card:active { background: var(--green-bg); }
+.team-add-icon { font-size: 24px; color: var(--green); }
+.team-add-text { font-size: var(--fz-sm); color: var(--green); font-weight: bold; }
+.team-more-link {
+  display: block; text-align: center;
+  color: var(--gray); font-size: var(--fz-sm);
+  padding: 8px 0; cursor: pointer; text-decoration: underline;
+}
+
+.menu-list { margin-top: 8px; }
+.menu-item {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 12px 0; border-bottom: 1px solid var(--border); cursor: pointer;
+}
+.menu-item:last-child { border-bottom: none; }
+.menu-left { display: flex; align-items: center; gap: 8px; }
+.menu-icon { font-size: 18px; }
+.menu-name { font-size: var(--fz-md); color: var(--text); }
+.menu-arrow { font-size: 14px; color: var(--gray); }
+.about-item { display: flex; align-items: center; justify-content: space-between; padding: 12px 0; }
+.about-name { font-size: var(--fz-md); }
+.about-version { font-size: var(--fz-sm); color: var(--gray); }
+
+/* ===== 球队主页 ===== */
+.team-banner {
+  background: linear-gradient(135deg, #1a1a2e, #0f3460);
+  border-radius: 12px;
+  padding: 25px 15px 20px;
+  margin: 10px;
+  position: relative; overflow: hidden;
+}
+.team-banner::after {
+  content: '🏆'; position: absolute; right: 10px; bottom: -10px;
+  font-size: 80px; opacity: 0.06;
+}
+.team-banner-top { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+.team-logo-large { font-size: 50px; }
+.team-banner-name { font-size: var(--fz-xl); font-weight: bold; color: #fff; }
+.team-banner-meta { font-size: var(--fz-sm); color: rgba(255,255,255,0.6); margin-top: 4px; }
+.team-banner-desc { font-size: var(--fz-sm); color: rgba(255,255,255,0.7); margin-top: 6px; line-height: 1.6; }
+.team-banner-tags { display: flex; gap: 6px; margin-top: 8px; flex-wrap: wrap; }
+
+.team-tabs {
+  display: flex; background: var(--white);
+  border-radius: var(--radius-card); padding: 4px; margin: 0 10px 12px; box-shadow: var(--shadow);
+}
+.team-tab {
+  flex: 1; text-align: center; padding: 8px 0;
+  border-radius: 7px; font-size: var(--fz-md); font-weight: bold;
+  color: var(--text-light); cursor: pointer;
+  transition: all 0.2s; border: none; background: none;
+}
+.team-tab.active { background: linear-gradient(135deg, var(--green), var(--green-dark)); color: #fff; }
+
+.team-member-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+.member-item { display: flex; flex-direction: column; align-items: center; gap: 4px; cursor: pointer; }
+.member-avatar-wrap { position: relative; }
+.member-avatar { width: 50px; height: 50px; border-radius: 50%; background: #e0e0e0; }
+.member-badge {
+  position: absolute; bottom: -2px; right: -2px;
+  font-size: 11px; background: var(--yellow); color: #fff;
+  padding: 1px 3px; border-radius: 4px;
+}
+.member-badge.admin { background: var(--blue); }
+.member-name { font-size: var(--fz-sm); color: var(--text); text-align: center; max-width: 50px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.member-pos { font-size: 10px; color: var(--gray); }
+
+.team-action-btns { display: flex; gap: 10px; margin-top: 10px; }
+.team-action-btns .btn-primary { flex: 1; }
+.team-action-btns .btn-ghost { flex: 1; }
+
+.team-activity-item {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 12px 0; border-bottom: 1px solid var(--border);
+}
+.team-activity-item:last-child { border-bottom: none; }
+.team-activity-title { font-size: var(--fz-md); font-weight: bold; }
+.team-activity-meta { font-size: var(--fz-sm); color: var(--gray); margin-top: 3px; }
+
+/* ===== 创建球队 ===== */
+.form-item { margin-bottom: 16px; }
+.form-label { font-size: var(--fz-md); font-weight: bold; color: var(--text); margin-bottom: 6px; display: block; }
+.form-label.required::after { content: ' *'; color: var(--red); }
+.form-input {
+  width: 100%; border: 1px solid var(--border); border-radius: 8px;
+  padding: 10px 12px; font-size: var(--fz-md); background: var(--white); outline: none;
+  transition: border-color 0.2s;
+}
+.form-input:focus { border-color: var(--green); }
+.form-textarea { min-height: 80px; resize: vertical; }
+.form-hint { font-size: var(--fz-sm); color: var(--gray); margin-top: 4px; }
+.radio-group { display: flex; gap: 10px; flex-wrap: wrap; }
+.radio-item {
+  flex: 1; min-width: 100px;
+  border: 1px solid var(--border); border-radius: 8px; padding: 10px;
+  display: flex; align-items: center; gap: 6px;
+  cursor: pointer; background: var(--white); transition: all 0.2s;
+}
+.radio-item.selected { border-color: var(--green); background: var(--green-bg); }
+.radio-item:active { opacity: 0.8; }
+.radio-dot { width: 18px; height: 18px; border-radius: 50%; border: 1.5px solid var(--border); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.radio-item.selected .radio-dot { border-color: var(--green); background: var(--green); }
+.radio-item.selected .radio-dot::after { content: '✓'; color: #fff; font-size: 10px; }
+.radio-label { flex: 1; }
+.radio-title { font-size: var(--fz-md); font-weight: bold; color: var(--text); }
+.radio-desc { font-size: var(--fz-sm); color: var(--gray); margin-top: 2px; }
+
+/* ===== 球队设置 ===== */
+.member-list-item { display: flex; align-items: center; gap: 8px; padding: 10px 0; border-bottom: 1px solid var(--border); }
+.member-list-item:last-child { border-bottom: none; }
+.member-list-info { flex: 1; }
+.member-list-name { font-size: var(--fz-md); font-weight: bold; color: var(--text); }
+.member-list-meta { font-size: var(--fz-sm); color: var(--gray); margin-top: 2px; }
+.member-list-actions { display: flex; gap: 6px; align-items: center; }
+
+.modal-overlay {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.6);
+  display: flex; align-items: center; justify-content: center; z-index: 500;
+}
+.modal-box {
+  background: var(--white); border-radius: 12px; padding: 20px;
+  width: 300px; max-width: 90vw; text-align: center;
+}
+.modal-title { font-size: var(--fz-lg); font-weight: bold; margin-bottom: 4px; }
+.modal-sub { font-size: var(--fz-sm); color: var(--gray); margin-bottom: 16px; }
+.qr-placeholder {
+  width: 150px; height: 150px;
+  background: var(--gray-bg); border-radius: 8px;
+  margin: 0 auto 12px;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px;
+}
+.qr-text { font-size: var(--fz-sm); color: var(--gray); text-align: center; }
+.share-btns { display: flex; gap: 10px; justify-content: center; }
+
+/* ===== 发现球队 ===== */
+.search-bar { display: flex; gap: 8px; padding: 0 10px 12px; }
+.search-input-wrap {
+  flex: 1; display: flex; align-items: center;
+  background: var(--white); border-radius: 25px;
+  padding: 8px 12px; gap: 6px; box-shadow: var(--shadow);
+}
+.search-input { flex: 1; border: none; outline: none; font-size: var(--fz-md); background: transparent; }
+.search-icon { font-size: 16px; }
+
+.team-list-card {
+  background: var(--white); border-radius: var(--radius-card);
+  padding: var(--padding); margin: 0 10px 12px; box-shadow: var(--shadow);
+  cursor: pointer; border: none; width: 100%; text-align: left;
+  display: flex; align-items: center; gap: 10px;
+}
+.team-list-card:active { opacity: 0.88; }
+.team-list-logo { font-size: 36px; }
+.team-list-info { flex: 1; }
+.team-list-name { font-size: var(--fz-lg); font-weight: bold; color: var(--text); }
+.team-list-meta { font-size: var(--fz-sm); color: var(--gray); margin-top: 3px; }
+.team-list-action { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
+
+/* ===== 加入球队 ===== */
+.join-header { text-align: center; padding: 30px 20px 20px; }
+.join-logo { font-size: 70px; margin-bottom: 12px; }
+.join-team-name { font-size: var(--fz-xl); font-weight: bold; color: var(--text); margin-bottom: 4px; }
+.join-meta { font-size: var(--fz-sm); color: var(--gray); margin-bottom: 8px; }
+.join-btn-wrap { padding: 0 20px; }
+
+/* ===== 通用 ===== */
+.page-header {
+  background: var(--white);
+  padding: 10px 10px 10px 8px;
+  display: flex; align-items: center; gap: 8px;
+  box-shadow: 0 1px 5px rgba(0,0,0,0.06);
+  position: sticky; top: 0; z-index: 50;
+}
+.back-btn {
+  width: 32px; height: 32px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 18px; color: var(--text); cursor: pointer; border: none; background: none;
+}
+.page-title { font-size: var(--fz-lg); font-weight: bold; flex: 1; }
+.page-content { padding: 10px; }
+.bottom-safe { height: 20px; }
+
+.toast {
+  position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+  background: rgba(0,0,0,0.75); color: #fff;
+  padding: 12px 24px; border-radius: 6px;
+  font-size: 14px; z-index: 999; pointer-events: none; white-space: nowrap;
+}
+
+.empty-center { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 40px 20px; gap: 8px; }
+.empty-icon { font-size: 40px; }
+.empty-title { font-size: var(--fz-lg); font-weight: bold; color: var(--text); }
+.empty-desc { font-size: var(--fz-sm); color: var(--gray); text-align: center; }
+
+/* 原型导航 */
+#prototype-label {
+  position: fixed; top: 20px; left: 20px;
+  background: rgba(0,0,0,0.7); color: #fff;
+  padding: 8px 12px; border-radius: 6px; font-size: 13px; z-index: 999;
+}
+#page-list {
+  position: fixed; top: 20px; right: 20px;
+  background: rgba(0,0,0,0.7); color: #fff;
+  padding: 10px 12px; border-radius: 6px;
+  font-size: 13px; z-index: 999; max-height: 90vh; overflow-y: auto; width: 180px;
+}
+#page-list h3 { margin-bottom: 6px; font-size: 14px; }
+#page-list a { display: block; color: rgba(255,255,255,0.7); padding: 3px 0; cursor: pointer; font-size: 12px; }
+#page-list a:hover { color: #2ecc71; }
+#page-list a.active { color: #2ecc71; font-weight: bold; }
+</style>
+</head>
+<body>
+
+<div id="prototype-label">来踢球 · 球队管理原型 v4</div>
+
+<div id="page-list">
+  <h3>页面导航</h3>
+  <a href="javascript:void(0)" onclick="showPage('home')" id="nav-home" class="active">① 首页</a>
+  <a href="javascript:void(0)" onclick="showPage('profile')" id="nav-profile">② 我的</a>
+  <a href="javascript:void(0)" onclick="showPage('teamDetail')" id="nav-teamDetail">③ 球队主页</a>
+  <a href="javascript:void(0)" onclick="showPage('createTeam')" id="nav-createTeam">④ 创建球队</a>
+  <a href="javascript:void(0)" onclick="showPage('teamSettings')" id="nav-teamSettings">⑤ 球队设置</a>
+  <a href="javascript:void(0)" onclick="showPage('teamDiscover')" id="nav-teamDiscover">⑥ 发现球队</a>
+  <a href="javascript:void(0)" onclick="showPage('teamJoin')" id="nav-teamJoin">⑦ 加入球队</a>
+</div>
+
+<div class="phone-frame">
+  <div class="phone-notch"></div>
+
+  <!-- ① 首页 -->
+  <div class="page-view active" id="page-home">
+    <div class="header-banner">
+      <div class="header-title">
+        <span class="ball-icon">⚽</span>
+        <span class="title-text">来踢球</span>
+      </div>
+      <div class="header-sub">随时随地，召集队友</div>
+    </div>
+
+    <div class="announce-wrap">
+      <div class="announce-header">
+        <span class="announce-icon">📢</span>
+        <span class="announce-title">公告</span>
+      </div>
+      <div class="announce-text">本周六友谊赛时间调整为下午4点，请大家注意！</div>
+    </div>
+
+    <div class="filter-bar">
+      <div class="filter-item active">全部</div>
+      <div class="filter-item">未开始</div>
+      <div class="filter-item">进行中</div>
+      <div class="filter-item">已结束</div>
+    </div>
+
+    <!-- 球队专区 -->
+    <div class="team-zone">
+      <button class="team-zone-card primary" onclick="showPage('teamDetail')">
+        <span class="zone-icon">🏆</span>
+        <div class="zone-content">
+          <div class="zone-title white">我的球队</div>
+          <div class="zone-sub white">2 支球队</div>
+        </div>
+        <span class="zone-arrow white">›</span>
+      </button>
+      <button class="team-zone-card" onclick="showPage('teamDiscover')">
+        <span class="zone-icon">🔍</span>
+        <div class="zone-content">
+          <div class="zone-title">找球队</div>
+          <div class="zone-sub">发现更多球队</div>
+        </div>
+        <span class="zone-arrow">›</span>
+      </button>
+    </div>
+
+    <!-- 活动卡片 A（有球队） -->
+    <div class="activity-card">
+      <div class="card-top flex-between">
+        <span class="tag tag-green">报名中</span>
+        <span class="act-time-badge">📅 4月19日 周六</span>
+      </div>
+      <div style="margin:4px 0;">
+        <span class="act-team-tag">🏆 FC前锋</span>
+      </div>
+      <div class="act-title">前锋FC vs 城南老伙计</div>
+      <div class="act-info-row">
+        <div class="act-info-item">⏰<span>16:00 - 18:00</span></div>
+        <div class="act-info-item">📍<span>体育中心足球场</span></div>
+      </div>
+      <div class="act-info-row">
+        <div class="act-info-item">⚽<span>5v5</span></div>
+        <div class="act-info-item">💰<span>免费</span></div>
+      </div>
+      <div class="divider"></div>
+      <div class="register-section">
+        <div class="flex-between mb-10">
+          <span class="register-label">已报名</span>
+          <span><span class="count-num count-ok">8</span><span class="count-sep">/</span><span class="count-max">10人</span></span>
+        </div>
+        <div class="progress-bar-bg">
+          <div class="progress-bar-fill bar-normal" style="width:80%"></div>
+        </div>
+      </div>
+      <div class="players-section">
+        <div class="players-title">✅ 已报名 (8)</div>
+        <div class="avatar-list">
+          <div class="avatar-item">
+            <div class="avatar-with-position">
+              <div class="avatar-sm" style="background:#c0392b;display:flex;align-items:center;justify-content:center;color:#fff;font-size:10px;">张</div>
+              <div class="position-tag-sm">前锋</div>
+            </div>
+            <span class="avatar-name">张三</span>
+          </div>
+          <div class="avatar-item">
+            <div class="avatar-with-position">
+              <div class="avatar-sm" style="background:#2980b9;display:flex;align-items:center;justify-content:center;color:#fff;font-size:10px;">李</div>
+              <div class="position-tag-sm">中场</div>
+            </div>
+            <span class="avatar-name">李四</span>
+          </div>
+          <div class="avatar-item">
+            <div class="avatar-with-position">
+              <div class="avatar-sm" style="background:#27ae60;display:flex;align-items:center;justify-content:center;color:#fff;font-size:10px;">王</div>
+            </div>
+            <span class="avatar-name">王五</span>
+          </div>
+          <div class="avatar-item">
+            <div class="avatar-sm" style="background:#8e44ad;display:flex;align-items:center;justify-content:center;color:#fff;font-size:10px;">赵</div>
+            <span class="avatar-name">赵六</span>
+          </div>
+          <div class="more-circle">+4</div>
+        </div>
+      </div>
+      <div class="my-status-row">
+        <span class="my-status-label">我的状态：</span>
+        <span class="tag tag-green">已报名</span>
+      </div>
+      <div class="card-btns">
+        <div class="card-btn btn-view">查看详情</div>
+        <div class="card-btn btn-tactics">战术板</div>
+        <div class="action-divider"></div>
+        <span class="action-link">编辑</span>
+      </div>
+    </div>
+
+    <!-- 活动卡片 B（无球队） -->
+    <div class="activity-card">
+      <div class="card-top flex-between">
+        <span class="tag tag-green">报名中</span>
+        <span class="act-time-badge">📅 4月20日 周日</span>
+      </div>
+      <div class="act-title">周末友谊赛</div>
+      <div class="act-info-row">
+        <div class="act-info-item">⏰<span>09:00 - 11:00</span></div>
+        <div class="act-info-item">📍<span>滨江公园</span></div>
+      </div>
+      <div class="act-info-row">
+        <div class="act-info-item">⚽<span>6v6</span></div>
+        <div class="act-info-item">💰<span>免费</span></div>
+      </div>
+      <div class="divider"></div>
+      <div class="register-section">
+        <div class="flex-between mb-10">
+          <span class="register-label">已报名</span>
+          <span><span class="count-num count-ok">5</span><span class="count-sep">/</span><span class="count-max">12人</span></span>
+        </div>
+        <div class="progress-bar-bg">
+          <div class="progress-bar-fill bar-normal" style="width:42%"></div>
+        </div>
+      </div>
+      <div class="players-section">
+        <div class="players-title">✅ 已报名 (5)</div>
+        <div class="avatar-list">
+          <div class="avatar-item">
+            <div class="avatar-sm" style="background:#e67e22;display:flex;align-items:center;justify-content:center;color:#fff;font-size:10px;">钱</div>
+            <span class="avatar-name">钱七</span>
+          </div>
+          <div class="avatar-item">
+            <div class="avatar-sm" style="background:#16a085;display:flex;align-items:center;justify-content:center;color:#fff;font-size:10px;">孙</div>
+            <span class="avatar-name">孙八</span>
+          </div>
+          <div class="more-circle">+3</div>
+        </div>
+      </div>
+      <div class="card-btns">
+        <div class="card-btn btn-view">查看详情</div>
+        <div class="card-btn btn-tactics">战术板</div>
+      </div>
+    </div>
+
+    <div class="bottom-safe"></div>
+  </div>
+
+  <!-- ② 我的页面 -->
+  <div class="page-view" id="page-profile">
+    <div class="profile-header">
+      <div class="avatar-lg" style="display:flex;align-items:center;justify-content:center;color:#fff;font-size:18px;background:linear-gradient(135deg,#1a1a2e,#0f3460);">周</div>
+      <div class="name-wrap">
+        <div class="display-name">周明</div>
+        <div class="uid-text">ID: o7k3m2</div>
+      </div>
+      <span class="edit-arrow">›</span>
+    </div>
+
+    <div class="page-content">
+
+      <div class="card">
+        <div class="section-header">
+          <div class="section-title">⚽ 位置偏好 <span class="section-subtitle">最多选3个</span></div>
+          <div class="section-more">清空</div>
+        </div>
+        <div class="position-grid">
+          <div class="pos-option pos-option-active">
+            <span class="pos-emoji">🥅</span><span class="pos-label">门将</span>
+            <div class="pos-order-badge">首</div>
+          </div>
+          <div class="pos-option pos-option-active">
+            <span class="pos-emoji">🛡</span><span class="pos-label">后卫</span>
+            <div class="pos-order-badge">备</div>
+          </div>
+          <div class="pos-option pos-option-active">
+            <span class="pos-emoji">⚡</span><span class="pos-label">中场</span>
+            <div class="pos-order-badge">备</div>
+          </div>
+          <div class="pos-option"><span class="pos-emoji">⚽</span><span class="pos-label">前锋</span></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="section-title">📊 我的数据</div>
+        <div class="stats-row">
+          <div class="stat-block"><div class="stat-num text-primary">23</div><div class="stat-label">参与场次</div></div>
+          <div class="stat-block"><div class="stat-num text-blue">18</div><div class="stat-label">已报名</div></div>
+          <div class="stat-block"><div class="stat-num" style="color:#f39c12">4</div><div class="stat-label">待定次数</div></div>
+          <div class="stat-block"><div class="stat-num text-danger">1</div><div class="stat-label">请假次数</div></div>
+        </div>
+      </div>
+
+      <!-- 我的球队 -->
+      <div class="card">
+        <div class="section-header">
+          <div class="section-title">🏆 我的球队</div>
+          <div class="section-more" onclick="showPage('teamDiscover')">找球队 ›</div>
+        </div>
+        <div class="team-cards-grid">
+          <button class="team-card-item captain" onclick="showPage('teamDetail')">
+            <div class="team-card-logo">⚽</div>
+            <div class="team-card-name white">FC前锋</div>
+            <div class="team-card-badge white">👑 队长</div>
+          </button>
+          <button class="team-card-item" onclick="showPage('teamDetail')">
+            <div class="team-card-logo">⚽</div>
+            <div class="team-card-name">城南老伙计</div>
+            <div class="team-card-role">成员 · 22人</div>
+          </button>
+          <button class="team-add-card" onclick="showPage('createTeam')">
+            <div class="team-add-icon">+</div>
+            <div class="team-add-text">创建球队</div>
+          </button>
+        </div>
+        <div class="team-more-link" onclick="showPage('teamDiscover')">查看全部球队 ›</div>
+      </div>
+
+      <div class="card">
+        <div class="section-header">
+          <div class="section-title">📅 参与记录</div>
+          <div class="section-more">更多 ›</div>
+        </div>
+        <div class="history-item">
+          <div class="history-left">
+            <div class="history-title">前锋FC vs 城南老伙计</div>
+            <div class="history-date">4月19日  16:00</div>
+          </div>
+          <span class="tag tag-green">已报名</span>
+        </div>
+        <div class="history-item">
+          <div class="history-left">
+            <div class="history-title">周末友谊赛</div>
+            <div class="history-date">4月13日  09:00</div>
+          </div>
+          <span class="tag tag-gray">已结束</span>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="section-title">⚙️ 设置</div>
+        <div class="menu-list">
+          <div class="menu-item">
+            <div class="menu-left"><span class="menu-icon">🔒</span><span class="menu-name">隐私保护指引</span></div>
+            <span class="menu-arrow">›</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="section-title">关于我们</div>
+        <div class="about-item">
+          <span class="about-name">来踢球</span>
+          <span class="about-version">v2.2.0</span>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ③ 球队主页 -->
+  <div class="page-view" id="page-teamDetail">
+    <div class="page-header">
+      <button class="back-btn" onclick="showPage('profile')">‹</button>
+      <div class="page-title">球队主页</div>
+      <button class="back-btn" onclick="showPage('teamSettings')" style="font-size:18px;">⚙</button>
+    </div>
+
+    <div class="team-banner">
+      <div class="team-banner-top">
+        <div class="team-logo-large">⚽</div>
+        <div class="team-banner-info">
+          <div class="team-banner-name">FC前锋</div>
+          <div class="team-banner-meta">👑 队长：周明 · 22名成员 · 15场活动</div>
+        </div>
+      </div>
+      <div class="team-banner-desc">FC前锋是一支活跃在城西地区的业余足球爱好者球队，每周末固定训练和比赛，欢迎热爱足球的朋友加入！</div>
+      <div class="team-banner-tags">
+        <span class="tag tag-blue">开放加入</span>
+        <span class="tag" style="background:rgba(255,255,255,0.15);color:#fff;">🏆 2025年冠军</span>
+      </div>
+    </div>
+
+    <div class="team-tabs" id="teamTabs">
+      <button class="team-tab active" id="tabInfo" onclick="switchTeamTab('info')">球队信息</button>
+      <button class="team-tab" id="tabMember" onclick="switchTeamTab('member')">成员 (22)</button>
+      <button class="team-tab" id="tabActivity" onclick="switchTeamTab('activity')">球队活动</button>
+    </div>
+
+    <div class="page-content" id="teamContent-info">
+      <div class="card">
+        <div class="section-title">📋 球队信息</div>
+        <div style="margin-top:10px;">
+          <div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid #f0f0f0;">
+            <span style="font-size:16px;">👑</span>
+            <div style="flex:1;"><div style="font-size:14px;color:#333;">创建者</div><div style="font-size:12px;color:#999;margin-top:2px;">周明</div></div>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid #f0f0f0;">
+            <span style="font-size:16px;">🚪</span>
+            <div style="flex:1;"><div style="font-size:14px;color:#333;">加入方式</div><div style="font-size:12px;color:#999;margin-top:2px;">开放加入（扫码即可加入）</div></div>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;padding:8px 0;">
+            <span style="font-size:16px;">📅</span>
+            <div style="flex:1;"><div style="font-size:14px;color:#333;">创建时间</div><div style="font-size:12px;color:#999;margin-top:2px;">2024年3月15日</div></div>
+          </div>
+        </div>
+      </div>
+      <div class="team-action-btns">
+        <button class="btn-primary" onclick="showToast('跳转创建活动页')">+ 发布球队活动</button>
+        <button class="btn-ghost" onclick="showPage('teamSettings')">邀请成员</button>
+      </div>
+    </div>
+
+    <div class="page-content" id="teamContent-member" style="display:none;">
+      <div class="card">
+        <div class="section-title">👥 球队成员 (22)</div>
+        <div class="team-member-grid" style="margin-top:10px;">
+          <div class="member-item">
+            <div class="member-avatar-wrap">
+              <div class="member-avatar" style="background:#c0392b;display:flex;align-items:center;justify-content:center;color:#fff;font-size:14px;">周</div>
+              <div class="member-badge">👑</div>
+            </div>
+            <div class="member-name">周明</div>
+            <div class="member-pos">队长</div>
+          </div>
+          <div class="member-item">
+            <div class="member-avatar-wrap">
+              <div class="member-avatar" style="background:#2980b9;display:flex;align-items:center;justify-content:center;color:#fff;font-size:14px;">李</div>
+              <div class="member-badge admin">⭐</div>
+            </div>
+            <div class="member-name">李强</div>
+            <div class="member-pos">管理员</div>
+          </div>
+          <div class="member-item">
+            <div class="member-avatar-wrap">
+              <div class="member-avatar" style="background:#27ae60;display:flex;align-items:center;justify-content:center;color:#fff;font-size:14px;">王</div>
+            </div>
+            <div class="member-name">王鹏</div>
+            <div class="member-pos">中场</div>
+          </div>
+          <div class="member-item">
+            <div class="member-avatar-wrap">
+              <div class="member-avatar" style="background:#8e44ad;display:flex;align-items:center;justify-content:center;color:#fff;font-size:14px;">陈</div>
+            </div>
+            <div class="member-name">陈龙</div>
+            <div class="member-pos">前锋</div>
+          </div>
+          <div class="member-item">
+            <div class="member-avatar-wrap">
+              <div class="member-avatar" style="background:#e67e22;display:flex;align-items:center;justify-content:center;color:#fff;font-size:14px;">刘</div>
+            </div>
+            <div class="member-name">刘洋</div>
+            <div class="member-pos">后卫</div>
+          </div>
+          <div class="member-item">
+            <div class="member-avatar-wrap">
+              <div class="member-avatar" style="background:#16a085;display:flex;align-items:center;justify-content:center;color:#fff;font-size:14px;">赵</div>
+            </div>
+            <div class="member-name">赵磊</div>
+            <div class="member-pos">门将</div>
+          </div>
+          <div class="member-item">
+            <div class="member-avatar-wrap">
+              <div class="member-avatar" style="background:#7f8c8d;display:flex;align-items:center;justify-content:center;color:#fff;font-size:11px;">+18</div>
+            </div>
+            <div class="member-name">更多</div>
+            <div class="member-pos">›</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="page-content" id="teamContent-activity" style="display:none;">
+      <div class="card">
+        <div class="section-title">🏆 球队活动</div>
+        <div class="team-activity-item">
+          <div class="team-activity-title">前锋FC vs 城南老伙计</div>
+          <span class="tag tag-green">报名中</span>
+        </div>
+        <div class="team-activity-meta">4月19日 周六 · 16:00 · 体育中心</div>
+        <div class="team-activity-item" style="margin-top:12px;">
+          <div class="team-activity-title">FC前锋 内部训练赛</div>
+          <span class="tag tag-gray">已结束</span>
+        </div>
+        <div class="team-activity-meta">4月12日 周六 · 10:00 · 城西公园</div>
+        <div class="team-activity-item" style="margin-top:12px;">
+          <div class="team-activity-title">FC前锋 vs 蓝光FC</div>
+          <span class="tag tag-gray">已结束</span>
+        </div>
+        <div class="team-activity-meta">3月29日 周六 · 15:00 · 足球公园</div>
+      </div>
+    </div>
+
+    <div class="bottom-safe"></div>
+  </div>
+
+  <!-- ④ 创建球队 -->
+  <div class="page-view" id="page-createTeam">
+    <div class="page-header">
+      <button class="back-btn" onclick="showPage('profile')">‹</button>
+      <div class="page-title">创建球队</div>
+    </div>
+    <div class="page-content">
+      <div class="card">
+        <div class="form-item">
+          <label class="form-label required">球队名称</label>
+          <input class="form-input" type="text" value="FC前锋" />
+          <div class="form-hint">2-20个字符，建议简洁好记</div>
+        </div>
+        <div class="form-item">
+          <label class="form-label">球队简介</label>
+          <textarea class="form-input form-textarea">活跃在城西地区的业余足球爱好者球队，每周末固定训练。</textarea>
+        </div>
+        <div class="form-item">
+          <label class="form-label">加入方式</label>
+          <div class="radio-group">
+            <button class="radio-item selected" id="radioOpen" onclick="selectJoinMode('open')">
+              <div class="radio-dot"></div>
+              <div class="radio-label">
+                <div class="radio-title">🔓 开放加入</div>
+                <div class="radio-desc">扫码即可加入，适合公开招募</div>
+              </div>
+            </button>
+            <button class="radio-item" id="radioInvite" onclick="selectJoinMode('invite')">
+              <div class="radio-dot"></div>
+              <div class="radio-label">
+                <div class="radio-title">🔒 邀请制</div>
+                <div class="radio-desc">需要队长审核，适合固定成员</div>
+              </div>
+            </button>
+          </div>
+        </div>
+      </div>
+      <div style="padding:0 0 10px;">
+        <button class="btn-primary btn-full" onclick="showToast('球队创建成功！')">创建球队</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ⑤ 球队设置 -->
+  <div class="page-view" id="page-teamSettings">
+    <div class="page-header">
+      <button class="back-btn" onclick="showPage('teamDetail')">‹</button>
+      <div class="page-title">球队设置</div>
+    </div>
+    <div class="page-content">
+      <div class="card" style="display:flex;align-items:center;gap:10px;margin-bottom:12px;">
+        <div style="font-size:40px;">⚽</div>
+        <div style="flex:1;">
+          <div style="font-size:17px;font-weight:bold;color:#333;">FC前锋</div>
+          <div style="font-size:12px;color:#999;margin-top:3px;">22名成员 · 开放加入</div>
+        </div>
+        <button class="btn-ghost btn-sm" onclick="showPage('createTeam')">编辑</button>
+      </div>
+
+      <div class="card">
+        <div class="section-title">👥 邀请成员</div>
+        <div style="margin-top:10px;">
+          <button class="btn-primary btn-full" onclick="showQRModal()">📱 生成邀请二维码</button>
+          <div style="margin-top:8px;font-size:12px;color:#999;text-align:center;">扫描二维码即可加入球队</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="section-title">⚙️ 成员管理</div>
+        <div style="margin-top:8px;">
+          <div class="member-list-item">
+            <div class="avatar-sm" style="display:flex;align-items:center;justify-content:center;color:#fff;font-size:12px;background:#c0392b;">周</div>
+            <div class="member-list-info">
+              <div class="member-list-name">周明</div>
+              <div class="member-list-meta">队长 · 2024-03-15 加入</div>
+            </div>
+            <div class="member-list-actions"><span class="tag tag-yellow">👑 队长</span></div>
+          </div>
+          <div class="member-list-item">
+            <div class="avatar-sm" style="display:flex;align-items:center;justify-content:center;color:#fff;font-size:12px;background:#2980b9;">李</div>
+            <div class="member-list-info">
+              <div class="member-list-name">李强</div>
+              <div class="member-list-meta">管理员 · 2024-04-01 加入</div>
+            </div>
+            <div class="member-list-actions">
+              <button class="btn-ghost btn-sm" onclick="showToast('已降为普通成员')" style="padding:5px 10px;font-size:11px;">降为成员</button>
+              <button style="border:none;background:none;color:#e74c3c;font-size:12px;cursor:pointer;" onclick="showToast('确定移除？')">移除</button>
+            </div>
+          </div>
+          <div class="member-list-item">
+            <div class="avatar-sm" style="display:flex;align-items:center;justify-content:center;color:#fff;font-size:12px;background:#27ae60;">王</div>
+            <div class="member-list-info">
+              <div class="member-list-name">王鹏</div>
+              <div class="member-list-meta">成员 · 2024-05-12 加入</div>
+            </div>
+            <div class="member-list-actions">
+              <button class="btn-ghost btn-sm" onclick="showToast('已升为管理员')" style="padding:5px 10px;font-size:11px;">升为管理</button>
+              <button style="border:none;background:none;color:#e74c3c;font-size:12px;cursor:pointer;" onclick="showToast('确定移除？')">移除</button>
+            </div>
+          </div>
+          <div style="padding:8px 0;text-align:center;">
+            <span style="color:#999;font-size:12px;">查看全部 22 名成员 ›</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="card" style="border:1px solid #fdecea;">
+        <div class="section-title" style="color:#e74c3c;">⚠️ 危险操作</div>
+        <div style="margin-top:8px;">
+          <button class="btn-danger btn-full" onclick="showToast('解散需二次确认')">解散球队</button>
+          <div style="margin-top:6px;font-size:12px;color:#999;text-align:center;">解散后球队所有数据将无法恢复</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ⑥ 发现球队 -->
+  <div class="page-view" id="page-teamDiscover">
+    <div class="page-header">
+      <button class="back-btn" onclick="showPage('profile')">‹</button>
+      <div class="page-title">发现球队</div>
+    </div>
+    <div class="search-bar">
+      <div class="search-input-wrap">
+        <span class="search-icon">🔍</span>
+        <input class="search-input" type="text" placeholder="搜索球队名称" />
+      </div>
+    </div>
+    <div class="page-content" style="padding-top:0;">
+      <div style="display:flex;align-items:center;gap:6px;margin-bottom:10px;">
+        <span style="font-size:14px;font-weight:bold;">已加入的球队</span>
+        <span class="tag tag-green">2</span>
+      </div>
+
+      <button class="team-list-card" onclick="showPage('teamDetail')">
+        <div class="team-list-logo">⚽</div>
+        <div class="team-list-info">
+          <div class="team-list-name">FC前锋</div>
+          <div class="team-list-meta">👑 队长：周明 · 22人 · 开放加入</div>
+        </div>
+        <div class="team-list-action"><span class="tag tag-green">已加入</span></div>
+      </button>
+
+      <button class="team-list-card" onclick="showPage('teamDetail')">
+        <div class="team-list-logo">⚽</div>
+        <div class="team-list-info">
+          <div class="team-list-name">城南老伙计</div>
+          <div class="team-list-meta">👑 队长：赵强 · 18人 · 开放加入</div>
+        </div>
+        <div class="team-list-action"><span class="tag tag-green">已加入</span></div>
+      </button>
+
+      <div style="display:flex;align-items:center;gap:6px;margin:16px 0 10px;">
+        <div style="flex:1;height:1px;background:#eee;"></div>
+        <span style="font-size:12px;color:#999;flex-shrink:0;">推荐球队</span>
+        <div style="flex:1;height:1px;background:#eee;"></div>
+      </div>
+
+      <button class="team-list-card" onclick="showPage('teamJoin')">
+        <div class="team-list-logo">⚽</div>
+        <div class="team-list-info">
+          <div class="team-list-name">蓝光FC</div>
+          <div class="team-list-meta">👑 队长：吴浩 · 30人 · 开放加入</div>
+        </div>
+        <div class="team-list-action">
+          <button class="btn-primary btn-sm" style="padding:6px 12px;font-size:12px;" onclick="event.stopPropagation();showPage('teamJoin')">申请加入</button>
+        </div>
+      </button>
+
+      <button class="team-list-card" onclick="showPage('teamJoin')">
+        <div class="team-list-logo">⚽</div>
+        <div class="team-list-info">
+          <div class="team-list-name">绿茵风暴</div>
+          <div class="team-list-meta">👑 队长：何林 · 15人 · 邀请制</div>
+        </div>
+        <div class="team-list-action"><span class="tag tag-orange">申请加入</span></div>
+      </button>
+
+      <button class="team-list-card" onclick="showPage('teamJoin')">
+        <div class="team-list-logo">⚽</div>
+        <div class="team-list-info">
+          <div class="team-list-name">飞鹰足球队</div>
+          <div class="team-list-meta">👑 队长：陈峰 · 40人 · 开放加入</div>
+        </div>
+        <div class="team-list-action">
+          <button class="btn-primary btn-sm" style="padding:6px 12px;font-size:12px;" onclick="event.stopPropagation();showPage('teamJoin')">申请加入</button>
+        </div>
+      </button>
+    </div>
+  </div>
+
+  <!-- ⑦ 加入球队 -->
+  <div class="page-view" id="page-teamJoin">
+    <div class="page-header">
+      <button class="back-btn" onclick="showPage('teamDiscover')">‹</button>
+      <div class="page-title">加入球队</div>
+    </div>
+    <div class="join-header">
+      <div class="join-logo">⚽</div>
+      <div class="join-team-name">蓝光FC</div>
+      <div class="join-meta">👑 队长：吴浩 · 30名成员</div>
+      <span class="tag tag-blue">🔓 开放加入</span>
+    </div>
+    <div class="page-content">
+      <div class="card">
+        <div class="section-title">📋 球队简介</div>
+        <div style="margin-top:8px;font-size:14px;color:#666;line-height:1.8;">
+          蓝光FC成立于2020年，是一支活跃在城东地区的业余足球队伍。每周三晚上固定训练，周末不定期约战。球队氛围轻松，欢迎各水平球友！
+        </div>
+      </div>
+      <div class="join-btn-wrap" style="padding-top:10px;">
+        <button class="btn-primary btn-full" onclick="showJoinSuccess()">申请加入</button>
+        <div style="margin-top:8px;text-align:center;">
+          <span style="color:#999;font-size:12px;">加入后你可以参与球队活动</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 加入成功弹窗 -->
+    <div class="modal-overlay" id="joinSuccessModal" style="display:none;" onclick="closeJoinModal(event)">
+      <div class="modal-box" onclick="event.stopPropagation()">
+        <div style="font-size:40px;margin-bottom:8px;">🎉</div>
+        <div class="modal-title">加入成功！</div>
+        <div class="modal-sub">欢迎加入蓝光FC，快去参与活动吧</div>
+        <div style="display:flex;gap:10px;justify-content:center;">
+          <button class="btn-primary btn-sm" onclick="closeJoinModal();showPage('teamDetail')">查看球队</button>
+          <button class="btn-ghost btn-sm" onclick="closeJoinModal()">关闭</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 二维码弹窗 -->
+  <div class="modal-overlay" id="qrModal" style="display:none;" onclick="closeQRModal(event)">
+    <div class="modal-box" onclick="event.stopPropagation()">
+      <div class="modal-title">邀请成员</div>
+      <div class="modal-sub">扫描下方二维码即可加入 FC前锋</div>
+      <div class="qr-placeholder">
+        <div style="font-size:75px;line-height:1;">⬜</div>
+        <div class="qr-text">小程序码<br>（正式环境生成）</div>
+      </div>
+      <div class="share-btns">
+        <button class="btn-ghost btn-sm" onclick="showToast('已保存到相册')">保存图片</button>
+        <button class="btn-primary btn-sm" onclick="showToast('打开微信分享')">分享给朋友</button>
+      </div>
+      <div style="margin-top:12px;">
+        <button class="btn-ghost btn-sm" onclick="closeQRModal()">关闭</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- TabBar -->
+  <div class="tabbar">
+    <button class="tab-item active" id="tab-home" onclick="switchTab('home')">
+      <span class="tab-icon">🏠</span><span>首页</span>
+    </button>
+    <button class="tab-item" id="tab-my" onclick="switchTab('profile')">
+      <span class="tab-icon">👤</span><span>我的</span>
+    </button>
+    <button class="tab-plus" onclick="showToast('发布活动')">+</button>
+    <button class="tab-item" id="tab-tactics" onclick="showToast('战术板')">
+      <span class="tab-icon">🗺</span><span>战术板</span>
+    </button>
+    <button class="tab-item" id="tab-msg" onclick="showToast('消息')">
+      <span class="tab-icon">📨</span><span>消息</span>
+    </button>
+  </div>
+
+</div>
+
+<script>
+const PAGES = ['home', 'profile', 'teamDetail', 'createTeam', 'teamSettings', 'teamDiscover', 'teamJoin'];
+
+function showPage(name) {
+  PAGES.forEach(p => {
+    document.getElementById('page-' + p).classList.remove('active');
+    document.getElementById('nav-' + p).classList.remove('active');
+  });
+  document.getElementById('page-' + name).classList.add('active');
+  document.getElementById('nav-' + name).classList.add('active');
+  switchTeamTab('info');
+}
+
+function switchTab(name) {
+  const map = { home: 'home', profile: 'my', tactics: 'tactics', msg: 'msg' };
+  ['home', 'my', 'tactics', 'msg'].forEach(t => document.getElementById('tab-' + t).classList.remove('active'));
+  const key = map[name] || name;
+  document.getElementById('tab-' + key).classList.add('active');
+  if (name === 'profile' || name === 'home') showPage(name);
+}
+
+function switchTeamTab(tab) {
+  ['info', 'member', 'activity'].forEach(t => {
+    document.getElementById('teamContent-' + t).style.display = 'none';
+    document.getElementById('tab' + capitalize(t)).classList.remove('active');
+  });
+  document.getElementById('teamContent-' + tab).style.display = 'block';
+  document.getElementById('tab' + capitalize(tab)).classList.add('active');
+}
+
+function capitalize(s) { return s.charAt(0).toUpperCase() + s.slice(1); }
+
+function selectJoinMode(mode) {
+  document.getElementById('radioOpen').classList.toggle('selected', mode === 'open');
+  document.getElementById('radioInvite').classList.toggle('selected', mode === 'invite');
+}
+
+function showQRModal() { document.getElementById('qrModal').style.display = 'flex'; }
+function closeQRModal(e) { if (e && e.target !== e.currentTarget) return; document.getElementById('qrModal').style.display = 'none'; }
+function showJoinSuccess() { document.getElementById('joinSuccessModal').style.display = 'flex'; }
+function closeJoinModal(e) { if (e && e.target !== e.currentTarget) return; document.getElementById('joinSuccessModal').style.display = 'none'; }
+
+let toastTimer = null;
+function showToast(msg) {
+  if (toastTimer) clearTimeout(toastTimer);
+  let toast = document.getElementById('toast');
+  if (!toast) {
+    toast = document.createElement('div');
+    toast.id = 'toast';
+    toast.className = 'toast';
+    document.body.appendChild(toast);
+  }
+  toast.textContent = msg;
+  toast.style.display = 'block';
+  toastTimer = setTimeout(() => { toast.style.display = 'none'; }, 2000);
+}
+
+selectJoinMode('open');
+</script>
+
+</body>
+</html>

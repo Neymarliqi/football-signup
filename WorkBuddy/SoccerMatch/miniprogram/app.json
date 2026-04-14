@@ -9,7 +9,11 @@
     "pages/profile/history",
     "pages/admin/admin",
     "pages/privacy/privacy",
-    "pages/profile/edit-profile/edit-profile"
+    "pages/profile/edit-profile/edit-profile",
+    "pages/team/create",
+    "pages/team/home",
+    "pages/team/settings",
+    "pages/team/picker"
   ],
   "plugins": {
     "chooseLocation": {

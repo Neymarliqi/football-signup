@@ -7,7 +7,20 @@
   <!-- 基本信息 -->
   <view class="card">
     <view class="section-title">📋 基本信息</view>
-    
+
+    <!-- 球队选择 -->
+    <view class="form-item">
+      <view class="form-label">所属球队</view>
+      <view class="team-picker-btn" bindtap="pickTeam">
+        <text wx:if="{{!form.teamId}}" class="picker-placeholder">不选择 = 公开活动（所有用户可见）</text>
+        <text wx:if="{{form.teamId}}" class="team-picker-value">
+          <text class="team-picker-icon">⚽</text> {{form.teamName}}
+        </text>
+        <text class="picker-arrow">›</text>
+      </view>
+      <view class="form-hint" wx:if="{{form.teamId}}">球队活动不会展示在首页，仅通过分享传播</view>
+    </view>
+
     <view class="form-item">
       <view class="form-label">活动标题 <text class="required">*</text></view>
       <input class="form-input" value="{{form.title}}" bindinput="onInput" data-key="title"
@@ -67,6 +80,20 @@
           </view>
         </view>
       </view>
+    </view>
+
+    <!-- 可见范围（球队活动专属） -->
+    <view class="form-item" wx:if="{{form.teamId}}">
+      <view class="form-label">👁 可见范围</view>
+      <view class="radio-group">
+        <view class="radio-item {{form.visibility !== 'memberOnly' ? 'radio-active' : ''}}" bindtap="setVisibility" data-value="open">
+          🌍 允许非成员参加（默认）
+        </view>
+        <view class="radio-item {{form.visibility === 'memberOnly' ? 'radio-active' : ''}}" bindtap="setVisibility" data-value="memberOnly">
+          🔒 仅球队成员
+        </view>
+      </view>
+      <view class="form-hint">活动通过分享链接传播，任何人都可报名</view>
     </view>
   </view>
 

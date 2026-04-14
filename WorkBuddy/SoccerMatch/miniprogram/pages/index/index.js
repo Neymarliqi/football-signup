@@ -128,7 +128,13 @@ Page({
     try {
       const cached = wx.getStorageSync('activities_cache')
       if (cached && cached.data && cached.data.length > 0) {
-        // 有缓存时：骨架屏立即消失，替换为缓存数据
+        // 检查缓存是否过期（10分钟过期）
+        const CACHE_EXPIRE_MS = 10 * 60 * 1000
+        if (cached.timestamp && Date.now() - cached.timestamp > CACHE_EXPIRE_MS) {
+          // 缓存过期，返回 false 让骨架屏显示，同时发起网络请求
+          return false
+        }
+        // 有缓存且未过期：骨架屏立即消失，替换为缓存数据
         this.setData({ activities: cached.data, loading: false })
         return true
       }
@@ -196,27 +202,35 @@ Page({
       const filter = this.data.activeFilter
       const now = new Date()
 
-      // 获取全部活动（带重试）
+      // 获取全部活动（按创建时间倒序）
+      // 注意：不使用 activityDate 排序（Date 类型在云数据库中需要索引）
+      // 状态判断由前端 formatActivity 根据时间动态计算
       let query = db.collection('activities').orderBy('createdAt', 'desc')
 
-      // 根据筛选条件过滤
+      // 根据筛选条件过滤（只根据数据库 status，不结合日期）
+      // 日期判断由前端 formatActivity 完成
       if (filter === 'upcoming') {
-        query = db.collection('activities').where({
-          status: 'open',
-          activityDate: db.command.gt(now)
-        }).orderBy('createdAt', 'desc')
+        // 未开始：只看状态 open
+        query = db.collection('activities')
+          .where({ status: 'open' })
+          .orderBy('createdAt', 'desc')
       } else if (filter === 'ongoing') {
-        query = db.collection('activities').where({
-          status: 'ongoing'
-        }).orderBy('createdAt', 'desc')
+        // 进行中：状态为 ongoing
+        query = db.collection('activities')
+          .where({ status: 'ongoing' })
+          .orderBy('createdAt', 'desc')
       } else if (filter === 'finished') {
-        query = db.collection('activities').where({
-          status: db.command.in(['finished', 'cancelled'])
-        }).orderBy('createdAt', 'desc')
+        // 已结束：状态为 finished 或 cancelled
+        query = db.collection('activities')
+          .where({
+            status: db.command.in(['finished', 'cancelled'])
+          })
+          .orderBy('createdAt', 'desc')
       }
 
       const res = await this.requestWithRetry(() => query.limit(50).get())
       let activities = res.data
+      console.log('[index] 查询到活动数量:', activities.length, '筛选条件:', filter)
 
       // 收集所有需要查询的用户ID
       const allUserIds = new Set()
@@ -232,16 +246,49 @@ Page({
       if (allUserIds.size > 0) {
         try {
           // 使用全局缓存系统（forceRefresh 参数在首次加载时使用）
-          latestUsers = await app.fetchUsersWithCache(Array.from(allUserIds), forceRefresh || false)
+          latestUsers = await app.fetchUsersWithCache(Array.from(allUserIds), forceRefreshUsers || false)
         } catch (e) {
           // 获取用户信息失败
         }
       }
 
-      const formattedActivities = await Promise.all(activities.map(act => this.formatActivity(act, openid, latestUsers)))
-      this.setData({ activities: formattedActivities, loading: false })
+      console.log('[index] 开始格式化, activities:', activities.length)
+      const formattedActivities = await Promise.all(activities.map(act => {
+        try {
+          const result = this.formatActivity(act, openid, latestUsers)
+          return result
+        } catch (e) {
+          console.error('[index] formatActivity 异常:', e, 'act:', act)
+          return null
+        }
+      }))
+      // 过滤掉 null
+      const validActivities = formattedActivities.filter(a => a !== null)
+      console.log('[index] 格式化完成, 有效数据:', validActivities.length)
 
-      // 缓存活动列表到本地（冷启动秒开）
+      // 根据筛选条件二次过滤（解决数据库 status 与前端 effectiveStatus 不一致的问题）
+      // 例如：status=open 但已过期的活动不应该出现在"未开始"列表中
+      let filteredActivities = validActivities
+      if (filter === 'upcoming') {
+        // 未开始：只显示 effectiveStatus 为 open 的活动
+        filteredActivities = validActivities.filter(item => item.effectiveStatus === 'open')
+      } else if (filter === 'ongoing') {
+        // 进行中：只显示 effectiveStatus 为 ongoing 的活动
+        filteredActivities = validActivities.filter(item => item.effectiveStatus === 'ongoing')
+      } else if (filter === 'finished') {
+        // 已结束：显示 effectiveStatus 为 finished 或 cancelled 的活动
+        filteredActivities = validActivities.filter(item =>
+          item.effectiveStatus === 'finished' || item.effectiveStatus === 'cancelled'
+        )
+      }
+      console.log('[index] 筛选后数据:', filteredActivities.length, 'filter:', filter)
+
+      // 更新活动列表（查询成功就更新，不管是否为空）
+      this.setData({ activities: filteredActivities, loading: false }, () => {
+        console.log('[index] setData 完成, activities.length:', this.data.activities.length)
+      })
+
+      // 缓存活动列表到本地（冷启动秒开，使用未筛选的全部数据）
       this.saveActivitiesCache(formattedActivities)
 
       // 启用数据库监听（只监听最近 7 天的活动，减少性能影响）
@@ -250,8 +297,12 @@ Page({
       }
     } catch (e) {
       console.error('加载活动失败', e)
+      // 出错时保留已有数据，只关闭 loading
       this.setData({ loading: false })
-      wx.showToast({ title: '网络异常，请稍后重试', icon: 'none', duration: 2000 })
+      // 只有在没有任何数据时才提示
+      if (this.data.activities.length === 0) {
+        wx.showToast({ title: '网络异常，请稍后重试', icon: 'none', duration: 2000 })
+      }
     }
   },
 
@@ -271,32 +322,45 @@ Page({
       })
       .watch({
         onChange: async (snapshot) => {
-          // 重新获取用户信息（可能有新用户加入）
+          // 从当前页面的 activities 中获取 openid（避免闭包 stale 问题）
+          const currentOpenid = app.globalData.openid || wx.getStorageSync('openid')
+          
+          // 收集所有需要查询的用户ID（包括当前页面数据和 watcher 数据）
           const allUserIds = new Set()
+          // 先从 watcher 变更中获取
           snapshot.docs.forEach(act => {
             const regs = act.registrations || []
             regs.forEach(r => {
               if (r.openid) allUserIds.add(r.openid)
             })
           })
+          // 再从当前页面数据中获取（确保不遗漏）
+          this.data.activities.forEach(act => {
+            const regs = act.registrations || []
+            regs.forEach(r => {
+              if (r.openid) allUserIds.add(r.openid)
+            })
+          })
 
-          let newLatestUsers = { ...latestUsers }
+          let newLatestUsers = {}
           if (allUserIds.size > 0) {
             try {
-              // 使用全局缓存系统
-              newLatestUsers = await app.fetchUsersWithCache(Array.from(allUserIds))
+              // 使用全局缓存系统（强制刷新确保最新）
+              newLatestUsers = await app.fetchUsersWithCache(Array.from(allUserIds), true)
             } catch (e) {
-              // 实时更新用户信息失败
+              // 实时更新用户信息失败，保留已有数据
             }
           }
 
           // 更新活动列表
           const formattedActivities = await Promise.all(snapshot.docs.map(act =>
-            this.formatActivity(act, openid, newLatestUsers)
+            this.formatActivity(act, currentOpenid, newLatestUsers)
           ))
           this.setData({
-            activities: formattedActivities,
-            latestUsers: newLatestUsers
+            activities: formattedActivities
+          }, () => {
+            // 数据更新后也静默刷新一次用户缓存（保持一致性）
+            this.silentRefreshUsers()
           })
           // 实时更新也写入缓存
           this.saveActivitiesCache(formattedActivities)
@@ -321,30 +385,45 @@ Page({
     const leave = registrations.filter(r => r.status === 'leave')
     const myReg = registrations.find(r => r.openid === openid)
 
-    // 进度百分比
-    const percent = Math.min((confirmed.length / act.maxPlayers) * 100, 100)
-
     // 活动日期格式化
     const actDate = act.activityDate instanceof Date ? act.activityDate : new Date(act.activityDate)
     const displayDate = this.formatDate(actDate)
+    const now = new Date()
+    const isUnlimited = act.maxPlayers === 999
+
+    // 进度百分比（不限人数时隐藏）
+    const percent = isUnlimited ? -1 : Math.min((confirmed.length / act.maxPlayers) * 100, 100)
 
     // 判断是否是发布者
     const isCreator = act.createdBy === openid
 
-    // 状态
-    let statusText, statusClass, canEdit, canCancel, canDelete
-    if (act.status === 'finished') {
-      statusText = '已结束'; statusClass = 'tag-gray'
+    // 状态判断：基于日期动态计算（与详情页一致）
+    // 规则：已取消 > 已结束（时间到/截止） > 进行中 > 报名中
+    let statusText, statusClass, effectiveStatus, canEdit, canCancel, canDelete
+    let isDeadlinePassed = false
+    
+    // 检查截止时间
+    if (act.deadline) {
+      const deadline = act.deadline instanceof Date ? act.deadline : new Date(act.deadline)
+      if (now >= deadline) {
+        isDeadlinePassed = true
+      }
+    }
+    
+    // 状态判断顺序：已取消 > 已结束 > 进行中 > 报名中
+    if (act.status === 'cancelled') {
+      statusText = '已取消'; statusClass = 'tag-red'; effectiveStatus = 'cancelled'
+      canEdit = false; canCancel = false; canDelete = isCreator
+    } else if (act.status === 'finished' || actDate < now || isDeadlinePassed) {
+      // 数据库状态为finished，或活动日期已过，或截止时间已到 → 已结束
+      statusText = '已结束'; statusClass = 'tag-gray'; effectiveStatus = 'finished'
       canEdit = false; canCancel = false; canDelete = isCreator
     } else if (act.status === 'ongoing') {
-      statusText = '进行中'; statusClass = 'tag-blue'
+      statusText = '进行中'; statusClass = 'tag-blue'; effectiveStatus = 'ongoing'
       canEdit = false; canCancel = false; canDelete = false
-    } else if (act.status === 'cancelled') {
-      statusText = '已取消'; statusClass = 'tag-red'
-      canEdit = false; canCancel = false; canDelete = isCreator
     } else {
-      // open 状态：只有创建者可以编辑/取消
-      statusText = '报名中'; statusClass = 'tag-green'
+      // open 状态且时间未到 → 报名中
+      statusText = '报名中'; statusClass = 'tag-green'; effectiveStatus = 'open'
       canEdit = isCreator; canCancel = isCreator; canDelete = false
     }
 
@@ -437,6 +516,7 @@ Page({
       displayDate,
       statusText,
       statusClass,
+      effectiveStatus, // 用于权限判断
       isCreator,
       canEdit,
       canCancel,
@@ -465,6 +545,11 @@ Page({
   goDetail(e) {
     const id = e.currentTarget.dataset.id
     wx.navigateTo({ url: `/pages/activity/detail?id=${id}` })
+  },
+
+  goTeamHome(e) {
+    const teamId = e.currentTarget.dataset.teamid
+    wx.navigateTo({ url: `/pages/team/home?teamId=${teamId}` })
   },
 
   goTactics(e) {

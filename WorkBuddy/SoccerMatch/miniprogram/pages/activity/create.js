@@ -36,7 +36,10 @@ Page({
       deadlineDisplay: '',
       allowPending: true,
       notice: '',
-      status: 'open'
+      status: 'open',
+      teamId: '',
+      teamName: '',
+      visibility: 'open'
     },
     // 注册弹窗
     showRegisterModal: false,
@@ -82,6 +85,33 @@ Page({
     }
 
     wx.setNavigationBarTitle({ title: options.id ? '编辑活动' : '发布活动' })
+
+    // 如果从球队主页跳转过来，填充球队ID
+    if (options.teamId) {
+      this.setData({ 'form.teamId': options.teamId })
+    }
+  },
+
+  // ========== 球队选择 ==========
+  pickTeam() {
+    const { teamId } = this.data.form
+    wx.navigateTo({
+      url: `/pages/team/picker?currentTeamId=${teamId}`
+    })
+  },
+
+  // 球队选择器页面回调（picker.js 会调用此方法）
+  selectTeam(teamId, teamName) {
+    this.setData({
+      'form.teamId': teamId || '',
+      'form.teamName': teamName || '',
+      'form.visibility': 'open'
+    })
+  },
+
+  setVisibility(e) {
+    const value = e.currentTarget.dataset.value
+    this.setData({ 'form.visibility': value })
   },
 
   // 保存自定义赛制类型（仅更新当前页面状态）
@@ -507,6 +537,22 @@ Page({
       return
     }
 
+    // 球队权限检查：发布球队活动需是创建者/管理员
+    if (form.teamId) {
+      const openid = app.globalData.openid || wx.getStorageSync('openid')
+      const teamRes = await wx.cloud.callFunction({
+        name: 'getMyTeams'
+      })
+      if (teamRes.result.success) {
+        const allTeams = [...(teamRes.result.createdTeams || []), ...(teamRes.result.joinedTeams || [])]
+        const team = allTeams.find(t => t._id === form.teamId)
+        if (!team || (team.myRole !== 'creator' && team.myRole !== 'admin')) {
+          wx.showToast({ title: '仅球队创建者/管理员可发布球队活动', icon: 'none' })
+          return
+        }
+      }
+    }
+
     wx.showLoading({ title: '发布中...' })
     const { form, isEdit, activityId, customMatchTypes } = this.data
 
@@ -537,7 +583,11 @@ Page({
       status: 'open',
       updatedAt: db.serverDate(),
       // 保存该活动的自定义赛制类型
-      customMatchTypes: customMatchTypes || []
+      customMatchTypes: customMatchTypes || [],
+      // 球队相关字段
+      teamId: form.teamId || '',
+      teamName: form.teamName || '',
+      visibility: form.visibility || 'open'
     }
 
     try {

@@ -37,9 +37,16 @@ Page({
       leaveCount: 0
     },
     history: [],
-    version: '2.1.0',
+    version: '3.0.0',
     // 注册弹窗
-    showRegisterModal: false
+    showRegisterModal: false,
+    // 球队数据
+    myTeams: [],
+    displayTeams: [],
+    createdTeams: [],
+    joinedTeams: [],
+    loadingTeams: false,
+    showAllTeams: false
   },
 
   onLoad() {
@@ -61,6 +68,62 @@ Page({
     if (typeof this.getTabBar === 'function' && this.getTabBar()) {
       this.getTabBar().setData({ selected: 1 })
     }
+
+    // 加载我的球队
+    this.loadMyTeams()
+  },
+
+  // ========== 球队相关 ==========
+  async loadMyTeams() {
+    if (!app.isUserRegistered()) {
+      console.error('[profile] 用户未注册，不加载球队')
+      return
+    }
+    this.setData({ loadingTeams: true, showAllTeams: false })
+    try {
+      console.log('[profile] 调用 getMyTeams 云函数...')
+      const res = await wx.cloud.callFunction({ name: 'getMyTeams' })
+      console.log('[profile] getMyTeams 返回:', res)
+      if (res.result.success) {
+        const roleTextMap = { creator: '创建者', admin: '管理员', member: '成员' }
+        const createdTeams = (res.result.createdTeams || []).map(t => ({
+          ...t, myRoleText: roleTextMap[t.myRole] || t.myRole, _sortTime: t.createdAt || 0
+        }))
+        const joinedTeams = (res.result.joinedTeams || []).map(t => ({
+          ...t, myRoleText: roleTextMap[t.myRole] || t.myRole, _sortTime: t.joinedAt || 0
+        }))
+        const myTeams = [...createdTeams, ...joinedTeams].sort((a, b) => b._sortTime - a._sortTime)
+        const displayTeams = this.data.showAllTeams ? myTeams : myTeams.slice(0, 5)
+        console.log('[profile] 处理后的 myTeams:', myTeams)
+        console.log('[profile] displayTeams:', displayTeams)
+        this.setData({
+          myTeams,
+          displayTeams,
+          loadingTeams: false
+        })
+      } else {
+        console.error('[profile] getMyTeams 返回失败:', res.result.error)
+        this.setData({ loadingTeams: false })
+      }
+    } catch (e) {
+      console.error('[profile] loadMyTeams 异常:', e)
+      this.setData({ loadingTeams: false })
+    }
+  },
+
+  goTeamHome(e) {
+    const teamId = e.currentTarget.dataset.teamid
+    wx.navigateTo({ url: `/pages/team/home?teamId=${teamId}` })
+  },
+
+  goCreateTeam() {
+    wx.navigateTo({ url: '/pages/team/create' })
+  },
+
+  toggleShowAllTeams() {
+    const newShowAll = !this.data.showAllTeams
+    const displayTeams = newShowAll ? this.data.myTeams : this.data.myTeams.slice(0, 5)
+    this.setData({ showAllTeams: newShowAll, displayTeams })
   },
 
   // 注册完成回调
@@ -68,6 +131,7 @@ Page({
     this.setData({ showRegisterModal: false })
     this.loadUserInfo()
     this.loadHistory(true)
+    this.loadMyTeams()
     // 注册完成后执行之前被拦截的操作
     if (this._pendingAction === 'editProfile') {
       this._pendingAction = null
@@ -103,7 +167,7 @@ Page({
       userInfo.positions = []
     }
     
-    // 处理头像：优先用 base64，不走云存储权限
+    // 处理头像：优先用预解析的 displayAvatar，其次 cloudPath，微信自动处理 cloud:// 转换
     userInfo.displayAvatar = app.getDisplayAvatar(userInfo)
     
     // 处理位置数据，添加选中状态和选择顺序

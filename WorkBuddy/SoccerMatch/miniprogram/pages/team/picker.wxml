@@ -1,0 +1,44 @@
+<!-- pages/team/picker.wxml - 选择球队 -->
+<view class="container">
+  <view class="page-header">
+    <text class="page-header-title">🔵 选择球队</text>
+    <text class="page-subtitle">不选则为公开活动</text>
+  </view>
+
+  <!-- 公开活动选项 -->
+  <view class="card" bindtap="selectTeam" data-teamid="">
+    <view class="team-item {{selectedTeamId === '' ? 'team-item-active' : ''}}">
+      <view class="team-icon public-icon">🏃</view>
+      <view class="team-info">
+        <text class="team-name">公开活动</text>
+        <text class="team-meta">所有用户可见</text>
+      </view>
+      <view wx:if="{{selectedTeamId === ''}}" class="check-icon">✓</view>
+    </view>
+  </view>
+
+  <!-- 我的球队 -->
+  <view wx:if="{{myTeams.length > 0}}" class="card">
+    <view class="section-title">🏆 我的球队</view>
+    <view wx:for="{{myTeams}}" wx:key="_id" class="team-item {{selectedTeamId === item._id ? 'team-item-active' : ''}}" bindtap="selectTeam" data-teamid="{{item._id}}">
+      <view class="team-icon">
+        <image wx:if="{{item.logoPath}}" class="team-logo" src="{{item.displayLogo}}" mode="aspectFill"/>
+        <text wx:if="{{!item.logoPath}}" class="logo-placeholder-text">⚽</text>
+      </view>
+      <view class="team-info">
+        <text class="team-name">{{item.name}}</text>
+        <text class="team-meta">👥 {{item.memberCount}}人 | {{item.myRoleText}}</text>
+      </view>
+      <view wx:if="{{selectedTeamId === item._id}}" class="check-icon">✓</view>
+    </view>
+  </view>
+
+  <!-- 空状态 -->
+  <view wx:if="{{loaded && myTeams.length === 0}}" class="empty-state">
+    <text style="font-size: 80rpx;">🏆</text>
+    <text class="empty-text">您还没有创建或加入任何球队</text>
+    <view class="btn-create" bindtap="createTeam">创建球队</view>
+  </view>
+
+  <view style="height: 100rpx;"></view>
+</view>

@@ -133,6 +133,152 @@
   box-shadow: 0 2rpx 8rpx rgba(0,0,0,0.2);
 }
 
+/* 球队区块 */
+.team-group {
+  margin-top: 16rpx;
+}
+
+.team-group-label {
+  font-size: 22rpx;
+  color: #999;
+  margin-bottom: 12rpx;
+  font-weight: normal;
+}
+
+.team-name {
+  font-size: 30rpx;
+  font-weight: 500;
+  color: #333;
+  margin-bottom: 8rpx;
+}
+
+.team-meta-row {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+}
+
+.role-creator {
+  font-size: 20rpx;
+  color: #e67e22;
+  font-weight: 500;
+  padding: 2rpx 12rpx;
+  border: 1rpx solid #e67e22;
+  border-radius: 14rpx;
+}
+
+.role-member {
+  font-size: 20rpx;
+  color: #27ae60;
+  font-weight: 500;
+  padding: 2rpx 12rpx;
+  border: 1rpx solid #27ae60;
+  border-radius: 14rpx;
+}
+
+.team-group-label-inline {
+  position: absolute;
+  top: 16rpx;
+  left: 24rpx;
+  font-size: 22rpx;
+  color: #fff;
+  background: rgba(0,0,0,0.4);
+  padding: 4rpx 16rpx;
+  border-radius: 20rpx;
+  z-index: 1;
+}
+
+.team-item {
+  position: relative;
+  display: flex;
+  align-items: center;
+  padding: 16rpx 0;
+  border-bottom: 1rpx solid #f5f5f5;
+  transition: opacity 0.2s;
+}
+
+.team-item:last-child { border-bottom: none; }
+.team-item:active { opacity: 0.7; }
+
+.team-logo {
+  width: 72rpx;
+  height: 72rpx;
+  border-radius: 50%;
+  background: #f0f0f0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 20rpx;
+  flex-shrink: 0;
+  overflow: hidden;
+}
+
+.team-logo-img {
+  width: 100%;
+  height: 100%;
+}
+
+.team-logo-placeholder {
+  font-size: 36rpx;
+  opacity: 0.4;
+}
+
+.team-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 6rpx;
+}
+
+.team-name {
+  font-size: 28rpx;
+  color: #333;
+  font-weight: 500;
+}
+
+.team-meta {
+  font-size: 22rpx;
+  color: #999;
+}
+
+.show-more-btn {
+  text-align: center;
+  color: #007AFF;
+  font-size: 28rpx;
+  padding: 20rpx 0;
+  border-top: 1rpx solid #f0f0f0;
+  margin-top: 8rpx;
+}
+
+.team-arrow {
+  font-size: 32rpx;
+  color: #ccc;
+  flex-shrink: 0;
+}
+
+/* 无球队提示 */
+.empty-team-tip {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12rpx;
+  padding: 20rpx 0;
+}
+
+.empty-team-icon { font-size: 48rpx; }
+.empty-team-text { font-size: 26rpx; color: #999; }
+
+.btn-create-team {
+  background: linear-gradient(135deg, #2ecc71, #27ae60);
+  color: #fff;
+  text-align: center;
+  padding: 22rpx 0;
+  border-radius: 50rpx;
+  font-size: 28rpx;
+  font-weight: bold;
+  margin-top: 16rpx;
+}
+
 /* 统计 */
 .stats-row {
   display: flex;

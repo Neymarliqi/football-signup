@@ -1,0 +1,81 @@
+<!-- pages/team/create.wxml - 创建球队 -->
+<view class="container">
+  <view class="page-header">
+    <text class="page-header-title">🏆 创建球队</text>
+  </view>
+
+  <!-- 封面图 -->
+  <view class="card">
+    <view class="section-title">🖼️ 球队封面（可选）</view>
+    <view class="cover-upload-wrap">
+      <view class="cover-preview" bindtap="chooseCover">
+        <image wx:if="{{form.coverPath}}" class="cover-img" src="{{displayCover}}" mode="aspectFill"/>
+        <view wx:if="{{!form.coverPath}}" class="cover-placeholder">
+          <text class="placeholder-icon">🖼️</text>
+          <text class="placeholder-text">点击上传封面</text>
+          <text class="placeholder-sub">建议尺寸 750×300</text>
+        </view>
+        <view wx:if="{{form.coverPath}}" class="cover-change-badge">更换</view>
+      </view>
+    </view>
+  </view>
+
+  <!-- Logo -->
+  <view class="card">
+    <view class="section-title">🔵 球队Logo（可选）</view>
+    <view class="logo-upload-wrap">
+      <view class="logo-preview" bindtap="chooseLogo">
+        <image wx:if="{{form.logoPath}}" class="logo-img" src="{{displayLogo}}" mode="aspectFill"/>
+        <view wx:if="{{!form.logoPath}}" class="logo-placeholder">
+          <text class="placeholder-icon">⚽</text>
+        </view>
+        <view wx:if="{{form.logoPath}}" class="logo-change-badge">更换</view>
+      </view>
+      <text class="logo-hint">建议尺寸 200×200，正方形</text>
+    </view>
+  </view>
+
+  <!-- 基本信息 -->
+  <view class="card">
+    <view class="section-title">📋 基本信息</view>
+
+    <view class="form-item">
+      <view class="form-label">球队名称 <text class="required">*</text></view>
+      <input class="form-input" value="{{form.name}}" bindinput="onInput" data-key="name"
+             placeholder="例：FC前锋" maxlength="20"/>
+      <view class="char-count">{{form.name.length}}/20</view>
+    </view>
+
+    <view class="form-item">
+      <view class="form-label">球队简介</view>
+      <textarea class="form-textarea" value="{{form.description}}" bindinput="onInput" data-key="description"
+                placeholder="简短介绍球队...（可选）" maxlength="200"/>
+      <view class="char-count">{{form.description.length}}/200</view>
+    </view>
+
+    <view class="form-item">
+      <view class="form-label">加入方式</view>
+      <view class="radio-group">
+        <view class="radio-item {{form.joinMethod === 'qrcode' ? 'radio-active' : ''}}" bindtap="selectJoinMethod" data-value="qrcode">
+          📱 直接加入
+        </view>
+        <view class="radio-item {{form.joinMethod === 'apply' ? 'radio-active' : ''}}" bindtap="selectJoinMethod" data-value="apply">
+          📝 申请加入
+        </view>
+      </view>
+      <view class="form-hint">{{form.joinMethod === 'qrcode' ? '任何人都可直接加入球队' : '成员需提交申请，经管理员审批后加入'}}</view>
+    </view>
+  </view>
+
+  <!-- 底部占位 -->
+  <view style="height: 200rpx;"></view>
+</view>
+
+<!-- 底部固定提交栏 -->
+<view class="fixed-submit-bar">
+  <view class="submit-btn btn-primary" bindtap="submit" wx:if="{{!submitting}}">创建球队</view>
+  <view class="submit-btn btn-primary" wx:if="{{submitting}}">创建中...</view>
+</view>
+
+<!-- 注册弹窗 -->
+<register-modal show="{{showRegisterModal}}" bind:registered="onRegistered" bind:close="onCloseRegister" />

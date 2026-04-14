@@ -202,6 +202,27 @@
   max-width: 100%;
 }
 
+/* 球队标签 */
+.team-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6rpx;
+  background: linear-gradient(135deg, #e8f0ff, #d4e8ff);
+  color: #2d6cdf;
+  font-size: 22rpx;
+  padding: 6rpx 16rpx;
+  border-radius: 20rpx;
+  margin-bottom: 12rpx;
+  font-weight: 500;
+}
+
+.team-tag:active {
+  opacity: 0.8;
+}
+
+.team-tag-icon { font-size: 24rpx; }
+.team-tag-text { font-weight: bold; }
+
 /* 报名进度 */
 .register-section { margin-bottom: 20rpx; }
 .register-label { font-size: 26rpx; color: #666; }

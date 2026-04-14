@@ -81,6 +81,12 @@
     <!-- 活动标题 -->
     <view class="act-title">{{item.title}}</view>
 
+    <!-- 球队标签 -->
+    <view wx:if="{{item.teamId}}" class="team-tag" bindtap="goTeamHome" data-teamid="{{item.teamId}}">
+      <text class="team-tag-icon">⚽</text>
+      <text class="team-tag-text">{{item.teamName}}</text>
+    </view>
+
     <!-- 活动信息 -->
     <view class="act-info-row">
       <view class="act-info-item">
@@ -116,8 +122,8 @@
           <text class="count-max">{{item.maxPlayers}}人</text>
         </text>
       </view>
-      <!-- 进度条 -->
-      <view class="progress-bar-bg">
+      <!-- 进度条（不限人数时不显示） -->
+      <view class="progress-bar-bg" wx:if="{{item.maxPlayers !== 999}}">
         <view class="progress-bar-fill {{item.confirmedCount >= item.maxPlayers ? 'bar-full' : 'bar-normal'}}" style="width: {{item.progressPercent || 0}}"></view>
       </view>
     </view>

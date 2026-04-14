@@ -84,21 +84,23 @@ Page({
       app.globalData.userInfo = updatedUserInfo
       wx.setStorageSync('userInfo', updatedUserInfo)
 
-      // 5. 异步保存到云端
-      db.collection('users').doc(openid).set({
-        data: {
-          openid: openid,
-          nickName: updatedUserInfo.nickName,
-          cloudPath: cloudPath,
-          positions: updatedUserInfo.positions || [],
-          updatedAt: db.serverDate()
-        },
-        merge: true
-      }).catch(err => {
+      // 5. 同步保存到云端（等待写入完成再返回，确保其他页面能查到新头像）
+      try {
+        await db.collection('users').doc(openid).set({
+          data: {
+            openid: openid,
+            nickName: updatedUserInfo.nickName,
+            cloudPath: cloudPath,
+            positions: updatedUserInfo.positions || [],
+            updatedAt: db.serverDate()
+          },
+          merge: true
+        })
+      } catch (err) {
         console.error('[edit-profile] 云端保存失败:', err)
-      })
+      }
 
-      // 6. 主动清除自己的缓存（强制其他页面重新查询）
+      // 6. 清除自己的缓存（内存 + Storage 双清）
       if (app.clearUserCache) {
         app.clearUserCache(openid)
       }

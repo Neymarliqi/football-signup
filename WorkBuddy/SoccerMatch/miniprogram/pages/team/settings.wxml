@@ -1,0 +1,69 @@
+<!-- pages/team/settings.wxml - 球队设置 -->
+<view class="container">
+
+  <!-- 封面图 -->
+  <view class="card">
+    <view class="section-title">🖼️ 球队封面</view>
+    <view class="cover-upload-wrap">
+      <view class="cover-preview" bindtap="chooseCover">
+        <image wx:if="{{team.coverPath}}" class="cover-img" src="{{displayCover}}" mode="aspectFill"/>
+        <view wx:if="{{!team.coverPath}}" class="cover-placeholder">
+          <text class="placeholder-icon">🖼️</text>
+          <text class="placeholder-text">点击上传封面</text>
+        </view>
+        <view wx:if="{{team.coverPath}}" class="cover-change-badge">更换</view>
+      </view>
+    </view>
+  </view>
+
+  <!-- Logo -->
+  <view class="card">
+    <view class="section-title">🔵 球队Logo</view>
+    <view class="logo-upload-wrap">
+      <view class="logo-preview" bindtap="chooseLogo">
+        <image wx:if="{{team.logoPath}}" class="logo-img" src="{{displayLogo}}" mode="aspectFill"/>
+        <view wx:if="{{!team.logoPath}}" class="logo-placeholder">
+          <text class="placeholder-icon">⚽</text>
+        </view>
+        <view wx:if="{{team.logoPath}}" class="logo-change-badge">更换</view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 基本信息 -->
+  <view class="card">
+    <view class="section-title">📋 基本信息</view>
+
+    <view class="form-item">
+      <view class="form-label">球队名称</view>
+      <input class="form-input" value="{{team.name}}" bindinput="onInput" data-key="name"
+             placeholder="球队名称" maxlength="20"/>
+    </view>
+
+    <view class="form-item">
+      <view class="form-label">球队简介</view>
+      <textarea class="form-textarea" value="{{team.description}}" bindinput="onInput" data-key="description"
+                placeholder="简短介绍球队..." maxlength="200"/>
+      <view class="char-count">{{descLength}}/200</view>
+    </view>
+
+    <view class="form-item">
+      <view class="form-label">加入方式</view>
+      <view class="radio-group">
+        <view class="radio-item {{team.joinMethod === 'qrcode' ? 'radio-active' : ''}}" bindtap="selectJoinMethod" data-value="qrcode">📱 直接加入</view>
+        <view class="radio-item {{team.joinMethod === 'apply' ? 'radio-active' : ''}}" bindtap="selectJoinMethod" data-value="apply">📝 申请加入</view>
+      </view>
+    </view>
+
+    <view class="save-btn" bindtap="saveInfo">保存修改</view>
+  </view>
+
+  <!-- 解散球队 -->
+  <view class="card danger-zone">
+    <view class="section-title danger-title">⚠️ 危险操作</view>
+    <view class="danger-desc">解散后球队所有数据将被清除，且无法恢复</view>
+    <view class="btn-danger" bindtap="deleteTeam">解散球队</view>
+  </view>
+
+  <view style="height: 100rpx;"></view>
+</view>

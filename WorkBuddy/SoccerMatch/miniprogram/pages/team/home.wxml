@@ -1,0 +1,156 @@
+<!-- pages/team/home.wxml - 球队主页 -->
+<view class="container">
+
+  <!-- 封面 + Logo 头部 -->
+  <view class="team-header">
+    <image wx:if="{{team.coverPath}}" class="header-cover" src="{{displayCover}}" mode="aspectFill"/>
+    <view wx:if="{{!team.coverPath}}" class="header-cover-placeholder"></view>
+    <view class="header-gradient"></view>
+
+    <view class="header-logo-wrap">
+      <view class="logo-frame">
+        <image wx:if="{{team.logoPath}}" class="logo-img" src="{{displayLogo}}" mode="aspectFill"/>
+        <text wx:if="{{!team.logoPath}}" class="logo-placeholder-icon">⚽</text>
+      </view>
+    </view>
+
+    <view class="header-info">
+      <text class="team-name">{{team.name}}</text>
+      <text class="team-meta">👥 {{team.memberCount}}人</text>
+    </view>
+
+    <!-- 右上角编辑按钮（仅创建者可见） -->
+    <view wx:if="{{myRole === 'creator'}}" class="header-edit-btn" bindtap="goSettings">
+      <text class="icon-edit">✏️</text>
+      <text class="label-edit">编辑</text>
+    </view>
+  </view>
+
+  <!-- Tab 切换 -->
+  <view class="team-tabs">
+    <view wx:for="{{tabs}}" wx:key="*this"
+          class="tab-item {{activeTab === item ? 'tab-active' : ''}}"
+          bindtap="switchTab" data-tab="{{item}}">{{item}}</view>
+  </view>
+
+  <!-- ====== 成员 Tab ====== -->
+  <view wx:if="{{activeTab === '成员'}}" class="tab-content">
+    <view wx:if="{{loadingMembers}}" class="empty-tip">加载中...</view>
+
+    <view wx:elif="{{members.length === 0}}" class="empty-tip">暂无成员</view>
+
+    <view wx:else>
+      <!-- 成员列表 -->
+      <view class="card">
+        <view class="section-title">👥 成员列表 ({{members.length}}人)</view>
+        <view wx:for="{{members}}" wx:key="_id" class="member-item">
+          <view class="member-left">
+            <image class="member-avatar" src="{{item.displayAvatar || '/images/default-avatar.png'}}" mode="aspectFill"/>
+            <view class="member-info">
+              <text class="member-name">{{item.nickName}}</text>
+              <text class="member-role {{item.roleClass}}">{{item.roleText}}</text>
+            </view>
+          </view>
+          <view wx:if="{{myRole === 'creator' && item.openid !== myOpenid}}" class="member-actions">
+            <text wx:if="{{item.role !== 'creator'}}" class="action-text" bindtap="toggleAdmin" data-openid="{{item.openid}}" data-current="{{item.role}}">
+              {{item.role === 'admin' ? '取消管理员' : '设为管理员'}}
+            </text>
+            <text wx:if="{{item.role !== 'creator'}}" class="action-text danger" bindtap="removeMember" data-openid="{{item.openid}}">移除</text>
+          </view>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <!-- ====== 活动 Tab ====== -->
+  <view wx:if="{{activeTab === '活动'}}" class="tab-content">
+    <view wx:if="{{loadingActivities}}" class="empty-tip">加载中...</view>
+    <view wx:elif="{{activities.length === 0}}" class="empty-tip">暂无活动</view>
+
+    <view wx:for="{{activities}}" wx:key="_id" class="activity-mini-card" bindtap="goDetail" data-id="{{item._id}}">
+      <view class="mini-card-top">
+        <view class="mini-status tag {{item.statusClass}}">{{item.statusText}}</view>
+        <text class="mini-date">{{item.displayDate}} {{item.time}}</text>
+      </view>
+      <text class="mini-title">{{item.title}}</text>
+      <text class="mini-meta">👥 {{item.confirmedCount}}/{{item.maxPlayers === 999 ? '∞' : item.maxPlayers}}人</text>
+    </view>
+  </view>
+
+  <!-- ====== 散客 Tab（仅创建者/管理员可见）====== -->
+  <view wx:if="{{activeTab === '散客' && (myRole === 'creator' || myRole === 'admin')}}" class="tab-content">
+    <view wx:if="{{loadingCasuals}}" class="empty-tip">加载中...</view>
+    <view wx:elif="{{casuals.length === 0}}" class="empty-tip">暂无散客记录</view>
+
+    <view wx:else>
+      <view class="card">
+        <view class="section-header">
+          <view class="section-title">👻 散客列表（曾报名但未入队）</view>
+          <view class="select-all-btn" bindtap="toggleSelectAll">
+            {{selectedCasuals.length === casuals.length ? '取消全选' : '全选'}}
+          </view>
+        </view>
+        <view wx:for="{{casuals}}" wx:key="_id" class="casual-item">
+          <view class="casual-left" bindtap="toggleCasual" data-openid="{{item.openid}}">
+            <view class="checkbox {{selectedCasuals.indexOf(item.openid) >= 0 ? 'checkbox-checked' : ''}}">
+              <text wx:if="{{selectedCasuals.indexOf(item.openid) >= 0}}">✓</text>
+            </view>
+            <image class="casual-avatar" src="{{item.displayAvatar || '/images/default-avatar.png'}}" mode="aspectFill"/>
+            <view class="casual-info">
+              <text class="casual-name">{{item.nickName}}</text>
+              <text class="casual-meta">报名 {{item.activityCount}} 次</text>
+            </view>
+          </view>
+        </view>
+      </view>
+
+      <!-- 转入按钮（选中后才显示） -->
+      <view wx:if="{{selectedCasuals.length > 0}}" class="convert-tip-bar">
+        已选择 {{selectedCasuals.length}} 位散客
+      </view>
+    </view>
+  </view>
+
+  <!-- ====== 申请 Tab（仅创建者/管理员可见）====== -->
+  <view wx:if="{{activeTab === '申请' && (myRole === 'creator' || myRole === 'admin')}}" class="tab-content">
+    <view wx:if="{{loadingApplications}}" class="empty-tip">加载中...</view>
+    <view wx:elif="{{applications.length === 0}}" class="empty-tip">暂无待审批的申请</view>
+
+    <view wx:else>
+      <view class="card">
+        <view class="section-title">📋 待审批列表（{{applications.length}}人）</view>
+        <view wx:for="{{applications}}" wx:key="_id" class="application-item">
+          <view class="member-left">
+            <image class="member-avatar" src="{{item.displayAvatar || '/images/default-avatar.png'}}" mode="aspectFill"/>
+            <view class="member-info">
+              <text class="member-name">{{item.nickName}}</text>
+              <text class="member-meta">申请于 {{item.appliedAtText}}</text>
+            </view>
+          </view>
+          <view class="application-actions">
+            <view class="btn-approve" bindtap="handleApplication" data-openid="{{item.openid}}" data-action="approve">通过</view>
+            <view class="btn-reject" bindtap="handleApplication" data-openid="{{item.openid}}" data-action="reject">拒绝</view>
+          </view>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 底部安全区 -->
+  <view style="height: {{activeTab === '散客' ? '200rpx' : '160rpx'}}"></view>
+
+  <!-- 底部固定操作栏 -->
+  <!-- 散客Tab：仅转入成员（仅创建者/管理员） -->
+  <view wx:if="{{activeTab === '散客' && (myRole === 'creator' || myRole === 'admin')}}" class="fixed-bottom-bar">
+    <view class="bottom-bar-btn btn-convert {{selectedCasuals.length === 0 ? 'btn-disabled' : ''}}" bindtap="convertCasuals">
+      转入成员{{selectedCasuals.length > 0 ? '（' + selectedCasuals.length + '）' : ''}}
+    </view>
+  </view>
+
+  <!-- 活动/成员Tab：发布 + 邀请（仅创建者/管理员） -->
+  <view wx:elif="{{(activeTab === '活动' || activeTab === '成员') && (myRole === 'creator' || myRole === 'admin')}}" class="fixed-bottom-bar">
+    <view class="bottom-bar-btn btn-publish" bindtap="publishActivity">发布活动</view>
+    <view class="bottom-bar-btn btn-share" bindtap="shareTeam">邀请成员</view>
+  </view>
+
+</view>

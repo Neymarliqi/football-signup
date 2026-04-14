@@ -223,6 +223,27 @@ App({
             }
           })
 
+          // 批量解析头像 URL（一次性获取，避免逐个调用 getTempFileURL）
+          const usersWithCloudPath = Object.values(deduped).filter(u => u.cloudPath)
+          if (usersWithCloudPath.length > 0) {
+            try {
+              // cloudPath 现在存的就是完整 fileID，直接用
+              const fileList = usersWithCloudPath.map(u => u.cloudPath)
+              const fileRes = await wx.cloud.getTempFileURL({ fileList })
+              if (fileRes.fileList) {
+                // fileList 顺序与 usersWithCloudPath 一致，用索引对应
+                fileRes.fileList.forEach((item, index) => {
+                  if (item.status === 0 && item.tempFileURL) {
+                    usersWithCloudPath[index].displayAvatar = item.tempFileURL
+                  }
+                })
+              }
+            } catch (e) {
+              // 头像 URL 解析失败不影响用户数据
+              console.warn('[fetchUsersWithCache] 批量解析头像URL失败:', e)
+            }
+          }
+
           // 写入结果 + 双层缓存（内存 + Storage）
           Object.values(deduped).forEach(user => {
             result[user.openid] = user
@@ -332,13 +353,19 @@ App({
   },
 
   /**
-   * 清除单个用户的缓存
+   * 清除单个用户的缓存（内存 + Storage 双层清理）
    * @param {string} userId - 用户 openid
    */
   clearUserCache(userId) {
-    if (userId && this.globalData.usersCache) {
+    if (!userId) return
+    // 内存缓存
+    if (this.globalData.usersCache) {
       delete this.globalData.usersCache[userId]
     }
+    // Storage 缓存（下次 fetchUsersWithCache 会强制查数据库）
+    try {
+      wx.removeStorageSync(`user_${userId}`)
+    } catch (e) {}
   },
 
   /**
@@ -386,8 +413,10 @@ App({
         cloudPath,
         filePath: compressedPath
       })
-      // 上传成功后返回 cloudPath（不含 fileID 前缀，保持简洁）
-      return cloudPath
+      // 保存完整 fileID（如 cloud://cloud1-5gbn5i1p97239e9d.636c-xxx/avatars/xxx.jpg）
+      // getTempFileURL 需要完整的 fileID 格式
+      const fullFileID = uploadRes.fileID
+      return fullFileID
     } catch (e) {
       console.error('[uploadAvatar] 云存储上传失败', e)
       return ''
@@ -413,52 +442,39 @@ App({
   },
 
   /**
-   * 根据 cloudPath 构造云存储公开访问 URL（同步，无需 getTempFileURL）
-   * 云存储权限设为"所有用户可读"时，可直接拼接 HTTP 地址使用
-   * @param {string} cloudPath - 云存储路径（ avatars/xxx.jpg）
-   * @returns {string} HTTPS 公开 URL
-   */
-  getCloudStorageUrl(cloudPath) {
-    if (!cloudPath) return ''
-    if (cloudPath.startsWith('https://')) return cloudPath
-    if (cloudPath.startsWith('data:image')) return cloudPath
-    if (!cloudPath.startsWith('avatars/')) return ''
-
-    // 从 globalData 取环境 ID（初始化时已设置）
-    const envId = 'cloud1-5gbn5i1p97239e9d'
-    // 云存储公开 URL 格式
-    return `https://${envId}.tcloudbaseapp.com/${cloudPath}`
-  },
-
-  /**
    * 获取用户可显示的头像URL（同步）
-   * 优先级：cloudPath（云存储） > avatarBase64（旧数据兼容） > avatarUrl > 默认头像
+   * 优先级：预解析 displayAvatar > avatarBase64 > cloudPath（需 getTempFileURL） > 默认头像
    * @param {Object} user - 用户信息对象
-   * @returns {string} 可直接用于 <image src> 的URL
+   * @returns {string} 可直接用于 <image src> 的 URL
    */
   getDisplayAvatar(user) {
     if (!user) return this.globalData.defaultAvatar
 
-    // 优先：cloudPath（云存储方案，v2.2.0+）
-    if (user.cloudPath) {
-      const url = this.getCloudStorageUrl(user.cloudPath)
-      if (url) return url
-    }
-
-    // 兼容：旧 base64 数据（懒迁移，不主动迁移）
+    // 优先：fetchUsersWithCache 已预解析的临时 URL（有效期约2小时）
+    if (user.displayAvatar) return user.displayAvatar
     if (user.avatarBase64) return user.avatarBase64
-
-    // 兼容：旧的 cloud://（从缓存取）
-    if (user.avatarUrl) {
-      if (user.avatarUrl.startsWith('data:image')) return user.avatarUrl
-      if (user.avatarUrl.startsWith('https://')) return user.avatarUrl
-      if (user.avatarUrl.startsWith('cloud://')) {
-        const cached = this.globalData._fileUrlCache[user.avatarUrl]
-        if (cached) return cached
-      }
+    // cloudPath 需通过 getTempFileURL 转成 HTTPS 才能被 image 组件加载
+    if (user.cloudPath) {
+      return this._resolveCloudPath(user.cloudPath)
     }
-
     return this.globalData.defaultAvatar
+  },
+
+  /**
+   * 将 cloud:// 文件ID 转成 HTTPS 临时 URL（同步，异步获取后缓存）
+   * @param {string} cloudFileID - 完整的 cloud:// 文件ID
+   * @returns {string} HTTPS URL 或原始 fileID（失败时降级）
+   */
+  _resolveCloudPath(cloudFileID) {
+    const cached = this.globalData._fileUrlCache
+    if (cached[cloudFileID]) return cached[cloudFileID]
+    // 同步返回 fileID，异步获取后下次生效
+    wx.cloud.getTempFileURL({ fileList: [cloudFileID] }).then(res => {
+      if (res.fileList && res.fileList[0].status === 0) {
+        cached[cloudFileID] = res.fileList[0].tempFileURL
+      }
+    }).catch(() => {})
+    return cloudFileID
   },
 
   /**

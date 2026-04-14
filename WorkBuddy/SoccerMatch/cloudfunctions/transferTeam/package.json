@@ -1,0 +1,9 @@
+{
+  "name": "transferTeam",
+  "version": "1.0.0",
+  "description": "转让球队创建者身份",
+  "main": "index.js",
+  "dependencies": {
+    "wx-server-sdk": "~2.6.3"
+  }
+}
