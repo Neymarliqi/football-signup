@@ -92,6 +92,7 @@ Page({
   },
 
   // 后台静默刷新用户信息（不显示 loading，不影响页面交互）
+  // 注意：forceRefresh=true 确保新注册用户的信息能及时加载
   async silentRefreshUsers() {
     try {
       const allUserIds = new Set()
@@ -104,7 +105,8 @@ Page({
       })
 
       if (allUserIds.size > 0) {
-        const latestUsers = await app.fetchUsersWithCache(Array.from(allUserIds), false)
+        // forceRefresh=true 确保新注册用户的信息能及时加载到缓存
+        const latestUsers = await app.fetchUsersWithCache(Array.from(allUserIds), true)
         const openid = app.globalData.openid || wx.getStorageSync('openid')
         const formattedActivities = await Promise.all(this.data.activities.map(act => this.formatActivity(act, openid, latestUsers)))
         this.setData({ activities: formattedActivities })
@@ -232,6 +234,64 @@ Page({
       let activities = res.data
       console.log('[index] 查询到活动数量:', activities.length, '筛选条件:', filter)
 
+      // ========== 球队权限判断 ==========
+      // 收集所有活动的 teamId
+      const teamIds = new Set()
+      let publicActivities = 0
+      activities.forEach(act => {
+        if (act.teamId) {
+          teamIds.add(act.teamId)
+        } else {
+          publicActivities++
+        }
+      })
+      console.log('[index] 活动统计: 公开=', publicActivities, '球队=', teamIds.size, 'openid=', openid)
+
+      // 查询用户所属的球队（作为成员）
+      let myTeamIds = new Set()
+      if (openid && teamIds.size > 0) {
+        try {
+          const teamMembersRes = await db.collection('team_members')
+            .where({
+              openid: openid,
+              teamId: db.command.in(Array.from(teamIds))
+            })
+            .get()
+          console.log('[index] 球队成员查询结果:', teamMembersRes.data.length, teamMembersRes.data.map(m => m.teamId))
+          teamMembersRes.data.forEach(member => {
+            myTeamIds.add(member.teamId)
+          })
+        } catch (e) {
+          console.error('[index] 查询球队成员失败', e)
+        }
+      } else {
+        console.log('[index] 跳过球队成员查询: openid=', openid, 'teamIds.size=', teamIds.size)
+      }
+
+      // 查询用户作为散客报名的球队
+      let casualTeamIds = new Set()
+      if (openid && teamIds.size > 0) {
+        try {
+          const casualsRes = await db.collection('team_casuals')
+            .where({
+              openid: openid,
+              teamId: db.command.in(Array.from(teamIds))
+            })
+            .get()
+          console.log('[index] 散客查询结果:', casualsRes.data.length, casualsRes.data.map(c => c.teamId))
+          casualsRes.data.forEach(casual => {
+            casualTeamIds.add(casual.teamId)
+          })
+        } catch (e) {
+          console.error('[index] 查询散客记录失败', e)
+        }
+      }
+
+      // 合并：用户有权查看的 teamId 集合
+      const visibleTeamIds = new Set([...myTeamIds, ...casualTeamIds])
+      console.log('[index] 最终可见球队:', Array.from(visibleTeamIds))
+      // ========== 球队权限判断结束 ==========
+
       // 收集所有需要查询的用户ID
       const allUserIds = new Set()
       activities.forEach(act => {
@@ -255,19 +315,21 @@ Page({
       console.log('[index] 开始格式化, activities:', activities.length)
       const formattedActivities = await Promise.all(activities.map(act => {
         try {
-          const result = this.formatActivity(act, openid, latestUsers)
+          // 传入 visibleTeamIds 用于判断用户是否有权限查看该活动
+          const result = this.formatActivity(act, openid, latestUsers, visibleTeamIds)
           return result
         } catch (e) {
           console.error('[index] formatActivity 异常:', e, 'act:', act)
           return null
         }
       }))
-      // 过滤掉 null
+      // 过滤掉 null（无权限查看的球队活动返回 null）
       const validActivities = formattedActivities.filter(a => a !== null)
       console.log('[index] 格式化完成, 有效数据:', validActivities.length)
 
-      // 根据筛选条件二次过滤（解决数据库 status 与前端 effectiveStatus 不一致的问题）
-      // 例如：status=open 但已过期的活动不应该出现在"未开始"列表中
+      // 根据筛选条件三次过滤
+      // 1. 首先根据筛选标签过滤（状态）
+      // 2. 全部标签不再过滤状态（显示所有可见活动）
       let filteredActivities = validActivities
       if (filter === 'upcoming') {
         // 未开始：只显示 effectiveStatus 为 open 的活动
@@ -288,12 +350,12 @@ Page({
         console.log('[index] setData 完成, activities.length:', this.data.activities.length)
       })
 
-      // 缓存活动列表到本地（冷启动秒开，使用未筛选的全部数据）
-      this.saveActivitiesCache(formattedActivities)
+      // 缓存活动列表到本地（只缓存用户有权限看到的活动）
+      this.saveActivitiesCache(filteredActivities)
 
-      // 启用数据库监听（只监听最近 7 天的活动，减少性能影响）
+      // 启用数据库监听（传入 visibleTeamIds 用于实时更新的权限判断）
       if (!this.data.activityWatcher) {
-        this.startActivityWatcher(openid, latestUsers)
+        this.startActivityWatcher(openid, latestUsers, visibleTeamIds)
       }
     } catch (e) {
       console.error('加载活动失败', e)
@@ -307,11 +369,16 @@ Page({
   },
 
   // 启动数据库监听（实时更新）
-  startActivityWatcher(openid, latestUsers = {}) {
+  startActivityWatcher(openid, latestUsers = {}, visibleTeamIds = new Set()) {
     // 先关闭旧监听
     if (this.data.activityWatcher) {
       this.data.activityWatcher.close()
     }
+
+    // 标记：是否是首次触发（首次触发用于同步旧数据，应该忽略）
+    let isFirstTrigger = true
+    // 记录首次触发时的数据版本（用于后续增量更新）
+    let lastKnownDocs = []
 
     // 只监听最近 7 天创建的活动（减少监听范围）
     const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
@@ -322,48 +389,123 @@ Page({
       })
       .watch({
         onChange: async (snapshot) => {
+          console.log('[index] watcher onChange 触发, docs数量:', snapshot.docs?.length, 'isFirst:', isFirstTrigger)
+
+          // ========== 首次触发忽略：loadActivities 已经加载了正确数据 ==========
+          if (isFirstTrigger) {
+            console.log('[index] watcher 首次触发，忽略（等待后续增量更新）')
+            isFirstTrigger = false
+            return
+          }
+          // ========== 首次触发处理结束 ==========
+
+          // 获取增量变更，而不是整个 docs 数组
+          const changes = snapshot.docChanges()
+          console.log('[index] watcher docChanges:', changes?.length, changes)
+          if (!changes || changes.length === 0) return
+
           // 从当前页面的 activities 中获取 openid（避免闭包 stale 问题）
           const currentOpenid = app.globalData.openid || wx.getStorageSync('openid')
+
+          // ========== 重新查询可见球队权限 ==========
+          let currentVisibleTeamIds = visibleTeamIds
+          if (currentOpenid) {
+            try {
+              const teamMembersRes = await db.collection('team_members')
+                .where({ openid: currentOpenid })
+                .get()
+              const myTeamIds = new Set(teamMembersRes.data.map(m => m.teamId))
+
+              const casualsRes = await db.collection('team_casuals')
+                .where({ openid: currentOpenid })
+                .get()
+              const casualTeamIds = new Set(casualsRes.data.map(c => c.teamId))
+
+              currentVisibleTeamIds = new Set([...myTeamIds, ...casualTeamIds])
+            } catch (e) {
+              console.error('[index] watcher 权限查询失败', e)
+            }
+          }
+          // ========== 权限查询结束 ==========
+
+          // 获取需要更新的活动 ID 集合
+          const changedIds = new Set(changes.map(c => c.docId))
           
-          // 收集所有需要查询的用户ID（包括当前页面数据和 watcher 数据）
+          // 收集所有需要查询的用户ID
           const allUserIds = new Set()
-          // 先从 watcher 变更中获取
-          snapshot.docs.forEach(act => {
-            const regs = act.registrations || []
-            regs.forEach(r => {
-              if (r.openid) allUserIds.add(r.openid)
-            })
-          })
-          // 再从当前页面数据中获取（确保不遗漏）
-          this.data.activities.forEach(act => {
-            const regs = act.registrations || []
-            regs.forEach(r => {
-              if (r.openid) allUserIds.add(r.openid)
-            })
+          changes.forEach(change => {
+            // 只有 doc 存在时才收集用户ID
+            if (change.doc) {
+              const regs = change.doc.registrations || []
+              regs.forEach(r => {
+                if (r.openid) allUserIds.add(r.openid)
+              })
+            }
           })
 
           let newLatestUsers = {}
           if (allUserIds.size > 0) {
             try {
-              // 使用全局缓存系统（强制刷新确保最新）
               newLatestUsers = await app.fetchUsersWithCache(Array.from(allUserIds), true)
             } catch (e) {
-              // 实时更新用户信息失败，保留已有数据
             }
           }
 
-          // 更新活动列表
-          const formattedActivities = await Promise.all(snapshot.docs.map(act =>
-            this.formatActivity(act, currentOpenid, newLatestUsers)
-          ))
+          // 格式化变更的活动
+          const formatChange = async (change) => {
+            const act = change.doc
+            if (!act) return null
+            
+            // type: 'update' | 'remove' | 'init'
+            if (change.type === 'remove') {
+              return { _id: change.docId, _deleted: true }
+            }
+            
+            const formatted = await this.formatActivity(act, currentOpenid, newLatestUsers, currentVisibleTeamIds)
+            return formatted
+          }
+
+          const formattedChanges = await Promise.all(changes.map(formatChange))
+
+          // 构建新的 activities 数组
+          let newActivities = [...this.data.activities]
+          
+          formattedChanges.forEach((item, index) => {
+            const change = changes[index]
+            if (!item) return
+            
+            if (item._deleted) {
+              // 删除：移除对应活动
+              newActivities = newActivities.filter(a => a._id !== change.docId)
+            } else if (item !== null) {
+              // 更新或新增：查找并替换或添加
+              const existIndex = newActivities.findIndex(a => a._id === change.docId)
+              if (existIndex >= 0) {
+                newActivities[existIndex] = item
+              } else {
+                newActivities.unshift(item)
+              }
+            }
+          })
+
+          // 过滤无权限查看的活动（防止之前有权限但现在没了）
+          newActivities = newActivities.filter(a => {
+            if (a._deleted) return false
+            // 球队活动权限检查
+            if (a.teamId && !currentVisibleTeamIds.has(a.teamId)) {
+              return false
+            }
+            return true
+          })
+
+          console.log('[index] watcher 更新, 新数组长度:', newActivities.length)
+
           this.setData({
-            activities: formattedActivities
+            activities: newActivities
           }, () => {
-            // 数据更新后也静默刷新一次用户缓存（保持一致性）
             this.silentRefreshUsers()
           })
-          // 实时更新也写入缓存
-          this.saveActivitiesCache(formattedActivities)
+          this.saveActivitiesCache(newActivities)
         },
         onError: (err) => {
           console.error('数据库监听失败', err)
@@ -378,7 +520,26 @@ Page({
   },
 
   // 格式化活动数据
-  async formatActivity(act, openid, latestUsers = {}) {
+  // @param act - 活动数据
+  // @param openid - 当前用户openid
+  // @param latestUsers - 用户信息缓存
+  // @param visibleTeamIds - 用户有权查看的teamId集合
+  async formatActivity(act, openid, latestUsers = {}, visibleTeamIds = new Set()) {
+    // ========== 球队活动权限判断 ==========
+    // 权限规则：
+    // 1. 无 teamId = 公开活动，所有人可见
+    // 2. 有 teamId = 球队活动，只有球队成员/散客可见
+    // 3. 例外：活动创建者可查看自己创建的活动（即使还没被加入球队）
+    const isCreator = act.createdBy === openid
+    if (act.teamId) {
+      const hasAccess = visibleTeamIds.has(act.teamId) || isCreator
+      if (!hasAccess) {
+        console.log('[index] formatActivity 过滤球队活动:', act.teamId, act.title, '可见列表:', Array.from(visibleTeamIds), '创建者:', isCreator)
+        return null
+      }
+    }
+    // ========== 权限判断结束 ==========
+
     const registrations = act.registrations || []
     const confirmed = registrations.filter(r => r.status === 'confirmed')
     const pending = registrations.filter(r => r.status === 'pending')
@@ -393,9 +554,6 @@ Page({
 
     // 进度百分比（不限人数时隐藏）
     const percent = isUnlimited ? -1 : Math.min((confirmed.length / act.maxPlayers) * 100, 100)
-
-    // 判断是否是发布者
-    const isCreator = act.createdBy === openid
 
     // 状态判断：基于日期动态计算（与详情页一致）
     // 规则：已取消 > 已结束（时间到/截止） > 进行中 > 报名中
@@ -505,6 +663,21 @@ Page({
       ...act
     }
 
+    // 活动来源标记
+    // 无 teamId = 公开活动，标记为"🏠 公开"
+    // 有 teamId = 球队活动，标记为球队 Logo + 名称
+    const isPublic = !act.teamId
+    let sourceTag, sourceTagClass, teamLogo
+    if (isPublic) {
+      sourceTag = '🏠 公开'
+      sourceTagClass = 'tag-public'
+      teamLogo = ''
+    } else {
+      sourceTag = act.teamName || '球队'  // 只存名称，Logo 单独字段
+      sourceTagClass = 'tag-team'
+      teamLogo = act.teamLogo || ''  // 球队 Logo
+    }
+
     return {
       ...actWithDefaults,
       registrations, // 重要：保留 registrations 字段，用于后续刷新用户信息
@@ -523,7 +696,12 @@ Page({
       canDelete,
       myStatus,
       myStatusText,
-      myStatusClass
+      myStatusClass,
+      // 活动来源标记
+      sourceTag,
+      sourceTagClass,
+      teamLogo,
+      isPublic
     }
   },
 

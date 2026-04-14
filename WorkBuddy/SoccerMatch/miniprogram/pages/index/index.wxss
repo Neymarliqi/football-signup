@@ -161,7 +161,7 @@
   font-size: 36rpx;
   font-weight: bold;
   color: #1a1a2e;
-  margin-bottom: 20rpx;
+  margin-bottom: 16rpx;
   line-height: 1.4;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -171,6 +171,62 @@
   word-break: break-all;
 }
 
+/* 来源标签行 */
+.status-tag-row {
+  margin-bottom: 16rpx;
+}
+
+/* 来源标签样式（公开/球队） */
+.source-tag {
+  font-size: 22rpx;
+  padding: 6rpx 16rpx;
+  border-radius: 20rpx;
+  font-weight: bold;
+}
+
+/* 标签组（横向排列） */
+.tag-group {
+  display: flex;
+  gap: 12rpx;
+  align-items: center;
+}
+
+/* 标签内 Logo */
+.tag-logo {
+  width: 32rpx;
+  height: 32rpx;
+  border-radius: 50%;
+  margin-right: 6rpx;
+  vertical-align: middle;
+}
+
+/* 标签文字 */
+.tag-text {
+  vertical-align: middle;
+}
+
+/* 球队名称字数限制 */
+.tag-text.team-name {
+  max-width: 120rpx;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  display: inline-block;
+}
+
+/* 公开标签 */
+.tag-public {
+  background: linear-gradient(135deg, #f0f0f0, #e8e8e8);
+  color: #666;
+}
+
+/* 球队标签 */
+.tag-team {
+  background: linear-gradient(135deg, #fff3e0, #ffe0b2);
+  color: #e65100;
+}
+
+/* 活动信息行 */
 .act-info-row {
   display: flex;
   gap: 30rpx;

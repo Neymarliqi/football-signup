@@ -69,8 +69,14 @@ Page({
 
   onLoad(options) {
     const id = options.id
-    this.setData({ activityId: id, isAdmin: app.globalData.isAdmin })
-    this.loadActivity()
+    if (!id) {
+      wx.showToast({ title: '活动不存在', icon: 'none' })
+      wx.navigateBack()
+      return
+    }
+    this.setData({ activityId: id, isAdmin: app.globalData.isAdmin }, () => {
+      this.loadActivity()
+    })
   },
 
   onUnload() {
@@ -88,7 +94,10 @@ Page({
       app.globalData.userInfo = localUserInfo
     }
 
-    this.loadActivity(true) // 传入 true，强制刷新用户缓存
+    // 只有在 activityId 已设置时才加载，不重启 watcher 避免冲突
+    if (this.data.activityId) {
+      this.loadActivity(true, false)
+    }
   },
 
   // 注册完成回调
@@ -130,7 +139,7 @@ Page({
     return true
   },
 
-  async loadActivity(forceRefreshUsers = false) {
+  async loadActivity(forceRefreshUsers = false, startWatcher = true) {
     const { activityId } = this.data
     if (!activityId) return
 
@@ -159,8 +168,10 @@ Page({
       await this.processActivity(act, openid, latestUsers)
       this.setData({ loading: false })
 
-      // 启动数据库监听（只监听当前活动）
-      this.startActivityWatcher(activityId, openid)
+      // 启动数据库监听（只在首次加载时启动，onShow 刷新时跳过避免冲突）
+      if (startWatcher && !this.data.activityWatcher) {
+        this.startActivityWatcher(activityId, openid)
+      }
     } catch (e) {
       console.error('加载活动详情失败', e)
       this.setData({ loading: false })
@@ -175,6 +186,7 @@ Page({
     // 先关闭旧监听
     if (this.data.activityWatcher) {
       this.data.activityWatcher.close()
+      this.setData({ activityWatcher: null })
     }
 
     // 只监听当前活动（精确监听）
@@ -182,6 +194,10 @@ Page({
       .doc(activityId)
       .watch({
         onChange: async (snapshot) => {
+          // 检查 watcher 是否已被关闭
+          if (!this.data.activityWatcher) {
+            return
+          }
 
           const act = snapshot.docs[0]
           if (!act) return
@@ -296,6 +312,23 @@ Page({
     const pendingPlayers = pending.slice(0, MAX_DISPLAY).map(processPlayer)
     const leavePlayers = leave.slice(0, MAX_DISPLAY).map(processPlayer)
 
+    // ========== 球队信息处理 ==========
+    let teamLogo = ''
+    let isTeamActivity = false
+    if (act.teamId) {
+      isTeamActivity = true
+      // 查询球队 Logo
+      try {
+        const teamRes = await db.collection('teams').doc(act.teamId).get()
+        if (teamRes.data && teamRes.data.logoPath) {
+          teamLogo = teamRes.data.logoPath
+        }
+      } catch (e) {
+        // 查询失败不影响主流程
+      }
+    }
+    // ========== 球队信息处理结束 ==========
+
     // 活动状态
     const now = new Date()
     const actDate = act.activityDate instanceof Date ? act.activityDate : new Date(act.activityDate)
@@ -365,7 +398,10 @@ Page({
       statusText,
       statusClass,
       displayDate,
-      effectiveStatus
+      effectiveStatus,
+      // 球队信息
+      teamLogo,
+      isTeamActivity
     }
 
     this.setData({

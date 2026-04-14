@@ -69,9 +69,19 @@
 
   <view wx:for="{{activities}}" wx:key="_id" class="activity-card" bindtap="goDetail" data-id="{{item._id}}">
     
-    <!-- 活动状态标签 -->
+    <!-- 卡片顶部：标签 + 日期 -->
     <view class="card-top flex-between">
-      <view class="act-status-tag tag {{item.statusClass}}">{{item.statusText}}</view>
+      <!-- 左侧标签组：来源标签 + 状态标签 -->
+      <view class="tag-group">
+        <!-- 来源标签：公开 / 球队 -->
+        <view class="source-tag tag {{item.sourceTagClass}}">
+          <image wx:if="{{item.teamLogo}}" class="tag-logo" src="{{item.teamLogo}}" mode="aspectFill"/>
+          <text wx:if="{{item.isPublic}}" class="tag-text">🏠 公开</text>
+          <text wx:else class="tag-text team-name">{{item.sourceTag}}</text>
+        </view>
+        <view class="act-status-tag tag {{item.statusClass}}">{{item.statusText}}</view>
+      </view>
+      <!-- 右侧日期 -->
       <view class="act-time-badge">
         <text class="icon-text">📅 </text>
         <text>{{item.displayDate}}</text>
@@ -80,12 +90,6 @@
 
     <!-- 活动标题 -->
     <view class="act-title">{{item.title}}</view>
-
-    <!-- 球队标签 -->
-    <view wx:if="{{item.teamId}}" class="team-tag" bindtap="goTeamHome" data-teamid="{{item.teamId}}">
-      <text class="team-tag-icon">⚽</text>
-      <text class="team-tag-text">{{item.teamName}}</text>
-    </view>
 
     <!-- 活动信息 -->
     <view class="act-info-row">

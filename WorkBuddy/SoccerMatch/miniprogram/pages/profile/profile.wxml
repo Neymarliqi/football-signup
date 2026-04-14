@@ -39,42 +39,57 @@
   </view>
 
   <!-- 球队专区 -->
-  <view class="card" wx:if="{{myTeams.length > 0 || loadingTeams}}">
+  <view class="card">
     <view class="section-header">
       <view class="section-title">🏆 我的球队</view>
       <view class="section-more" bindtap="goCreateTeam">+ 创建球队</view>
     </view>
 
-    <view wx:for="{{displayTeams}}" wx:key="_id" class="team-item" bindtap="goTeamHome" data-teamid="{{item._id}}">
-      <view class="team-logo">
-        <image wx:if="{{item.logoPath}}" class="team-logo-img" src="{{item.logoPath}}" mode="aspectFill"/>
-        <text wx:if="{{!item.logoPath}}" class="team-logo-placeholder">⚽</text>
-      </view>
-      <view class="team-info">
-        <text class="team-name">{{item.name}}</text>
-        <view class="team-meta-row">
-          <text class="{{item.myRole === 'creator' ? 'role-creator' : 'role-member'}}">{{item.myRole === 'creator' ? '👑 创建' : '👤 加入'}}</text>
-          <text class="team-meta">👥 {{item.memberCount}}人</text>
+    <!-- 骨架屏 - 加载中显示 -->
+    <view wx:if="{{loadingTeams}}" class="team-skeleton">
+      <view wx:for="{{[1,2]}}" wx:key="*this" class="team-skeleton-item">
+        <view class="team-skeleton-logo"></view>
+        <view class="team-skeleton-info">
+          <view class="team-skeleton-name"></view>
+          <view class="team-skeleton-meta">
+            <view class="team-skeleton-tag"></view>
+            <view class="team-skeleton-count"></view>
+          </view>
         </view>
+        <view class="team-skeleton-arrow"></view>
       </view>
-      <view class="team-arrow">›</view>
     </view>
 
-    <view wx:if="{{myTeams.length > 5}}" class="show-more-btn" bindtap="toggleShowAllTeams">
-      {{showAllTeams ? '收起 ▲' : '查看全部 ' + myTeams.length + ' 支球队 >'}}
-    </view>
-  </view>
+    <!-- 真实数据 - 加载完成后显示 -->
+    <block wx:elif="{{myTeams.length > 0}}">
+      <view wx:for="{{displayTeams}}" wx:key="_id" class="team-item" bindtap="goTeamHome" data-teamid="{{item._id}}">
+        <view class="team-logo">
+          <image wx:if="{{item.logoPath}}" class="team-logo-img" src="{{item.logoPath}}" mode="aspectFill"/>
+          <text wx:if="{{!item.logoPath}}" class="team-logo-placeholder">⚽</text>
+        </view>
+        <view class="team-info">
+          <text class="team-name">{{item.name}}</text>
+          <view class="team-meta-row">
+            <text class="{{item.myRole === 'creator' ? 'role-creator' : 'role-member'}}">{{item.myRole === 'creator' ? '👑 创建' : '👤 加入'}}</text>
+            <text class="team-meta">👥 {{item.memberCount}}人</text>
+          </view>
+        </view>
+        <view class="team-arrow">›</view>
+      </view>
 
-  <!-- 无球队时显示引导 -->
-  <view class="card" wx:if="{{!loadingTeams && myTeams.length === 0}}">
-    <view class="section-header">
-      <view class="section-title">🏆 我的球队</view>
-    </view>
-    <view class="empty-team-tip">
+      <view wx:if="{{myTeams.length > 5}}" class="show-more-btn" bindtap="toggleShowAllTeams">
+        {{showAllTeams ? '收起 ▲' : '查看全部 ' + myTeams.length + ' 支球队 >'}}
+      </view>
+    </block>
+
+    <!-- 无球队时显示引导 -->
+    <view wx:else class="empty-team-tip">
       <text class="empty-team-icon">🏆</text>
       <text class="empty-team-text">还没有加入任何球队</text>
     </view>
-    <view class="btn-create-team" bindtap="goCreateTeam">创建球队</view>
+
+    <!-- 无球队时显示创建按钮 -->
+    <view wx:if="{{!loadingTeams && myTeams.length === 0}}" class="btn-create-team" bindtap="goCreateTeam">创建球队</view>
   </view>
 
   <!-- 我的统计 -->

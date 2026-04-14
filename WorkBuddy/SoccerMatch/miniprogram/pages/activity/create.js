@@ -526,6 +526,8 @@ Page({
   },
 
   async submit() {
+    const { form, isEdit, activityId, customMatchTypes } = this.data
+
     if (!this.validate()) {
       return
     }
@@ -554,7 +556,6 @@ Page({
     }
 
     wx.showLoading({ title: '发布中...' })
-    const { form, isEdit, activityId, customMatchTypes } = this.data
 
     // 构建活动时间
     const timeStr = form.endTime ? `${form.startTime} - ${form.endTime}` : form.startTime

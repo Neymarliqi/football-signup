@@ -53,7 +53,14 @@
     <!-- 活动头部信息卡 -->
     <view class="detail-header-card">
       <view class="flex-between mb-10">
-        <view class="tag {{activity.statusClass}}">{{activity.statusText}}</view>
+        <view class="header-tags">
+          <view class="tag {{activity.statusClass}}">{{activity.statusText}}</view>
+          <!-- 球队标签 - 球队活动时显示 -->
+          <view wx:if="{{activity.isTeamActivity}}" class="tag tag-team">
+            <image wx:if="{{activity.teamLogo}}" class="tag-team-logo" src="{{activity.teamLogo}}" mode="aspectFill"/>
+            <text>{{activity.teamName}}</text>
+          </view>
+        </view>
         <!-- 管理操作区（仅发布者可见） -->
         <view class="header-actions" wx:if="{{isCreator}}">
           <view class="action-link" wx:if="{{activity.effectiveStatus === 'open'}}" catchtap="editActivity">编辑</view>

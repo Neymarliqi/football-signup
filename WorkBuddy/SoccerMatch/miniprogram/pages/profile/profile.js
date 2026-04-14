@@ -45,7 +45,7 @@ Page({
     displayTeams: [],
     createdTeams: [],
     joinedTeams: [],
-    loadingTeams: false,
+    loadingTeams: true,
     showAllTeams: false
   },
 
