@@ -430,10 +430,9 @@ Page({
 
   // ========== 发布活动 ==========
   publishActivity() {
-    const { teamId } = this.data
-    wx.navigateTo({
-      url: `/pages/activity/create?teamId=${teamId}`
-    })
+    const { teamId, team } = this.data
+    const url = `/pages/activity/create?teamId=${teamId}&teamName=${encodeURIComponent(team.name)}`
+    wx.navigateTo({ url })
   },
 
   // ========== 球队设置 ==========

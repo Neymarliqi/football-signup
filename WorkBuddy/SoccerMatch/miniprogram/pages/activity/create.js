@@ -77,19 +77,25 @@ Page({
       const tomorrow = new Date()
       tomorrow.setDate(tomorrow.getDate() + 1)
       const defaultDate = `${tomorrow.getFullYear()}-${String(tomorrow.getMonth() + 1).padStart(2,'0')}-${String(tomorrow.getDate()).padStart(2,'0')}`
-      this.setData({ 
+      
+      const formData = { 
         'form.date': defaultDate, 
         'form.startTime': '19:00', 
         'form.endTime': '21:00'
-      })
+      }
+      
+      // 如果从球队主页跳转过来，填充球队信息
+      if (options.teamId) {
+        formData['form.teamId'] = options.teamId
+        formData['form.teamName'] = decodeURIComponent(options.teamName || '')
+        // 球队活动默认可见范围为 open
+        formData['form.visibility'] = 'open'
+      }
+      
+      this.setData(formData)
     }
 
     wx.setNavigationBarTitle({ title: options.id ? '编辑活动' : '发布活动' })
-
-    // 如果从球队主页跳转过来，填充球队ID
-    if (options.teamId) {
-      this.setData({ 'form.teamId': options.teamId })
-    }
   },
 
   // ========== 球队选择 ==========
@@ -245,7 +251,10 @@ Page({
         deadlineDisplay: deadlineDisplay,
         allowPending: act.allowPending !== false,
         notice: act.notice || '',
-        status: act.status || 'open'
+        status: act.status || 'open',
+        teamId: act.teamId || '',
+        teamName: act.teamName || '',
+        visibility: act.visibility || 'open'
       }
 
       this.setData({ form, selectedDeadline, customMatchTypes: activityCustomTypes })

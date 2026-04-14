@@ -93,9 +93,11 @@
           🔒 仅球队成员
         </view>
       </view>
-      <view class="form-hint">活动通过分享链接传播，任何人都可报名</view>
+      <view class="form-hint" wx:if="{{form.visibility !== 'memberOnly'}}">活动通过分享链接传播，任何人都可报名</view>
+      <view class="form-hint" wx:else>仅球队成员可以报名参加</view>
     </view>
   </view>
+
 
   <!-- 时间设置 -->
   <view class="card">
