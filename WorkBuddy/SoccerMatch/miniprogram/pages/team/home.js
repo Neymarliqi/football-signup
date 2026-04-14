@@ -150,7 +150,10 @@ Page({
   // ========== 成员列表 ==========
   async loadMembers(force = false) {
     // 缓存检查：30秒内不重复加载
-    if (!force && Date.now() - this._cacheTimestamps.members < this._cacheValidDuration && this.data.members.length > 0) {
+    const cached = this._cacheTimestamps && this._cacheTimestamps.members
+    const cacheValid = cached && (Date.now() - cached < this._cacheValidDuration)
+    const hasData = this.data && this.data.members && this.data.members.length > 0
+    if (!force && cacheValid && hasData) {
       return
     }
     this.setData({ loadingMembers: true })
@@ -192,7 +195,10 @@ Page({
   // ========== 活动列表 ==========
   async loadActivities(force = false) {
     // 缓存检查：30秒内不重复加载
-    if (!force && Date.now() - this._cacheTimestamps.activities < this._cacheValidDuration && this.data.activities.length > 0) {
+    const cached = this._cacheTimestamps && this._cacheTimestamps.activities
+    const cacheValid = cached && (Date.now() - cached < this._cacheValidDuration)
+    const hasData = this.data && this.data.activities && this.data.activities.length > 0
+    if (!force && cacheValid && hasData) {
       return
     }
     this.setData({ loadingActivities: true })
@@ -242,7 +248,10 @@ Page({
   // ========== 散客列表 ==========
   async loadCasuals(force = false) {
     // 缓存检查：30秒内不重复加载
-    if (!force && Date.now() - this._cacheTimestamps.casuals < this._cacheValidDuration && this.data.casuals.length > 0) {
+    const cached = this._cacheTimestamps && this._cacheTimestamps.casuals
+    const cacheValid = cached && (Date.now() - cached < this._cacheValidDuration)
+    const hasData = this.data && this.data.casuals && this.data.casuals.length > 0
+    if (!force && cacheValid && hasData) {
       return
     }
     this.setData({ loadingCasuals: true })
@@ -568,7 +577,10 @@ Page({
   // ========== 申请列表 ==========
   async loadApplications(force = false) {
     // 缓存检查：30秒内不重复加载
-    if (!force && Date.now() - this._cacheTimestamps.applications < this._cacheValidDuration && this.data.applications.length > 0) {
+    const cached = this._cacheTimestamps && this._cacheTimestamps.applications
+    const cacheValid = cached && (Date.now() - cached < this._cacheValidDuration)
+    const hasData = this.data && this.data.applications && this.data.applications.length > 0
+    if (!force && cacheValid && hasData) {
       return
     }
     this.setData({ loadingApplications: true })

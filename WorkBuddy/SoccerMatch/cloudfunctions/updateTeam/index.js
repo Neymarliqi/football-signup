@@ -10,7 +10,7 @@ exports.main = async (event, context) => {
   const wxContext = cloud.getWXContext()
   const openid = wxContext.OPENID
 
-  const { teamId, name, logoPath, coverPath, description } = event
+  const { teamId, name, logoPath, coverPath, description, joinMethod } = event
 
   if (!teamId) {
     return { success: false, error: 'TEAM_ID_REQUIRED', message: '球队ID不能为空' }
@@ -48,6 +48,7 @@ exports.main = async (event, context) => {
     if (logoPath !== undefined) updateData.logoPath = logoPath
     if (coverPath !== undefined) updateData.coverPath = coverPath
     if (description !== undefined) updateData.description = description.trim()
+    if (joinMethod !== undefined) updateData.joinMethod = joinMethod
 
     await db.collection('teams').doc(teamId).update({ data: updateData })
 
