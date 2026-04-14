@@ -11,6 +11,8 @@ exports.main = async (event, context) => {
 
   const { teamId, targetOpenid, action } = event // action: approve / reject
 
+  console.log('[handleTeamApplication] 调用参数:', { openid, teamId, targetOpenid, action })
+
   if (!teamId || !targetOpenid || !action) {
     return { success: false, message: '参数不完整' }
   }
@@ -21,17 +23,31 @@ exports.main = async (event, context) => {
 
   try {
     // 验证操作者身份（必须是创建者或管理员）
+    console.log('[handleTeamApplication] 查询 team_members, openid:', openid, 'teamId:', teamId)
     const memberRes = await db.collection('team_members')
       .where({ teamId, openid })
       .get()
 
-    if (!memberRes.data || memberRes.data.length === 0) {
-      return { success: false, message: '您不是球队成员' }
-    }
+    console.log('[handleTeamApplication] team_members 查询结果:', memberRes.data)
 
-    const myRole = memberRes.data[0].role
-    if (myRole !== 'creator' && myRole !== 'admin') {
-      return { success: false, message: '只有管理员可以审批' }
+    let isCreatorViaTeams = false
+
+    if (!memberRes.data || memberRes.data.length === 0) {
+      // team_members 为空，检查是否是球队创建者
+      const teamRes = await db.collection('teams').doc(teamId).get()
+      console.log('[handleTeamApplication] teams 查询结果:', teamRes.data)
+      if (teamRes.data && teamRes.data.creatorOpenid === openid) {
+        isCreatorViaTeams = true
+        console.log('[handleTeamApplication] 创建者身份验证通过（teams.creatorOpenid 匹配）')
+      } else {
+        return { success: false, message: '您不是球队成员' }
+      }
+    } else {
+      const myRole = memberRes.data[0].role
+      console.log('[handleTeamApplication] 用户角色:', myRole)
+      if (myRole !== 'creator' && myRole !== 'admin') {
+        return { success: false, message: '只有管理员可以审批' }
+      }
     }
 
     // 查找申请记录
