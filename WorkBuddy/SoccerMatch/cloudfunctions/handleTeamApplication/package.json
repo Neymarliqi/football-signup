@@ -1,0 +1,9 @@
+{
+  "name": "handleTeamApplication",
+  "version": "1.0.0",
+  "description": "处理球队加入申请（审批/拒绝）",
+  "main": "index.js",
+  "dependencies": {
+    "wx-server-sdk": "~2.6.3"
+  }
+}

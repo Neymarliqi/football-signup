@@ -403,9 +403,11 @@ Page({
           console.log('[handleApplication] 云函数返回:', result.result)
           if (result.result.success) {
             wx.showToast({ title: action === 'approve' ? '已通过' : '已拒绝', icon: 'success' })
-            this.loadApplications()
+            // 直接从本地列表移除该申请
+            const applications = this.data.applications.filter(a => a.openid !== targetOpenid)
+            this.setData({ applications })
             if (action === 'approve') {
-              this.loadMembers()
+              this.loadMembers(true) // 强制刷新成员列表
             }
           } else {
             wx.showToast({ title: result.result.message || '操作失败', icon: 'none' })
