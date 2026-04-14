@@ -1,5 +1,7 @@
 {
-  "usingComponents": {},
+  "usingComponents": {
+    "register-modal": "/components/register-modal/register-modal"
+  },
   "navigationBarTitleText": "球队主页",
   "navigationBarBackgroundColor": "#1a1a2e",
   "navigationBarTextStyle": "white"

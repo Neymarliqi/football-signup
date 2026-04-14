@@ -28,6 +28,7 @@ exports.main = async (event, context) => {
 
   try {
     const now = db.serverDate()
+    console.log('[createTeam] 开始创建球队, openid:', openid, 'joinMethod:', joinMethod)
 
     // 创建球队记录
     const teamRes = await db.collection('teams').add({
@@ -44,11 +45,12 @@ exports.main = async (event, context) => {
         updatedAt: now
       }
     })
+    console.log('[createTeam] teams 写入成功, teamId:', teamRes._id)
 
     const teamId = teamRes._id
 
     // 同时写入 team_members（创建者为 creator）
-    await db.collection('team_members').add({
+    const memberRes = await db.collection('team_members').add({
       data: {
         teamId,
         openid,
@@ -56,6 +58,7 @@ exports.main = async (event, context) => {
         joinedAt: now
       }
     })
+    console.log('[createTeam] team_members 写入成功, memberId:', memberRes._id)
 
     // 查询返回完整球队数据
     const team = await db.collection('teams').doc(teamId).get()
@@ -66,7 +69,7 @@ exports.main = async (event, context) => {
       team: team.data
     }
   } catch (err) {
-    console.error('createTeam error:', err)
+    console.error('[createTeam] error:', err)
     return { success: false, error: err.message }
   }
 }

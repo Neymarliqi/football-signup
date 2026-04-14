@@ -169,3 +169,6 @@
   </view>
 
 </view>
+
+<!-- 注册弹窗 -->
+<register-modal show="{{showRegisterModal}}" bind:registered="onRegistered" bind:close="onCloseRegister" />

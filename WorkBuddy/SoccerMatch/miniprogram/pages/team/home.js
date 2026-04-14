@@ -20,8 +20,13 @@ Page({
     loadingActivities: false,
     loadingCasuals: false,
     loadingApplications: false,
-    hasPendingApplication: false // 非成员：是否有待审批的申请
+    hasPendingApplication: false, // 非成员：是否有待审批的申请
+    // 注册弹窗
+    showRegisterModal: false
   },
+
+  // 待执行的加入操作（注册完成后执行）
+  _pendingJoin: null,
 
   // 缓存加载状态（避免重复加载）
   _cacheTimestamps: {
@@ -448,24 +453,73 @@ Page({
     })
   },
 
+  // ========== 注册相关 ==========
+  // 注册完成回调
+  onRegistered() {
+    this.setData({ showRegisterModal: false })
+    this.loadTeamInfo()
+    // 注册完成后执行之前被拦截的操作
+    if (this._pendingJoin) {
+      const action = this._pendingJoin
+      this._pendingJoin = null
+      // 延迟执行，确保数据已刷新
+      setTimeout(() => {
+        if (action === 'apply') {
+          this.doApplyConfirm()
+        } else {
+          this._doJoin()
+        }
+      }, 300)
+    }
+  },
+
+  // 关闭注册弹窗
+  onCloseRegister() {
+    this.setData({ showRegisterModal: false })
+    this._pendingJoin = null
+  },
+
+  // 检查注册状态，未注册则弹窗
+  checkRegisterBeforeJoin(action) {
+    if (!app.isUserRegistered()) {
+      this._pendingJoin = action
+      this.setData({ showRegisterModal: true })
+      return false
+    }
+    return true
+  },
+
   // ========== 加入球队 ==========
   async joinTeam() {
-    const { teamId, team } = this.data
-    const joinMethod = team.joinMethod || 'qrcode'
+    const { team, joinMethod } = this.data.team ? { team: this.data.team, joinMethod: this.data.team.joinMethod || 'qrcode' } : { team: this.data.team, joinMethod: 'qrcode' }
 
     if (joinMethod === 'apply') {
-      wx.showModal({
-        title: '申请加入',
-        content: `确定要申请加入「${team.name}」吗？申请提交后需等待管理员审批。`,
-        confirmText: '提交申请',
-        success: async (res) => {
-          if (!res.confirm) return
-          await this._doJoin()
-        }
-      })
+      // 检查注册状态
+      if (!this.checkRegisterBeforeJoin('apply')) {
+        return
+      }
+      this.doApplyConfirm()
     } else {
+      // 检查注册状态
+      if (!this.checkRegisterBeforeJoin('direct')) {
+        return
+      }
       await this._doJoin()
     }
+  },
+
+  // 申请确认弹窗
+  doApplyConfirm() {
+    const { team } = this.data
+    wx.showModal({
+      title: '申请加入',
+      content: `确定要申请加入「${team.name}」吗？申请提交后需等待管理员审批。`,
+      confirmText: '提交申请',
+      success: async (res) => {
+        if (!res.confirm) return
+        await this._doJoin()
+      }
+    })
   },
 
   async _doJoin() {
@@ -486,6 +540,7 @@ Page({
           // 申请模式：更新申请状态
           wx.showToast({ title: '申请已提交，请等待审批', icon: 'success' })
           this.setData({ hasPendingApplication: true })
+          this.loadTeamInfo()
         }
       } else {
         wx.showToast({ title: res.result.message, icon: 'none' })
