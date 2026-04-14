@@ -116,26 +116,12 @@
 
     <view class="divider"></view>
 
-    <!-- 报名人数进度 -->
-    <view class="register-section">
-      <view class="flex-between mb-10">
-        <text class="register-label">已报名</text>
-        <text class="register-count">
-          <text class="count-num {{item.confirmedCount >= item.maxPlayers ? 'count-full' : 'count-ok'}}">{{item.confirmedCount}}</text>
-          <text class="count-sep">/</text>
-          <text class="count-max">{{item.maxPlayers}}人</text>
-        </text>
-      </view>
-      <!-- 进度条（不限人数时不显示） -->
-      <view class="progress-bar-bg" wx:if="{{item.maxPlayers !== 999}}">
-        <view class="progress-bar-fill {{item.confirmedCount >= item.maxPlayers ? 'bar-full' : 'bar-normal'}}" style="width: {{item.progressPercent || 0}}"></view>
-      </view>
-    </view>
+
 
     <!-- 球员头像列表 -->
     <view class="players-section">
       <view class="players-title">
-        <text>✅ 已报名 ({{item.confirmedCount}})</text>
+        <text>✅ 已报名（{{item.confirmedCount}}/{{item.maxPlayers === 999 ? '不限' : item.maxPlayers}}）</text>
         <text wx:if="{{item.pendingCount > 0}}" class="pending-hint">  ⏳ 待定 {{item.pendingCount}}人</text>
         <text wx:if="{{item.leaveCount > 0}}" class="leave-hint">  🙅 请假 {{item.leaveCount}}人</text>
       </view>

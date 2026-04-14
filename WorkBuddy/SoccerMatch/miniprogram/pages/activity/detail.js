@@ -738,6 +738,15 @@ Page({
     })
   },
 
+  // 跳转球队主页
+  goTeam(e) {
+    const teamId = e.currentTarget.dataset.teamid
+    if (!teamId) return
+    wx.navigateTo({
+      url: `/pages/team/home?teamId=${teamId}`
+    })
+  },
+
   // 取消活动（发布者权限）
   async cancelActivity() {
     const { activity, isCreator } = this.data

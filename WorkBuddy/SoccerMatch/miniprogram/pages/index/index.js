@@ -552,10 +552,6 @@ Page({
     const actDate = act.activityDate instanceof Date ? act.activityDate : new Date(act.activityDate)
     const displayDate = this.formatDate(actDate)
     const now = new Date()
-    const isUnlimited = act.maxPlayers === 999
-
-    // 进度百分比（不限人数时隐藏）
-    const percent = isUnlimited ? -1 : Math.min((confirmed.length / act.maxPlayers) * 100, 100)
 
     // 状态判断：基于日期动态计算（与详情页一致）
     // 规则：已取消 > 已结束（时间到/截止） > 进行中 > 报名中
@@ -687,7 +683,6 @@ Page({
       pendingCount: pending.length,
       leaveCount: leave.length,
       confirmedPlayers,
-      progressPercent: Math.round(percent),
       displayDate,
       statusText,
       statusClass,

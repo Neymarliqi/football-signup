@@ -56,7 +56,7 @@
         <view class="header-tags">
           <view class="tag {{activity.statusClass}}">{{activity.statusText}}</view>
           <!-- 球队标签 - 球队活动时显示 -->
-          <view wx:if="{{activity.isTeamActivity}}" class="tag tag-team">
+          <view wx:if="{{activity.isTeamActivity}}" class="tag tag-team" bindtap="goTeam" data-teamid="{{activity.teamId}}">
             <image wx:if="{{activity.teamLogo}}" class="tag-team-logo" src="{{activity.teamLogo}}" mode="aspectFill"/>
             <text>{{activity.teamName}}</text>
           </view>
