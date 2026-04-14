@@ -564,6 +564,8 @@ Page({
           wx.showToast({ title: '申请已提交，请等待审批', icon: 'success' })
           this.setData({ hasPendingApplication: true })
           this.loadTeamInfo()
+          // 刷新申请列表（重新申请后管理员能看到）
+          this.loadApplications(true) // 强制刷新
         }
       } else {
         wx.showToast({ title: res.result.message, icon: 'none' })
