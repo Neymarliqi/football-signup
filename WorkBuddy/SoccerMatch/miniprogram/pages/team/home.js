@@ -184,15 +184,29 @@ Page({
     }
     this.setData({ loadingCasuals: true })
     try {
-      const res = await db.collection('team_casuals')
-        .where({ teamId: this.data.teamId })
-        .orderBy('activityCount', 'desc')
-        .get()
+      // 查询散客和成员列表（并行）
+      const [casualsRes, membersRes] = await Promise.all([
+        db.collection('team_casuals')
+          .where({ teamId: this.data.teamId })
+          .orderBy('activityCount', 'desc')
+          .get(),
+        db.collection('team_members')
+          .where({ teamId: this.data.teamId })
+          .field({ openid: true })
+          .get()
+      ])
 
-      const openids = res.data.map(c => c.openid)
+      // 获取成员 openid 集合，用于排除已是成员的用户
+      const memberOpenids = {}
+      ;(membersRes.data || []).forEach(function(m) { memberOpenids[m.openid] = true })
+
+      // 过滤掉已经是球队成员的用户
+      const validCasuals = (casualsRes.data || []).filter(function(c) { return !memberOpenids[c.openid] })
+
+      const openids = validCasuals.map(function(c) { return c.openid })
       const usersMap = await app.fetchUsersWithCache(openids)
 
-      const casuals = res.data.map(c => {
+      const casuals = validCasuals.map(function(c) {
         const user = usersMap[c.openid] || {}
         return {
           ...c,
