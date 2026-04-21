@@ -278,6 +278,9 @@
   display: flex;
   align-items: center;
   gap: 20rpx;
+  flex: 1;
+  min-width: 0; /* 关键：允许 flex 子项收缩 */
+  overflow: hidden;
 }
 
 .member-avatar {
@@ -292,12 +295,18 @@
   display: flex;
   flex-direction: column;
   gap: 6rpx;
+  min-width: 0; /* 关键：允许文字截断 */
+  flex: 1;
+  overflow: hidden;
 }
 
 .member-name {
   font-size: 28rpx;
   color: #333;
   font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .member-role {
@@ -326,6 +335,8 @@
   display: flex;
   gap: 12rpx;
   align-items: center;
+  flex-shrink: 0; /* 关键：操作按钮不被压缩 */
+  margin-left: 16rpx;
 }
 
 .action-btn {
