@@ -278,12 +278,14 @@ Page({
       const openids = validCasuals.map(function(c) { return c.openid })
       const usersMap = await app.fetchUsersWithCache(openids)
 
+      const selectedOpenids = this.data.selectedCasuals || []
       const casuals = validCasuals.map(function(c) {
         const user = usersMap[c.openid] || {}
         return {
           ...c,
           ...user,
-          displayAvatar: app.getDisplayAvatar(user)
+          displayAvatar: app.getDisplayAvatar(user),
+          isSelected: selectedOpenids.indexOf(c.openid) >= 0
         }
       })
 
@@ -307,14 +309,21 @@ Page({
 
   toggleCasual(e) {
     const openid = e.currentTarget.dataset.openid
-    const { selectedCasuals } = this.data
+    let { selectedCasuals, casuals } = this.data
     const idx = selectedCasuals.indexOf(openid)
+
     if (idx >= 0) {
       selectedCasuals.splice(idx, 1)
     } else {
       selectedCasuals.push(openid)
     }
-    this.setData({ selectedCasuals: [...selectedCasuals] })
+
+    // 同步更新 casuals 中对应项的 isSelected 状态
+    casuals = casuals.map(function(c) {
+      return { ...c, isSelected: selectedCasuals.indexOf(c.openid) >= 0 }
+    })
+
+    this.setData({ selectedCasuals: [...selectedCasuals], casuals: casuals })
   },
 
   async convertCasuals() {
@@ -339,8 +348,10 @@ Page({
           if (result.result.success) {
             wx.showToast({ title: result.result.message, icon: 'success' })
             this.setData({ selectedCasuals: [] })
-            this.loadCasuals()
-            this.loadMembers()
+            // 强制刷新散客和成员列表（跳过缓存）
+            const that = this
+            that.loadCasuals(true)
+            that.loadMembers(true)
           } else {
             wx.showToast({ title: result.result.message || '转入失败', icon: 'none' })
           }

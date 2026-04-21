@@ -105,15 +105,12 @@
     <view wx:else>
       <view class="card">
         <view class="section-header">
-          <view class="section-title">👻 散客列表（曾报名但未入队）</view>
-          <view class="select-all-btn" bindtap="toggleSelectAll">
-            {{selectedCasuals.length === casuals.length ? '取消全选' : '全选'}}
-          </view>
+          <view class="section-title">散客列表（曾报名但未入队）</view>
         </view>
         <view wx:for="{{casuals}}" wx:key="_id" class="casual-item">
           <view class="casual-left" bindtap="toggleCasual" data-openid="{{item.openid}}">
-            <view class="checkbox {{selectedCasuals.indexOf(item.openid) >= 0 ? 'checkbox-checked' : ''}}">
-              <text wx:if="{{selectedCasuals.indexOf(item.openid) >= 0}}">✓</text>
+            <view class="casual-checkbox {{item.isSelected ? 'tick-show' : ''}}">
+              <text wx:if="{{item.isSelected}}" class="casual-tick">✓</text>
             </view>
             <image class="casual-avatar" src="{{item.displayAvatar || '/images/default-avatar.png'}}" mode="aspectFill"/>
             <view class="casual-info">
@@ -124,10 +121,6 @@
         </view>
       </view>
 
-      <!-- 转入按钮（选中后才显示） -->
-      <view wx:if="{{selectedCasuals.length > 0}}" class="convert-tip-bar">
-        已选择 {{selectedCasuals.length}} 位散客
-      </view>
     </view>
   </view>
 
