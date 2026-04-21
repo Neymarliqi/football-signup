@@ -293,11 +293,12 @@
 
 .member-info {
   display: flex;
-  flex-direction: column;
-  gap: 6rpx;
+  flex-direction: row;
+  align-items: center;
   min-width: 0; /* 关键：允许文字截断 */
   flex: 1;
   overflow: hidden;
+  gap: 12rpx;
 }
 
 .member-name {
@@ -307,6 +308,8 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  flex-shrink: 1;
+  min-width: 0;
 }
 
 .member-role {
