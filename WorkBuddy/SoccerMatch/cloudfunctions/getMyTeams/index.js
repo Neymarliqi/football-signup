@@ -14,16 +14,11 @@ exports.main = async (event, context) => {
   }
 
   try {
-    // 查询我参与的所有球队成员记录
-    const memberRes = await db.collection('team_members')
-      .where({ openid })
-      .get()
-
-    // 同时查询我创建的球队（可能在 team_members 中没有记录）
-    const createdTeamsRes = await db.collection('teams')
-      .where({ creatorOpenid: openid })
-      .field({ _id: true })
-      .get()
+    // 并行查询：成员记录 + 创建的球队（互不依赖）
+    const [memberRes, createdTeamsRes] = await Promise.all([
+      db.collection('team_members').where({ openid }).get(),
+      db.collection('teams').where({ creatorOpenid: openid }).field({ _id: true }).get()
+    ])
 
     const createdTeamIds = createdTeamsRes.data.map(t => t._id)
     const memberTeamIds = memberRes.data ? memberRes.data.map(m => m.teamId) : []

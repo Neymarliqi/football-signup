@@ -28,6 +28,21 @@ exports.main = async (event, context) => {
       return { success: false, error: 'ACTIVITY_CANCELLED', message: '活动已取消，无法报名' }
     }
 
+    // 仅球队成员可见校验（防前端绕过）
+    if (activity.teamId && activity.visibility === 'memberOnly') {
+      try {
+        const memberRes = await db.collection('team_members')
+          .where({ teamId: activity.teamId, openid })
+          .get()
+        if (!memberRes.data || memberRes.data.length === 0) {
+          return { success: false, error: 'MEMBER_ONLY', message: '该活动仅限球队成员报名' }
+        }
+      } catch (memberErr) {
+        console.error('[updateRegistration] 成员校验失败:', memberErr)
+        return { success: false, error: 'MEMBER_CHECK_FAILED', message: '成员校验失败' }
+      }
+    }
+
     // 检查是否已报名
     const existingIndex = registrations.findIndex(r => r.openid === openid)
 

@@ -110,7 +110,7 @@
       </view>
       <view class="act-info-item">
         <text class="info-icon">💰</text>
-        <text class="info-text">{{item.fee > 0 ? item.fee + '元/人' : '免费'}}</text>
+        <text class="info-text">{{item.fee > 0 ? item.fee + '元/人' : '线下收费'}}</text>
       </view>
     </view>
 

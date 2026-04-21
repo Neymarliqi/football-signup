@@ -18,6 +18,9 @@ Page({
     isFull: false,
     isDeadlinePassed: false,
     deadlineText: '',
+    // 仅球队成员可见
+    isMemberOnly: false,
+    isTeamMember: false,
     myStatus: null,
     myStatusText: '',
     myStatusClass: '',
@@ -343,6 +346,15 @@ Page({
       }
     }
 
+    // ========== 仅球队成员可见校验 ==========
+    let isMemberOnly = false
+    let isTeamMember = true  // 默认true（非球队活动或open时不受限）
+    if (act.teamId && act.visibility === 'memberOnly') {
+      isMemberOnly = true
+      isTeamMember = false  // 先设false，等查询结果确认
+    }
+    // ========== 成员校验结束 ==========
+
     let statusText, statusClass, effectiveStatus
     if (act.status === 'finished' || actDate < now) {
       statusText = '已结束'; statusClass = 'tag-gray'; effectiveStatus = 'finished'
@@ -398,6 +410,21 @@ Page({
       isTeamActivity
     }
 
+    // 异步查询球队成员身份（仅 memberOnly 活动需要）
+    if (isMemberOnly && act.teamId) {
+      try {
+        const memberRes = await db.collection('team_members')
+          .where({ teamId: act.teamId, openid })
+          .get()
+        if (memberRes.data && memberRes.data.length > 0) {
+          isTeamMember = true
+        }
+      } catch (e) {
+        // 查询失败默认不允许报名（安全策略）
+        console.error('查询成员身份失败', e)
+      }
+    }
+
     this.setData({
       activity: activityWithDefaults,
       confirmedPlayers,
@@ -416,7 +443,9 @@ Page({
       myStatusText,
       myStatusClass,
       isCreator,
-      canEdit
+      canEdit,
+      isMemberOnly,
+      isTeamMember
     })
 
     wx.setNavigationBarTitle({ title: act.title || '活动详情' })

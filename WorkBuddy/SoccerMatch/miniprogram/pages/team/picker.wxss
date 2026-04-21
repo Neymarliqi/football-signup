@@ -1,122 +1,125 @@
-/* pages/team/picker.wxss */
+/* pages/team/picker.wxss - 球队选择器 */
 
-.page-header {
-  padding: 30rpx;
-  margin-bottom: 10rpx;
-}
-
-.page-header-title {
-  display: block;
-  font-size: 40rpx;
-  font-weight: bold;
-  color: #1a1a2e;
-  margin-bottom: 8rpx;
-}
-
-.page-subtitle {
-  font-size: 26rpx;
-  color: #999;
-}
-
-.team-item {
+/* ====== 顶部标题栏 ====== */
+.header-bar {
   display: flex;
+  justify-content: space-between;
   align-items: center;
-  gap: 24rpx;
-  padding: 20rpx 0;
-  border-bottom: 1rpx solid #f5f5f5;
-  transition: all 0.2s;
+  padding: 30rpx 32rpx 20rpx;
+}
+.header-title { font-size: 34rpx; font-weight: bold; color: #1a1a2e; }
+.manage-btn {
+  display: flex; align-items: center; gap: 6rpx; padding: 8rpx 16rpx;
+}
+.manage-icon { font-size: 28rpx; }
+.manage-text { font-size: 28rpx; color: #ff6b35; font-weight: 500; }
+
+/* ====== 卡片 ====== */
+.addr-card {
+  background: #fff; padding: 0 32rpx; border-bottom: 1rpx solid #f0f0f0;
+}
+.addr-row {
+  display: flex; align-items: center; gap: 20rpx; padding: 28rpx 0;
 }
 
-.team-item:last-child { border-bottom: none; }
-
-.team-item-active {
-  background: #e8f8f0;
-  margin: 0 -24rpx;
-  padding: 20rpx 24rpx;
-  border-radius: 16rpx;
+/* ====== Checkbox（浏览模式选择）====== */
+.checkbox {
+  width: 44rpx; height: 44rpx; border-radius: 50%;
+  border: 3rpx solid #ddd; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  box-sizing: border-box; transition: all 0.2s;
+}
+.checkbox.checked {
+  border-color: #2ecc71; background: #2ecc71;
+}
+.checkbox-tick {
+  font-size: 24rpx; color: #fff; font-weight: bold;
 }
 
-.team-icon {
-  width: 80rpx;
-  height: 80rpx;
-  border-radius: 50%;
-  background: #f5f5f5;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  font-size: 40rpx;
+/* ====== Logo ====== */
+.team-logo-sm {
+  width: 72rpx; height: 72rpx; border-radius: 50%; flex-shrink: 0;
+}
+.team-logo-placeholder {
+  width: 72rpx; height: 72rpx; border-radius: 50%;
+  background: #f5f5f5; display: flex; align-items: center;
+  justify-content: center; font-size: 32rpx; flex-shrink: 0; opacity: 0.4;
 }
 
-.public-icon {
-  background: linear-gradient(135deg, #e8f8f0, #d4f5e4);
+/* ====== 信息区 ====== */
+.addr-info {
+  flex: 1; min-width: 0;
+  display: flex; flex-direction: column; gap: 8rpx;
+}
+.addr-main {
+  font-size: 30rpx; color: #333; font-weight: 500;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.addr-sub { font-size: 24rpx; color: #999; }
+
+/* ====== 默认标记 ====== */
+.default-badge {
+  font-size: 20rpx; color: #fff; background: #e74c3c;
+  padding: 4rpx 12rpx; border-radius: 6rpx; flex-shrink: 0;
+  font-weight: 500; line-height: 1.4;
 }
 
-.team-logo {
-  width: 100%;
-  height: 100%;
-  border-radius: 50%;
+/* ====== 管理模式：操作区 ====== */
+.action-row {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 0 32rpx 24rpx; gap: 16rpx;
 }
 
-.logo-placeholder-text {
-  font-size: 40rpx;
-  opacity: 0.4;
+/* 设为默认 radio 行 */
+.radio-default {
+  display: flex; align-items: center; gap: 14rpx;
+  font-size: 26rpx; color: #999;
+}
+.radio-default.active {
+  color: #e74c3c;
+}
+.radio-circle {
+  width: 32rpx; height: 32rpx; border-radius: 50%;
+  border: 2rpx solid #ccc; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  box-sizing: border-box;
+}
+.radio-default.active .radio-circle {
+  border-color: #e74c3c;
+}
+.radio-inner {
+  width: 18rpx; height: 18rpx; border-radius: 50%; background: #e74c3c;
 }
 
-.team-info {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 6rpx;
-}
+/* 公开活动系统提示 */
+.system-hint { font-size: 24rpx; color: #ccc; }
 
-.team-name {
-  font-size: 30rpx;
-  color: #333;
-  font-weight: bold;
-}
+/* 编辑 / 删除按钮 */
+.action-btns { display: flex; gap: 32rpx; flex-shrink: 0; }
+.btn-edit { font-size: 26rpx; color: #666; padding: 8rpx 12rpx; }
+.btn-delete { font-size: 26rpx; color: #e74c3c; padding: 8rpx 12rpx; }
 
-.team-meta {
-  font-size: 24rpx;
-  color: #999;
-}
-
-.check-icon {
-  width: 48rpx;
-  height: 48rpx;
-  border-radius: 50%;
-  background: #2ecc71;
-  color: #fff;
-  font-size: 26rpx;
-  font-weight: bold;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-}
-
-/* 空状态 */
+/* ====== 空状态 ====== */
 .empty-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 100rpx 0;
-  color: #bbb;
-  gap: 16rpx;
+  display: flex; flex-direction: column; align-items: center;
+  justify-content: center; padding: 100rpx 0; color: #bbb; gap: 16rpx;
 }
-
-.empty-text {
-  font-size: 28rpx;
-  color: #999;
-}
-
-.btn-create {
+.empty-text { font-size: 28rpx; color: #999; }
+.btn-create-inline {
   background: linear-gradient(135deg, #2ecc71, #27ae60);
-  color: #fff;
-  padding: 24rpx 60rpx;
-  border-radius: 50rpx;
-  font-size: 30rpx;
-  font-weight: bold;
-  margin-top: 20rpx;
+  color: #fff; padding: 24rpx 60rpx; border-radius: 50rpx;
+  font-size: 30rpx; font-weight: bold; margin-top: 20rpx;
+}
+
+/* ====== 底部按钮 ====== */
+.bottom-bar {
+  position: fixed; left: 0; right: 0; bottom: 0;
+  padding: 16rpx 32rpx; padding-bottom: calc(16rpx + env(safe-area-inset-bottom));
+  background: #fff; border-top: 1rpx solid #f0f0f0;
+}
+.btn-create-team {
+  width: 100%; padding: 24rpx 0;
+  background: linear-gradient(135deg, #2ecc71, #27ae60);
+  color: #fff; border-radius: 50rpx; font-size: 30rpx;
+  font-weight: bold; border: none;
 }

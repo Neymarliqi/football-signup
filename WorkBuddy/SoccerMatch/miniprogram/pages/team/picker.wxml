@@ -1,44 +1,92 @@
-<!-- pages/team/picker.wxml - 选择球队 -->
+<!-- pages/team/picker.wxml - 球队选择器 -->
 <view class="container">
-  <view class="page-header">
-    <text class="page-header-title">🔵 选择球队</text>
-    <text class="page-subtitle">不选则为公开活动</text>
-  </view>
 
-  <!-- 公开活动选项 -->
-  <view class="card" bindtap="selectTeam" data-teamid="">
-    <view class="team-item {{selectedTeamId === '' ? 'team-item-active' : ''}}">
-      <view class="team-icon public-icon">🏃</view>
-      <view class="team-info">
-        <text class="team-name">公开活动</text>
-        <text class="team-meta">所有用户可见</text>
-      </view>
-      <view wx:if="{{selectedTeamId === ''}}" class="check-icon">✓</view>
+  <!-- 顶部标题栏 -->
+  <view class="header-bar">
+    <text class="header-title">我的球队</text>
+    <view class="manage-btn" bindtap="toggleManage">
+      <text class="manage-icon">🔧</text>
+      <text class="manage-text">{{managing ? '完成' : '管理'}}</text>
     </view>
   </view>
 
-  <!-- 我的球队 -->
-  <view wx:if="{{myTeams.length > 0}}" class="card">
-    <view class="section-title">🏆 我的球队</view>
-    <view wx:for="{{myTeams}}" wx:key="_id" class="team-item {{selectedTeamId === item._id ? 'team-item-active' : ''}}" bindtap="selectTeam" data-teamid="{{item._id}}">
-      <view class="team-icon">
-        <image wx:if="{{item.logoPath}}" class="team-logo" src="{{item.displayLogo}}" mode="aspectFill"/>
-        <text wx:if="{{!item.logoPath}}" class="logo-placeholder-text">⚽</text>
+  <!-- ========== 公开活动 ========== -->
+  <view class="addr-card" bindtap="{{managing ? 'preventBubble' : 'selectTeam'}}" data-teamid="">
+    <view class="addr-row">
+      <!-- 浏览模式：checkbox选择 -->
+      <view wx:if="{{!managing}}" class="checkbox {{selectedTeamId === '' ? 'checked' : ''}}" catchtap="selectTeam" data-teamid="">
+        <text wx:if="{{selectedTeamId === ''}}" class="checkbox-tick">✓</text>
       </view>
-      <view class="team-info">
-        <text class="team-name">{{item.name}}</text>
-        <text class="team-meta">👥 {{item.memberCount}}人 | {{item.myRoleText}}</text>
+      <view class="addr-info">
+        <text class="addr-main">公开活动</text>
+        <text class="addr-sub">所有用户可见</text>
       </view>
-      <view wx:if="{{selectedTeamId === item._id}}" class="check-icon">✓</view>
+      <!-- 默认标记（两种模式都显示） -->
+      <view wx:if="{{defaultTeamId === ''}}" class="default-badge">默认</view>
+    </view>
+
+    <!-- 管理模式：设为默认 radio（公开活动也可设默认） -->
+    <view wx:if="{{managing}}" class="action-row">
+      <view class="radio-default {{defaultTeamId === '' ? 'active' : ''}}" catchtap="setDefaultTeam" data-teamid="">
+        <view class="radio-circle">
+          <view wx:if="{{defaultTeamId === ''}}" class="radio-inner"></view>
+        </view>
+        <text>{{defaultTeamId === '' ? '已设为默认' : '设为默认球队'}}</text>
+      </view>
+      <view class="system-hint">系统选项</view>
     </view>
   </view>
+
+  <!-- ========== 我的球队列表 ========== -->
+  <block wx:for="{{myTeams}}" wx:key="_id">
+    <view class="addr-card" bindtap="{{managing ? 'preventBubble' : 'selectTeam'}}" data-teamid="{{item._id}}">
+
+      <view class="addr-row">
+        <!-- 浏览模式：checkbox选择（管理模式隐藏） -->
+        <view wx:if="{{!managing}}" class="checkbox {{selectedTeamId === item._id ? 'checked' : ''}}" catchtap="selectTeam" data-teamid="{{item._id}}">
+          <text wx:if="{{selectedTeamId === item._id}}" class="checkbox-tick">✓</text>
+        </view>
+
+        <!-- Logo -->
+        <image wx:if="{{item.logoPath}}" class="team-logo-sm" src="{{item.displayLogo}}" mode="aspectFill"/>
+        <view wx:else class="team-logo-placeholder">⚽</view>
+
+        <!-- 信息区 -->
+        <view class="addr-info">
+          <text class="addr-main">{{item.name}}</text>
+          <text class="addr-sub">👥 {{item.memberCount}}人 | {{item.myRoleText}}</text>
+        </view>
+
+        <!-- 默认标记（两种模式都显示） -->
+        <view wx:if="{{defaultTeamId === item._id}}" class="default-badge">默认</view>
+      </view>
+
+      <!-- 管理模式：设为默认 radio + 编辑/删除 -->
+      <view wx:if="{{managing}}" class="action-row">
+        <view class="radio-default {{defaultTeamId === item._id ? 'active' : ''}}" catchtap="setDefaultTeam" data-teamid="{{item._id}}">
+          <view class="radio-circle">
+            <view wx:if="{{defaultTeamId === item._id}}" class="radio-inner"></view>
+          </view>
+          <text>{{defaultTeamId === item._id ? '已设为默认' : '设为默认球队'}}</text>
+        </view>
+        <view class="action-btns">
+          <text class="btn-edit" catchtap="editTeam" data-teamid="{{item._id}}">编辑</text>
+        </view>
+      </view>
+    </view>
+  </block>
 
   <!-- 空状态 -->
   <view wx:if="{{loaded && myTeams.length === 0}}" class="empty-state">
     <text style="font-size: 80rpx;">🏆</text>
     <text class="empty-text">您还没有创建或加入任何球队</text>
-    <view class="btn-create" bindtap="createTeam">创建球队</view>
+    <view class="btn-create-inline" bindtap="createTeam">创建球队</view>
   </view>
 
-  <view style="height: 100rpx;"></view>
+  <view style="height: 140rpx;"></view>
+
+  <!-- 底部创建按钮 -->
+  <view class="bottom-bar">
+    <button class="btn-create-team" bindtap="createTeam">+ 创建新球队</button>
+  </view>
 </view>

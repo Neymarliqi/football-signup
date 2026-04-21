@@ -83,13 +83,27 @@ Page({
         'form.startTime': '19:00', 
         'form.endTime': '21:00'
       }
-      
-      // 如果从球队主页跳转过来，填充球队信息
+
+      // 如果从球队主页跳转过来，填充球队信息（优先级最高）
       if (options.teamId) {
         formData['form.teamId'] = options.teamId
         formData['form.teamName'] = decodeURIComponent(options.teamName || '')
-        // 球队活动默认可见范围为 open
         formData['form.visibility'] = 'open'
+      } else {
+        // 读取默认球队
+        const defaultTeamId = wx.getStorageSync('default_team_id')
+        if (defaultTeamId) {
+          // 从缓存读取球队名称
+          const cachedTeams = wx.getStorageSync('picker_myTeams')
+          let teamName = ''
+          if (cachedTeams && cachedTeams.data) {
+            const team = cachedTeams.data.find(t => t._id === defaultTeamId)
+            if (team) teamName = team.name
+          }
+          formData['form.teamId'] = defaultTeamId
+          formData['form.teamName'] = teamName
+          formData['form.visibility'] = 'open'
+        }
       }
       
       this.setData(formData)

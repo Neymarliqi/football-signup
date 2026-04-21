@@ -107,7 +107,7 @@
           <view class="info-grid-icon">💰</view>
           <view class="info-grid-content">
             <view class="info-grid-label">费用</view>
-            <view class="info-grid-value fee-value">{{activity.fee > 0 ? activity.fee + '元/人' : '免费'}}</view>
+            <view class="info-grid-value fee-value">{{activity.fee > 0 ? activity.fee + '元/人' : '线下收费'}}</view>
           </view>
         </view>
         <view class="info-grid-item">
@@ -261,8 +261,12 @@
           </view>
           <!-- 未报名/待定/请假 -->
           <block wx:elif="{{!myStatus || myStatus === 'pending' || myStatus === 'leave'}}">
+            <!-- 仅球队成员可见 -> 非成员置灰 -->
+            <view wx:if="{{isMemberOnly && !isTeamMember}}" class="btn-primary btn-disabled">
+              仅成员可报
+            </view>
             <!-- 截止时间已到 -> 置灰 -->
-            <view wx:if="{{isDeadlinePassed}}" class="btn-primary btn-disabled">
+            <view wx:elif="{{isDeadlinePassed}}" class="btn-primary btn-disabled">
               报名截止
             </view>
             <!-- 满员（限制人数） -> 置灰 -->
@@ -304,6 +308,9 @@
         ⚠️ 当前人数已满！可选择待定候补
       </view>
       <!-- 截止时间提示 -->
+      <view class="full-tip" wx:if="{{isMemberOnly && !isTeamMember && myStatus !== 'confirmed'}}">
+        🔒 该活动仅限球队成员报名
+      </view>
       <view class="full-tip" wx:if="{{isDeadlinePassed && myStatus !== 'confirmed'}}">
         🔒 报名已截止（{{deadlineText}}），待定/请假仍可操作
       </view>
