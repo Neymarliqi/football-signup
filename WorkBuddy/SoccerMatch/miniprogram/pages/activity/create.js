@@ -9,7 +9,7 @@ Page({
   data: {
     isEdit: false,
     activityId: '',
-    form: {
+      form: {
       title: '',
       description: `【免责声明】
 足球比赛包含大量身体对抗，存在不可预见的身体伤害，请确认您本人身体情况适合参加本次活动。强烈建议参赛前购买运动安全保险!
@@ -23,6 +23,7 @@ Page({
       customMatchType: false,
       customMatchTypeText: '',
       date: '',
+      dateWeekday: '',  // 踢球日期对应的周几，如「周六」
       startTime: '',
       endTime: '',
       locationName: '',
@@ -43,6 +44,10 @@ Page({
     },
     // 注册弹窗
     showRegisterModal: false,
+    // 模板相关
+    selectedTemplateId: '',    // 当前选中的模板 id
+    selectedTemplateName: '',   // 当前选中的模板名称（展示用）
+    _lastPublishedForm: null,  // 发布成功后暂存的表单数据（用于保存模板）
     // 预设赛制类型
     presetMatchTypes: ['友谊赛', '11人制', '9人制', '8人制', '7人制', '5人制'],
     // 当前活动的自定义赛制类型（每个活动独立）
@@ -74,13 +79,19 @@ Page({
       this.loadActivity(options.id)
     } else {
       // 创建模式：设置默认值
+      // 新建时清除上次选中的球队缓存，避免跨会话污染
+      // 编辑已有活动时保留，不清
+      wx.removeStorageSync('picker_last_selected')
+
       const tomorrow = new Date()
       tomorrow.setDate(tomorrow.getDate() + 1)
       const defaultDate = `${tomorrow.getFullYear()}-${String(tomorrow.getMonth() + 1).padStart(2,'0')}-${String(tomorrow.getDate()).padStart(2,'0')}`
+      const defaultWeekday = this._calcWeekday(defaultDate)
       
-      const formData = { 
-        'form.date': defaultDate, 
-        'form.startTime': '19:00', 
+      const formData = {
+        'form.date': defaultDate,
+        'form.dateWeekday': defaultWeekday,
+        'form.startTime': '19:00',
         'form.endTime': '21:00'
       }
 
@@ -115,8 +126,10 @@ Page({
   // ========== 球队选择 ==========
   pickTeam() {
     const { teamId } = this.data.form
+    // hasChosen=1 表示用户已主动选择过（包括公开活动），picker 需区分「还没选」和「选了公开」
+    const hasChosen = teamId !== undefined ? 1 : 0
     wx.navigateTo({
-      url: `/pages/team/picker?currentTeamId=${teamId}`
+      url: `/pages/team/picker?currentTeamId=${teamId || ''}&hasChosen=${hasChosen}`
     })
   },
 
@@ -178,6 +191,42 @@ Page({
     this.setData({
       'form.deadline': deadline,
       'form.deadlineDisplay': `${month}月${date}日 ${hours}:${minutes}`
+    })
+  },
+
+  // 格式化截止时间字符串为显示文字
+  _formatDeadline(deadlineStr) {
+    if (!deadlineStr) return ''
+    const d = new Date(deadlineStr)
+    const month = d.getMonth() + 1
+    const date = d.getDate()
+    const hours = d.getHours().toString().padStart(2, '0')
+    const minutes = d.getMinutes().toString().padStart(2, '0')
+    return `${month}月${date}日 ${hours}:${minutes}`
+  },
+
+  // 发布成功后询问是否保存为模板（静默，仅弹一次）
+  _offerSaveTemplate() {
+    const form = this.data._lastPublishedForm
+    if (!form) return
+    const templates = app.loadTemplates()
+    // 检查是否已有同名模板（避免重复询问）
+    const alreadyHas = templates.some(t => t.name === form.title || t.weekday === (new Date(form.date + 'T00:00:00')).getDay())
+    if (alreadyHas) return
+
+    wx.showModal({
+      title: '💾 保存为模板',
+      content: `是否将「${form.title}」的设置保存为模板，下次快速发布？`,
+      confirmText: '保存模板',
+      cancelText: '不用了',
+      success: res => {
+        if (res.confirm) {
+          // 自动用活动标题作为模板名
+          const tplData = app.extractTemplateData({ ...form, selectedDeadline: this.data.selectedDeadline })
+          app.saveTemplate({ name: form.title || '我的模板', ...tplData })
+          wx.showToast({ title: '模板已保存', icon: 'success' })
+        }
+      }
     })
   },
 
@@ -246,12 +295,14 @@ Page({
 
       // 调试：打印活动描述
       
+      const dateStr = `${actDateStr.getFullYear()}-${String(actDateStr.getMonth() + 1).padStart(2, '0')}-${String(actDateStr.getDate()).padStart(2, '0')}`
       const form = {
         title: act.title || '',
         description: act.description || '',
         matchType: act.matchType || '',
         customMatchType: isCustomMatchType,
-        date: `${actDateStr.getFullYear()}-${String(actDateStr.getMonth() + 1).padStart(2, '0')}-${String(actDateStr.getDate()).padStart(2, '0')}`,
+        date: dateStr,
+        dateWeekday: this._calcWeekday(dateStr),
         startTime: act.time ? act.time.split(' - ')[0] : '',
         endTime: act.time && act.time.includes(' - ') ? act.time.split(' - ')[1] : '',
         locationName: act.locationName || '',
@@ -272,6 +323,12 @@ Page({
       }
 
       this.setData({ form, selectedDeadline, customMatchTypes: activityCustomTypes })
+
+      // 编辑模式：重新根据当前 date/startTime 计算截止时间显示，确保UI与数据一致
+      // 若 selectedDeadline 非 'none'，重新计算一次（避免旧数据显示不准确）
+      if (selectedDeadline !== 'none') {
+        setTimeout(() => this.calculateDeadline(selectedDeadline), 0)
+      }
     } catch (e) {
       console.error('加载活动失败', e)
       wx.showToast({ title: '加载失败', icon: 'none' })
@@ -288,8 +345,29 @@ Page({
     this.setData({ 'form.description': e.detail.value })
   },
 
-  onDateChange(e) { 
-    this.setData({ 'form.date': e.detail.value })
+  // 计算日期字符串对应的周几（纯数学 Sakamoto 算法）
+  _calcWeekday(dateStr) {
+    if (!dateStr) return ''
+    const weekdays = ['周日', '周一', '周二', '周三', '周四', '周五', '周六']
+    const [yStr, mStr, dStr] = dateStr.split('-')
+    const y = parseInt(yStr, 10)
+    const m = parseInt(mStr, 10)
+    const d = parseInt(dStr, 10)
+    // Sakamoto: y=2026,m=4,d=26 → dow=0(周日), y=2026,m=4,d=25 → dow=6(周六)
+    const t = [0, 3, 2, 5, 0, 3, 5, 1, 4, 6, 2, 4]
+    let yy = y
+    if (m < 3) yy--
+    const dow = (yy + Math.floor(yy / 4) - Math.floor(yy / 100) + Math.floor(yy / 400) + t[m - 1] + d) % 7
+    return weekdays[dow]
+  },
+
+  onDatePickerChange(e) {
+    const date = e.detail.value
+    const weekday = e.detail.weekday || this._calcWeekday(date)
+    this.setData({
+      'form.date': date,
+      'form.dateWeekday': weekday
+    })
     // 重新计算截止时间
     setTimeout(() => this.calculateDeadline(this.data.selectedDeadline), 0)
   },
@@ -534,10 +612,27 @@ Page({
 
   // 校验表单
   validate() {
-    const { form } = this.data
+    const { form, isEdit } = this.data
     if (!form.title.trim()) { wx.showToast({ title: '请填写活动标题', icon: 'none' }); return false }
     if (!form.date) { wx.showToast({ title: '请选择踢球日期', icon: 'none' }); return false }
     if (!form.startTime) { wx.showToast({ title: '请选择开始时间', icon: 'none' }); return false }
+
+    // 结束时间若填写，必须晚于开始时间
+    if (form.endTime && form.endTime <= form.startTime) {
+      wx.showToast({ title: '结束时间必须晚于开始时间', icon: 'none' })
+      return false
+    }
+
+    // 新建模式：活动时间不能早于当前时间
+    if (!isEdit) {
+      const now = new Date()
+      const activityTime = new Date(`${form.date} ${form.startTime}`)
+      if (activityTime < now) {
+        wx.showToast({ title: '活动时间不能早于当前时间', icon: 'none' })
+        return false
+      }
+    }
+
     if (!form.locationName.trim()) { wx.showToast({ title: '请填写场地名称', icon: 'none' }); return false }
 
     // 赛制类型改为非必填，如果有值则校验
@@ -547,6 +642,92 @@ Page({
     }
     return true
   },
+
+  // ========== 模板相关 ==========
+
+  // 打开模板选择器
+  openTemplatePicker() {
+    if (this.data.isEdit) return
+    this.selectComponent('#templatePicker').open()
+  },
+
+  // 保存当前表单为草稿模板（不弹窗，直接保存）
+  saveDraft() {
+    const { form } = this.data
+    if (!form.title || !form.date) {
+      wx.showToast({ title: '请至少填写标题和日期', icon: 'none' })
+      return
+    }
+    const tplData = app.extractTemplateData({ ...form, selectedDeadline: this.data.selectedDeadline })
+    app.saveTemplate({ name: form.title || '我的模板', ...tplData })
+    wx.showToast({ title: '草稿已保存 ✅', icon: 'success' })
+  },
+
+  // 选择模板 → 自动填充表单
+  onTemplateSelect(e) {
+    const tpl = e.detail.template
+    const formData = app.applyTemplateToForm(tpl)
+
+    // 计算截止时间（基于新日期）
+    const deadlineHoursMap = { '1day': 24, '6hours': 6, '1hour': 1, '30min': 0.5 }
+    const hours = deadlineHoursMap[formData.selectedDeadline]
+    let deadline = ''
+    let deadlineDisplay = ''
+    if (formData.selectedDeadline === 'none') {
+      // 不限制
+      deadlineDisplay = '不限制'
+    } else if (hours != null && formData.date && formData.startTime) {
+      // 有截止时间
+      const actTime = new Date(`${formData.date} ${formData.startTime}`)
+      deadline = new Date(actTime.getTime() - hours * 3600000).toISOString()
+      deadlineDisplay = this._formatDeadline(deadline)
+    }
+
+    this.setData({
+      form: { ...this.data.form, ...formData, deadline, deadlineDisplay },
+      selectedDeadline: formData.selectedDeadline,
+      selectedTemplateId: tpl.id,
+      selectedTemplateName: tpl.name
+    })
+
+    // 同步更新 date-picker 组件内部的周几标签（组件有自己的 internal weekdayText）
+    if (formData.date) {
+      this.selectComponent('#datePicker').setValue(formData.date)
+    }
+  },
+
+  // 取消选择模板
+  onTemplateDeselect() {
+    this.setData({ selectedTemplateId: '', selectedTemplateName: '' })
+  },
+
+  // 发布成功后：保存为模板
+  onSaveTemplate() {
+    const form = this.data._lastPublishedForm
+    if (!form) return
+    wx.showModal({
+      title: '保存为模板',
+      content: '请输入模板名称',
+      editable: true,
+      placeholderText: '例如：我的周六模板',
+      success: res => {
+        if (res.confirm && res.content) {
+          const tplData = app.extractTemplateData({ ...form, selectedDeadline: this.data.selectedDeadline })
+          app.saveTemplate({ name: res.content.trim(), ...tplData })
+          wx.showToast({ title: '模板已保存', icon: 'success' })
+        }
+        // 无论是否保存，都跳转
+        wx.redirectTo({ url: '/pages/index/index' })
+      }
+    })
+  },
+
+  // 发布成功后：返回列表
+  onGoToList() {
+    wx.redirectTo({ url: '/pages/index/index' })
+  },
+
+  // ========== 提交 ==========
 
   async submit() {
     const { form, isEdit, activityId, customMatchTypes } = this.data
@@ -646,13 +827,20 @@ Page({
 
         const addRes = await db.collection('activities').add({ data })
         wx.hideLoading()
-        wx.showToast({ title: '活动发布成功 🎉', icon: 'success' })
-        // 跳转到活动详情页
+
+        // 发布成功后暂存表单数据（用于保存模板）
+        this.setData({ _lastPublishedForm: JSON.parse(JSON.stringify(this.data.form)) })
+        // 清理本次会话的球队选中缓存，避免下次新建被污染
+        wx.removeStorageSync('picker_last_selected')
+
+        // 发布成功
+        wx.showToast({ title: '发布成功 🎉', icon: 'success' })
         setTimeout(() => {
-          wx.redirectTo({
-            url: `/pages/activity/detail?id=${addRes._id}`
-          })
+          wx.redirectTo({ url: `/pages/activity/detail?id=${addRes._id}` })
         }, 1500)
+
+        // 同时给一次快速保存模板的机会（通过回调触发）
+        setTimeout(() => this._offerSaveTemplate(), 500)
       }
     } catch (e) {
       wx.hideLoading()
@@ -695,10 +883,6 @@ Page({
   },
 
   // ==================== 头像昵称弹窗（游客创建用户） ====================
-
-  preventScroll() {
-    return
-  },
 
   preventScroll() {
     return

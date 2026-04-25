@@ -376,6 +376,15 @@
   color: #ccc;
 }
 
+.menu-count {
+  font-size: 24rpx;
+  color: #fff;
+  background: #4a9eff;
+  padding: 2rpx 14rpx;
+  border-radius: 20rpx;
+  margin-right: 8rpx;
+}
+
 /* 关于 */
 .about-item {
   display: flex;

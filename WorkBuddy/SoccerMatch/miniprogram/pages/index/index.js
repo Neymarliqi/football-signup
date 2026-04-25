@@ -36,37 +36,54 @@ Page({
       return
     }
 
-    // 智能刷新：超过 30 秒才重新加载公告（公告变化较少）
-    if (now - this.data.lastShowTime > 30000) {
-      this.loadAnnouncements()
-    }
+    // 确保 openid 已就绪（解决编译后首次加载 openid 为空导致球队活动全被过滤的问题）
+    this._waitForOpenid().then(() => {
+      // 智能刷新：超过 30 秒才重新加载公告（公告变化较少）
+      if (now - this.data.lastShowTime > 30000) {
+        this.loadAnnouncements()
+      }
 
-    // 先渲染后刷新策略（stale-while-revalidate）
-    // 1. 有内存缓存 → 直接用（秒开），后台静默刷新
-    // 2. 无内存缓存 → 尝试用本地 Storage 缓存渲染（冷启动秒开），同时拉网络
-    // 3. 30秒内返回 → 仅后台静默更新用户信息
-    if (this.data.activities.length > 0 && now - this.data.lastShowTime <= 30000) {
-      // 30秒内返回，后台静默刷新用户信息
-      this.silentRefreshUsers()
-    } else if (this.data.activities.length > 0) {
-      // 有数据但超过30秒，先展示后刷新
-      this.loadActivities(true, false) // 不强制刷新用户缓存
-    } else {
-      // 首次加载：先尝试本地缓存快速渲染
-      const hasCache = this.loadActivitiesFromCache() // true=有缓存骨架消失，false=无缓存骨架保持
-      this.loadActivities(true, false, !hasCache) // 无缓存时强制显示骨架
-    }
+      // 先渲染后刷新策略（stale-while-revalidate）
+      if (this.data.activities.length > 0 && now - this.data.lastShowTime <= 30000) {
+        // 30秒内返回，后台静默刷新用户信息
+        this.silentRefreshUsers()
+      } else if (this.data.activities.length > 0) {
+        // 有数据但超过30秒，先展示后刷新
+        this.loadActivities(true, false)
+      } else {
+        // 首次加载：先尝试本地缓存快速渲染
+        const hasCache = this.loadActivitiesFromCache()
+        this.loadActivities(true, false, !hasCache)
+      }
 
-    // 刷新管理员状态
-    this.setData({ isAdmin: app.globalData.isAdmin })
+      // 刷新管理员状态
+      this.setData({ isAdmin: app.globalData.isAdmin })
+      // 记录页面显示时间
+      this.setData({ lastShowTime: now })
 
-    // 记录页面显示时间
-    this.setData({ lastShowTime: now })
+      // 同步 TabBar 选中状态
+      if (typeof this.getTabBar === 'function' && this.getTabBar()) {
+        this.getTabBar().setData({ selected: 0 })
+      }
+    })
+  },
 
-    // 同步 TabBar 选中状态
-    if (typeof this.getTabBar === 'function' && this.getTabBar()) {
-      this.getTabBar().setData({ selected: 0 })
-    }
+  // 等待 openid 就绪（最多等3秒，超时用当前值继续）
+  _waitForOpenid() {
+    return new Promise(resolve => {
+      const tryGet = () => {
+        const oid = app.globalData.openid || wx.getStorageSync('openid')
+        if (oid) { resolve(); return }
+        // 还没就绪，50ms后再试（最多60次=3秒）
+        if ((this._oidRetryCount || 0) < 60) {
+          this._oidRetryCount = (this._oidRetryCount || 0) + 1
+          setTimeout(tryGet, 50)
+        } else {
+          resolve() // 超时，继续执行（可能是离线模式）
+        }
+      }
+      tryGet()
+    })
   },
 
   // 注册完成回调

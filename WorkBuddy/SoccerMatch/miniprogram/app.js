@@ -597,7 +597,162 @@ App({
 
     // 执行注册回调队列
     this._executeRegisterCallbacks()
+  },
 
-    return userInfo
+  // ========== 活动模板相关 ==========
+  // Storage key
+  _TPL_KEY: 'activity_templates',
+
+  /**
+   * 加载所有模板
+   * @returns {Array} 模板数组
+   */
+  loadTemplates() {
+    try {
+      const raw = wx.getStorageSync(this._TPL_KEY)
+      if (!raw) return []
+      const list = typeof raw === 'string' ? JSON.parse(raw) : raw
+      // 按创建时间倒序
+      return list.sort((a, b) => b.createdAt - a.createdAt)
+    } catch (e) {
+      return []
+    }
+  },
+
+  /**
+   * 保存一个新模板
+   * @param {Object} templateData - 模板数据（不含 id/createdAt）
+   * @returns {Object} 新建的模板（含 id/createdAt）
+   */
+  saveTemplate(templateData) {
+    const tpl = {
+      ...templateData,
+      id: 'tpl_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7),
+      createdAt: Date.now()
+    }
+    const list = this.loadTemplates()
+    list.unshift(tpl)
+    wx.setStorageSync(this._TPL_KEY, list)
+    return tpl
+  },
+
+  /**
+   * 删除指定模板
+   * @param {string} id - 模板 id
+   */
+  deleteTemplate(id) {
+    const list = this.loadTemplates()
+    const filtered = list.filter(t => t.id !== id)
+    wx.setStorageSync(this._TPL_KEY, filtered)
+  },
+
+  /**
+   * 更新模板指定字段
+   * @param {string} id - 模板 id
+   * @param {Object} updates - 要更新的字段（如 { name: '新名称' }）
+   */
+  updateTemplate(id, updates) {
+    const list = this.loadTemplates()
+    const idx = list.findIndex(t => t.id === id)
+    if (idx === -1) return
+    list[idx] = { ...list[idx], ...updates }
+    wx.setStorageSync(this._TPL_KEY, list)
+  },
+
+  /**
+   * 根据 id 获取模板
+   * @param {string} id - 模板 id
+   * @returns {Object|null}
+   */
+  getTemplateById(id) {
+    const list = this.loadTemplates()
+    return list.find(t => t.id === id) || null
+  },
+
+  /**
+   * 计算下一个指定周几的日期
+   * @param {number} weekday - 0=周日, 1=周一, ..., 6=周六
+   * @returns {string} YYYY-MM-DD 格式的日期字符串
+   */
+  calcNextWeekday(weekday) {
+    const now = new Date()
+    const todayDow = now.getDay() // 0=周日
+    let daysToAdd = weekday - todayDow
+    if (daysToAdd <= 0) daysToAdd += 7
+    const d = new Date(now)
+    d.setDate(d.getDate() + daysToAdd)
+    const y = d.getFullYear()
+    const m = String(d.getMonth() + 1).padStart(2, '0')
+    const day = String(d.getDate()).padStart(2, '0')
+    return `${y}-${m}-${day}`
+  },
+
+  /**
+   * 将模板数据应用到表单
+   * @param {Object} template - 模板对象
+   * @returns {Object} 可直接 setData 的 form 对象
+   */
+  applyTemplateToForm(template) {
+    const date = this.calcNextWeekday(template.weekday)
+    const weekdays = ['周日', '周一', '周二', '周三', '周四', '周五', '周六']
+    const weekdayLabel = weekdays[template.weekday]
+
+    return {
+      // 球队
+      teamId: template.teamId || '',
+      teamName: template.teamName || '',
+      // 时间
+      date,
+      dateWeekday: weekdayLabel,
+      startTime: template.startTime || '19:00',
+      endTime: template.endTime || '21:00',
+      // 截止时间（直接用模板存的 selectedDeadline 字符串）
+      selectedDeadline: template.selectedDeadline || 'none',
+      // 其他字段
+      title: template.title || '',
+      description: template.description || '',
+      matchType: template.matchType || '友谊赛',
+      customMatchType: false,
+      customMatchTypeText: '',
+      visibility: template.visibility || 'open',
+      locationName: template.locationName || '',
+      location: template.location || '',
+      maxPlayers: template.maxPlayers || 16,
+      fee: template.fee || 0,
+      autoConfirm: template.autoConfirm || false,
+      customMatchTypes: template.customMatchTypes || []
+    }
+  },
+
+  /**
+   * 从表单数据中提取模板字段（不含 id/createdAt）
+   * @param {Object} form - 表单数据
+   * @returns {Object}
+   */
+  extractTemplateData(form) {
+    // 从 date 反推 weekday
+    if (form.date) {
+      const d = new Date(form.date + 'T00:00:00')
+      form._weekday = d.getDay()
+    }
+    return {
+      teamId: form.teamId || '',
+      teamName: form.teamName || '',
+      weekday: form._weekday != null ? form._weekday : (form.date ? new Date(form.date + 'T00:00:00').getDay() : 6),
+      startTime: form.startTime || '',
+      endTime: form.endTime || '',
+      // 直接存 selectedDeadline 字符串，避免 'none' 转 null 丢失原始值
+      selectedDeadline: form.selectedDeadline || 'none',
+      title: form.title || '',
+      description: form.description || '',
+      matchType: form.matchType || '友谊赛',
+      visibility: form.visibility || 'open',
+      locationName: form.locationName || '',
+      location: form.location || '',
+      maxPlayers: form.maxPlayers || 16,
+      fee: form.fee || 0,
+      autoConfirm: form.autoConfirm || false,
+      customMatchTypes: form.customMatchTypes || []
+    }
   }
 })

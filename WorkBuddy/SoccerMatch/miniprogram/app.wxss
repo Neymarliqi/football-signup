@@ -203,3 +203,9 @@ page {
   font-size: 28rpx;
   margin-top: 20rpx;
 }
+
+/* ========== picker-view 选中指示器（自定义 date-picker 使用）========== */
+picker-view {
+  height: 400rpx;
+}
+

@@ -1,0 +1,118 @@
+<!-- pages/profile/templates/templates.wxml -->
+<view class="page">
+
+  <!-- 空状态 -->
+  <view class="empty" wx:if="{{templates.length === 0}}">
+    <view class="empty-icon">📋</view>
+    <view class="empty-title">暂无模板</view>
+    <view class="empty-desc">发布活动后选择「保存为模板」</view>
+    <view class="empty-desc">下次发布直接套用，省时省力</view>
+    <view class="empty-btn" bindtap="onBack">去发布活动</view>
+  </view>
+
+  <!-- 模板列表 -->
+  <view class="list" wx:if="{{templates.length > 0}}">
+    <view class="list-tip">共 {{templates.length}} 个模板</view>
+
+    <view class="tpl-card" wx:for="{{templates}}" wx:key="id">
+
+      <!-- 头部：名称 + 周几标签 -->
+      <view class="card-header">
+        <view class="card-title-row">
+          <text class="card-name">{{item.name}}</text>
+          <view class="card-tag blue">{{item.weekdayLabel}}</view>
+          <view class="card-tag green" wx:if="{{item.matchType}}">{{item.matchType}}</view>
+        </view>
+        <text class="card-time">{{item.timeLabel}}</text>
+      </view>
+
+      <!-- 分割线 -->
+      <view class="card-divider"></view>
+
+      <!-- 详情信息 -->
+      <view class="card-body">
+        <!-- 球队 + 费用 -->
+        <view class="info-row" wx:if="{{item.teamLabel || item.fee > 0}}">
+          <view class="info-item" wx:if="{{item.teamLabel}}">
+            <text class="info-label">球队</text>
+            <text class="info-val">{{item.teamLabel}}</text>
+          </view>
+          <view class="info-item" wx:if="{{item.fee > 0}}">
+            <text class="info-label">费用</text>
+            <text class="info-val fee-val">{{item.fee}} 元/人</text>
+          </view>
+        </view>
+
+        <!-- 场地 + 导航地址 -->
+        <view class="info-row" wx:if="{{item.locationName}}">
+          <view class="info-item">
+            <text class="info-label">场地</text>
+            <text class="info-val single-line">{{item.locationName}}</text>
+          </view>
+        </view>
+        <view class="info-row" wx:if="{{item.location}}">
+          <view class="info-item">
+            <text class="info-label">地址</text>
+            <text class="info-val single-line muted-val">{{item.location}}</text>
+          </view>
+        </view>
+
+        <!-- 报名截止 -->
+        <view class="info-row">
+          <view class="info-item">
+            <text class="info-label">截止</text>
+            <text class="info-val">{{item.deadlineLabel}}</text>
+          </view>
+        </view>
+
+        <!-- 可见范围 -->
+        <view class="info-row">
+          <view class="info-item">
+            <text class="info-label">可见范围</text>
+            <text class="info-val">{{item.visibilityLabel}}</text>
+          </view>
+        </view>
+
+        <!-- 描述 -->
+        <view class="info-desc-row" wx:if="{{item.description}}">
+          <text class="info-desc">{{item.description}}</text>
+        </view>
+      </view>
+
+      <!-- 底部操作栏 -->
+      <view class="card-footer">
+        <text class="footer-date">创建于 {{item.createdAtLabel}}</text>
+        <view class="footer-actions">
+          <text class="action-link" bindtap="onEdit" data-tpl="{{item}}">重命名</text>
+          <view class="action-divider"></view>
+          <text class="action-link danger" catchtap="onDelete" data-tpl="{{item}}">删除</text>
+        </view>
+      </view>
+
+    </view>
+  </view>
+
+</view>
+
+<!-- 编辑名称弹窗 -->
+<view class="modal-mask {{editVisible ? 'show' : ''}}" catchtap="onEditCancel"></view>
+<view class="modal-box {{editVisible ? 'show' : ''}}">
+  <view class="modal-inner" catchtap="stopBubble">
+    <view class="modal-title">重命名模板</view>
+    <view class="modal-input-wrap">
+      <input
+        class="modal-input"
+        value="{{editName}}"
+        bindinput="onEditNameInput"
+        placeholder="请输入模板名称"
+        maxlength="20"
+        focus="{{editVisible}}"
+      />
+      <text class="modal-input-count">{{editNameLen}}/20</text>
+    </view>
+    <view class="modal-actions">
+      <view class="modal-btn cancel" bindtap="onEditCancel">取消</view>
+      <view class="modal-btn confirm" bindtap="onEditConfirm">保存</view>
+    </view>
+  </view>
+</view>

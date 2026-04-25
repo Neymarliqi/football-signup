@@ -2,5 +2,9 @@
   "navigationBarTitleText": "发布活动",
   "navigationBarBackgroundColor": "#1a1a2e",
   "navigationBarTextStyle": "white",
-  "backgroundColor": "#f5f5f5"
+  "backgroundColor": "#f5f5f5",
+  "usingComponents": {
+    "date-picker": "/components/date-picker/date-picker",
+    "template-picker": "/components/template-picker/template-picker"
+  }
 }

@@ -1,0 +1,121 @@
+/* components/date-picker/date-picker.wxss */
+
+/* ========== 触发区（与原生 form-picker 样式保持一致）========== */
+.picker-trigger {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 24rpx 30rpx;
+  background: #f8f8f8;
+  border-radius: 16rpx;
+  font-size: 30rpx;
+  color: #333;
+  min-height: 88rpx;
+  box-sizing: border-box;
+}
+.picker-trigger.placeholder {
+  color: #999;
+}
+
+/* ========== 弹窗遮罩 ========== */
+.popup-mask {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 999;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+
+.popup-content {
+  width: 100%;
+  background: #fff;
+  border-radius: 24rpx 24rpx 0 0;
+  overflow: hidden;
+  animation: slideUp 0.25s ease-out;
+}
+
+/* ========== 顶部周几大字 ========== */
+.weekday-header {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 36rpx 0 20rpx;
+}
+
+.weekday-large {
+  font-size: 64rpx;
+  font-weight: bold;
+  letter-spacing: 4rpx;
+}
+.weekday-normal {
+  color: #333;
+}
+.weekday-weekend {
+  color: #ff6b6b;  /* 周六周日红色 */
+}
+.weekday-friday {
+  color: #ff9f43;  /* 周五橙色 */
+}
+
+/* ========== 三列滚动选择器 ========== */
+.date-picker-view {
+  width: 100%;
+  height: 400rpx;
+  background: #fff;
+}
+
+/* 列中每个选项的样式 */
+.picker-col-item {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 36rpx;
+  color: #333;
+}
+
+/* 选中项高亮（利用 picker-view 的内置 indicator）*/
+/* indicator 样式需要在全局或页面上覆盖，这里做辅助定位 */
+.date-picker-view {
+  /* indicator 指示器通过设置 line-height 与 item 一致来对齐 */
+}
+
+/* ========== 底部按钮 ========== */
+.popup-footer {
+  display: flex;
+  border-top: 1rpx solid #eee;
+}
+
+.btn-cancel,
+.btn-confirm {
+  flex: 1;
+  text-align: center;
+  padding: 32rpx 0;
+  font-size: 32rpx;
+  font-weight: 500;
+}
+
+.btn-cancel {
+  color: #666;
+  border-right: 1rpx solid #eee;
+}
+
+.btn-confirm {
+  color: #2ecc71;
+}
+
+/* ========== 动画 ========== */
+@keyframes slideUp {
+  from {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}

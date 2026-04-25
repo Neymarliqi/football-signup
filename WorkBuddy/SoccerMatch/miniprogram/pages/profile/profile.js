@@ -38,6 +38,7 @@ Page({
     },
     history: [],
     version: '3.0.0',
+    templateCount: 0,
     // 注册弹窗
     showRegisterModal: false,
     // 球队数据
@@ -71,19 +72,20 @@ Page({
 
     // 加载我的球队
     this.loadMyTeams()
+
+    // 加载模板数量
+    const templates = app.loadTemplates()
+    this.setData({ templateCount: templates.length })
   },
 
   // ========== 球队相关 ==========
   async loadMyTeams() {
     if (!app.isUserRegistered()) {
-      console.error('[profile] 用户未注册，不加载球队')
       return
     }
     this.setData({ loadingTeams: true, showAllTeams: false })
     try {
-      console.log('[profile] 调用 getMyTeams 云函数...')
       const res = await wx.cloud.callFunction({ name: 'getMyTeams' })
-      console.log('[profile] getMyTeams 返回:', res)
       if (res.result.success) {
         const roleTextMap = { creator: '创建者', admin: '管理员', member: '成员' }
         const createdTeams = (res.result.createdTeams || []).map(t => ({
@@ -607,6 +609,11 @@ Page({
     wx.navigateTo({
       url: '/pages/privacy/privacy'
     })
+  },
+
+  // 跳转到我的模板
+  goTemplates() {
+    wx.navigateTo({ url: '/pages/profile/templates/templates' })
   },
 
   formatDate(date) {

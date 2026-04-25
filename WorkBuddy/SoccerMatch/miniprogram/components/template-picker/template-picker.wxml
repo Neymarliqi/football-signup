@@ -1,0 +1,67 @@
+<!-- components/template-picker/template-picker.wxml -->
+<!-- 遮罩层 -->
+<view class="picker-mask {{visible ? 'show' : ''}}" bindtap="close"></view>
+
+<!-- 弹窗主体 -->
+<view class="picker-popup {{visible ? 'show' : ''}}">
+  <view class="picker-content" catchtap="stopBubble">
+    <!-- 头部 -->
+    <view class="picker-header">
+      <text class="picker-title">选择模板</text>
+      <text class="picker-close" bindtap="close">✕</text>
+    </view>
+
+    <!-- 模板列表 -->
+    <scroll-view scroll-y class="picker-list">
+      <!-- 无模板 -->
+      <view class="empty-wrap" wx:if="{{templates.length === 0}}">
+        <view class="empty-icon">📋</view>
+        <view class="empty-title">暂无模板</view>
+        <view class="empty-desc">发布活动时可选择「保存为模板」</view>
+        <view class="empty-desc">下次发布直接套用，省时省力</view>
+      </view>
+
+      <!-- 有模板 -->
+      <view
+        wx:for="{{templates}}"
+        wx:key="id"
+        class="tpl-item {{item.id === selectedId ? 'tpl-selected' : ''}}"
+        data-tpl="{{item}}"
+        bindtap="onSelect"
+      >
+        <!-- 选中标记 -->
+        <view class="tpl-check" wx:if="{{item.id === selectedId}}">✓</view>
+
+        <!-- 模板信息 -->
+        <view class="tpl-info">
+          <view class="tpl-name-row">
+            <text class="tpl-name">{{item.name}}</text>
+            <text class="tpl-badge">{{item.weekdayLabel}}</text>
+            <text class="tpl-badge tpl-badge-type" wx:if="{{item.matchType}}">{{item.matchType}}</text>
+          </view>
+          <view class="tpl-detail-row">
+            <text class="tpl-time" wx:if="{{item.timeLabel}}">🕐 {{item.timeLabel}}</text>
+            <text class="tpl-team" wx:if="{{item.teamLabel !== '个人活动'}}">⚽ {{item.teamLabel}}</text>
+            <text class="tpl-fee" wx:if="{{item.fee > 0}}">💰 {{item.fee}}元</text>
+          </view>
+          <view class="tpl-detail-row">
+            <text class="tpl-venue" wx:if="{{item.locationName}}">📍 {{item.locationName}}</text>
+          </view>
+          <view class="tpl-desc-row" wx:if="{{item.description}}">
+            <text class="tpl-desc">{{item.description}}</text>
+          </view>
+        </view>
+
+        <!-- 删除按钮（单独一行，底部） -->
+        <view class="tpl-actions" catchtap="onDelete" data-tpl="{{item}}">
+          <text class="tpl-delete">删除</text>
+        </view>
+      </view>
+    </scroll-view>
+
+    <!-- 底部提示 -->
+    <view class="picker-footer" wx:if="{{templates.length > 0}}">
+      <text>选择模板后自动填充，时间会跳到下周对应日期</text>
+    </view>
+  </view>
+</view>

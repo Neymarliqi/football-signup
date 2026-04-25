@@ -13,6 +13,40 @@
   color: #fff;
 }
 
+/* 模板选择条 */
+.template-bar {
+  margin-bottom: 24rpx;
+}
+.template-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #e8f3ff;
+  border: 1rpx dashed #4a9eff;
+  border-radius: 16rpx;
+  padding: 20rpx;
+  font-size: 28rpx;
+  color: #4a9eff;
+}
+.template-btn:active {
+  background: #d0e8ff;
+}
+.template-active {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #e8f3ff;
+  border: 1rpx solid #4a9eff;
+  border-radius: 16rpx;
+  padding: 20rpx 24rpx;
+  font-size: 28rpx;
+  color: #4a9eff;
+}
+.template-change {
+  font-size: 26rpx;
+  color: #999;
+}
+
 .section-title {
   font-size: 30rpx;
   font-weight: bold;
@@ -458,7 +492,8 @@
 }
 
 /* 编辑模式下的按钮行 */
-.edit-actions-row {
+.edit-actions-row,
+.create-actions-row {
   display: flex;
   align-items: center;
   width: 100%;

@@ -4,7 +4,6 @@ const app = getApp()
 const CACHE_KEY = 'picker_myTeams'
 const DEFAULT_TEAM_KEY = 'default_team_id'
 const LAST_SELECTED_KEY = 'picker_last_selected'
-const CACHE_DURATION = 30
 
 Page({
   data: {
@@ -18,19 +17,24 @@ Page({
   },
 
   onLoad(options) {
-    // 优先级：传入值 > 上次选中 > 默认球队 > 公开活动
-    const currentTeamId = options.currentTeamId || ''
+    let currentTeamId = options.currentTeamId || ''
+    if (currentTeamId === 'undefined') currentTeamId = ''
+    // hasChosen=1 表示用户已主动做过选择（包括选了公开活动），此时即使为空也要保持空（选中公开活动）
+    const hasChosen = options.hasChosen === '1'
+
     let selectedId = currentTeamId
-    if (!selectedId) {
-      selectedId = wx.getStorageSync(LAST_SELECTED_KEY) || ''
-    }
-    if (!selectedId) {
+    if (!selectedId && !hasChosen) {
+      // 没传值且用户没选过 → 用默认球队
       selectedId = wx.getStorageSync(DEFAULT_TEAM_KEY) || ''
+    } else if (!selectedId && hasChosen) {
+      // 用户主动选了公开活动 → 保持空
+      selectedId = ''
     }
-    // 默认公开活动
+
     if (selectedId === undefined || selectedId === null) {
       selectedId = ''
     }
+
     const defaultTeamId = wx.getStorageSync(DEFAULT_TEAM_KEY) || ''
     this.setData({ selectedTeamId: selectedId, defaultTeamId })
     this.loadMyTeams()
@@ -38,47 +42,53 @@ Page({
 
   onShow() {
     if (this.data.loaded) {
-      // 重新读取选中状态（可能从其他页面返回后 changed）
-      const selectedId = wx.getStorageSync(LAST_SELECTED_KEY) || ''
+      // 只刷新默认球队标记和列表，不再用 LAST_SELECTED_KEY 覆盖选中状态
+      // 选中状态由 onLoad 根据 currentTeamId 正确设置，onShow 覆盖会导致勾选错位
       const defaultTeamId = wx.getStorageSync(DEFAULT_TEAM_KEY) || ''
-      this.setData({ selectedTeamId: selectedId, defaultTeamId })
+      this.setData({ defaultTeamId })
       this.loadMyTeams()
     }
   },
 
-  // ========== 缓存加载 ==========
+  // ========== 加载球队列表（stale-while-revalidate 策略）==========
 
-  async loadMyTeams() {
+  loadMyTeams() {
+    // 第一步：先读本地缓存秒渲染，消除白屏闪烁
     const cached = wx.getStorageSync(CACHE_KEY)
-    if (cached && cached.data && (Date.now() - cached.cachedAt < CACHE_DURATION * 1000)) {
-      const roleTextMap = { creator: '创建者', admin: '管理员', member: '成员' }
-      const myTeams = cached.data.map(t => ({
-        ...t,
-        myRoleText: roleTextMap[t.myRole] || t.myRole,
-        displayLogo: t.logoPath ? app.getDisplayAvatar({ cloudPath: t.logoPath }) : ''
-      }))
-      this.setData({ myTeams, loaded: true })
+    if (cached && cached.data && cached.data.length > 0) {
+      this._renderTeams(cached.data)
     }
 
-    try {
-      const res = await wx.cloud.callFunction({ name: 'getMyTeams' })
+    // 第二步：后台请求最新数据，返回后静默刷新
+    this._fetchFromCloud()
+  },
+
+  _fetchFromCloud() {
+    wx.cloud.callFunction({ name: 'getMyTeams' }).then(res => {
       if (res.result.success) {
         const allTeams = [...res.result.createdTeams, ...res.result.joinedTeams]
-        const roleTextMap = { creator: '创建者', admin: '管理员', member: '成员' }
-        const myTeams = allTeams.map(t => ({
-          ...t,
-          myRoleText: roleTextMap[t.myRole] || t.myRole,
-          displayLogo: t.logoPath ? app.getDisplayAvatar({ cloudPath: t.logoPath }) : ''
-        }))
-        this.setData({ myTeams, loaded: true })
+        // 更新本地缓存
         wx.setStorageSync(CACHE_KEY, { data: allTeams, cachedAt: Date.now() })
-      } else if (!this.data.loaded) {
+        // 渲染最新数据（覆盖可能的旧缓存）
+        this._renderTeams(allTeams)
+      } else {
         this.setData({ loaded: true })
       }
-    } catch (e) {
+    }).catch(e => {
       console.error('loadMyTeams error', e)
-      if (!this.data.loaded) this.setData({ loaded: true })
-    }
+      this.setData({ loaded: true })
+    })
+  },
+
+  // 统一渲染球队列表（缓存和云端共用）
+  _renderTeams(allTeams) {
+    const roleTextMap = { creator: '创建者', admin: '管理员', member: '成员' }
+    const myTeams = allTeams.map(t => ({
+      ...t,
+      myRoleText: roleTextMap[t.myRole] || t.myRole,
+      displayLogo: t.logoPath ? app.getDisplayAvatar({ cloudPath: t.logoPath }) : ''
+    }))
+    this.setData({ myTeams, loaded: true })
   },
 
   // ========== 浏览模式：选择球队 ==========

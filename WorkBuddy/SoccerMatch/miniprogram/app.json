@@ -13,7 +13,8 @@
     "pages/team/create",
     "pages/team/home",
     "pages/team/settings",
-    "pages/team/picker"
+    "pages/team/picker",
+    "pages/profile/templates/templates"
   ],
   "plugins": {
     "chooseLocation": {

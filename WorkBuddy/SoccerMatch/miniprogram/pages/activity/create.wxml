@@ -4,6 +4,17 @@
     <text class="page-header-title">{{isEdit ? '✏ 编辑活动' : '🆕 发布活动'}}</text>
   </view>
 
+  <!-- 模板选择器（仅创建模式显示） -->
+  <view class="template-bar" wx:if="{{!isEdit}}">
+    <view wx:if="{{!selectedTemplateId}}" class="template-btn" bindtap="openTemplatePicker">
+      <text>📋 选择模板</text>
+    </view>
+    <view wx:else class="template-active" bindtap="openTemplatePicker">
+      <text>✅ 已选：{{selectedTemplateName}}</text>
+      <text class="template-change">更换 ›</text>
+    </view>
+  </view>
+
   <!-- 基本信息 -->
   <view class="card">
     <view class="section-title">📋 基本信息</view>
@@ -30,7 +41,7 @@
     <view class="form-item">
       <view class="form-label">活动描述</view>
       <textarea class="form-textarea" value="{{form.description}}" bindinput="onDescriptionInput"
-                placeholder="简短描述本次活动...（可选）" maxlength="200"/>
+                placeholder="简短描述本次活动...（可选）" maxlength="500"/>
     </view>
 
     <view class="form-item">
@@ -105,12 +116,11 @@
 
     <view class="form-item">
       <view class="form-label">踢球日期 <text class="required">*</text></view>
-      <picker mode="date" value="{{form.date}}" bindchange="onDateChange">
-        <view class="form-picker {{form.date ? '' : 'placeholder'}}">
-          <text>{{form.date || '选择日期'}}</text>
-          <text class="picker-arrow">›</text>
-        </view>
-      </picker>
+      <date-picker
+        id="datePicker"
+        value="{{form.date}}"
+        bindchange="onDatePickerChange"
+        placeholder="选择日期"/>
     </view>
 
     <view class="form-item">
@@ -245,11 +255,20 @@
     <view class="action-link-secondary" bindtap="cancelActivityInEdit">取消活动</view>
   </view>
   
-  <!-- 创建模式：发布活动 -->
-  <view wx:if="{{!isEdit}}" class="submit-btn btn-primary" bindtap="submit">
-  发布活动
+  <!-- 创建模式：发布活动 + 保存草稿 -->
+  <view wx:if="{{!isEdit}}" class="create-actions-row">
+    <view class="submit-btn btn-primary flex-1" bindtap="submit">发布活动</view>
+    <view class="action-link-secondary" bindtap="saveDraft">💾 保存草稿</view>
   </view>
 </view>
 
 <!-- 注册弹窗 -->
 <register-modal show="{{showRegisterModal}}" bind:registered="onRegistered" bind:close="onCloseRegister" />
+
+<!-- 模板选择器 -->
+<template-picker
+  id="templatePicker"
+  selectedId="{{selectedTemplateId}}"
+  bind:select="onTemplateSelect"
+  bind:deselect="onTemplateDeselect"
+/>

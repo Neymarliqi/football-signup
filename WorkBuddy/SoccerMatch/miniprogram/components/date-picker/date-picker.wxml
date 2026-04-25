@@ -1,0 +1,45 @@
+<!-- components/date-picker/date-picker.wxml -->
+<view class="date-picker-wrapper">
+  <!-- 触发区：模仿原生 picker 外观 -->
+  <view class="picker-trigger {{value ? '' : 'placeholder'}}" bindtap="open">
+    <text>{{value ? value + ' ' + weekdayText : placeholder}}</text>
+    <text class="picker-arrow">›</text>
+  </view>
+
+  <!-- 弹窗遮罩 -->
+  <view class="popup-mask" wx:if="{{showPopup}}" bindtap="onMaskTap">
+    <!-- 阻止冒泡，防止点弹窗内容也关闭 -->
+    <view class="popup-content" catchtap="stopBubble">
+      <!-- 顶部：周几大字标签 -->
+      <view class="weekday-header">
+        <text class="weekday-large {{weekdayClass}}">{{weekdayText}}</text>
+      </view>
+
+  <!-- 滚动选择器 -->
+  <picker-view
+    class="date-picker-view"
+    value="{{[yearIndex, monthIndex, dayIndex]}}"
+    indicator-class="picker-indicator"
+    bindchange="onChange">
+        <!-- 年 -->
+        <picker-view-column>
+          <view class="picker-col-item" wx:for="{{years}}" wx:key="*this">{{item}}年</view>
+        </picker-view-column>
+        <!-- 月 -->
+        <picker-view-column>
+          <view class="picker-col-item" wx:for="{{months}}" wx:key="*this">{{item}}月</view>
+        </picker-view-column>
+        <!-- 日 -->
+        <picker-view-column>
+          <view class="picker-col-item" wx:for="{{days}}" wx:key="*this">{{item}}日</view>
+        </picker-view-column>
+      </picker-view>
+
+      <!-- 底部按钮 -->
+      <view class="popup-footer">
+        <view class="btn-cancel" bindtap="onCancel">取消</view>
+        <view class="btn-confirm" bindtap="onConfirm">确定</view>
+      </view>
+    </view>
+  </view>
+</view>
