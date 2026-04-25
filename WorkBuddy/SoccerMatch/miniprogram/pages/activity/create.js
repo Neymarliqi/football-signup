@@ -278,19 +278,23 @@ Page({
         const deadline = act.deadline instanceof Date ? act.deadline : new Date(act.deadline)
         const activityTime = actDateStr
         const diffHours = (activityTime - deadline) / (1000 * 60 * 60)
-        
+
         // 根据时间差匹配预设选项
         if (diffHours >= 23 && diffHours <= 25) selectedDeadline = '1day'
         else if (diffHours >= 5.5 && diffHours <= 6.5) selectedDeadline = '6hours'
         else if (diffHours >= 0.8 && diffHours <= 1.2) selectedDeadline = '1hour'
         else if (diffHours >= 0.4 && diffHours <= 0.6) selectedDeadline = '30min'
         else selectedDeadline = 'none'
-        
+
         const month = deadline.getMonth() + 1
         const date = deadline.getDate()
         const hours = deadline.getHours().toString().padStart(2, '0')
         const minutes = deadline.getMinutes().toString().padStart(2, '0')
         deadlineDisplay = `${month}月${date}日 ${hours}:${minutes}`
+      } else {
+        // 无截止时间 → 不限制
+        selectedDeadline = 'none'
+        deadlineDisplay = '不限制'
       }
 
       // 调试：打印活动描述
