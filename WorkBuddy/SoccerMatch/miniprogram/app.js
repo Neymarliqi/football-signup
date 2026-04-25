@@ -170,10 +170,11 @@ App({
 
     // 第二层：本地 Storage 缓存（冷启动可用）
     const stillUncached = []
-    uncachedIds.forEach(id => {
+    // 用 for 循环以支持 await（查数据库补全 cloudPath）
+    for (const id of uncachedIds) {
       if (forceRefresh) {
         stillUncached.push(id)
-        return
+        continue
       }
       try {
         const storageData = wx.getStorageSync(`user_${id}`)
@@ -188,13 +189,17 @@ App({
             _fromStorage: true // 标记来源，便于调试
           }
           usersCache[id] = { data: result[id], timestamp: now }
+          // Storage 命中但无 cloudPath（老用户本地缓存过期/未更新），后台查库补全
+          if (!storageData.cloudPath) {
+            this._refreshUserCacheAsync(id)
+          }
         } else {
           stillUncached.push(id)
         }
       } catch (e) {
         stillUncached.push(id)
       }
-    })
+    }
 
     // 第三层：数据库查询
     if (stillUncached.length > 0) {
@@ -452,11 +457,11 @@ App({
 
     // 优先：fetchUsersWithCache 已预解析的临时 URL（有效期约2小时）
     if (user.displayAvatar) return user.displayAvatar
-    if (user.avatarBase64) return user.avatarBase64
-    // cloudPath 需通过 getTempFileURL 转成 HTTPS 才能被 image 组件加载
+    // cloudPath（新方案，v3.0.0+）优先于 avatarBase64（老数据兼容）
     if (user.cloudPath) {
       return this._resolveCloudPath(user.cloudPath)
     }
+    if (user.avatarBase64) return user.avatarBase64
     return this.globalData.defaultAvatar
   },
 
@@ -478,7 +483,40 @@ App({
   },
 
   /**
-   * 批量获取用户可显示的头像URL（同步，优先 base64）
+   * 后台异步刷新单个用户缓存（无 cloudPath 时补全）
+   * 不阻塞调用方，下次 fetchUsersWithCache 时生效
+   * @param {string} openid - 用户 openid
+   */
+  _refreshUserCacheAsync(openid) {
+    const db = wx.cloud.database()
+    db.collection('users').where({ openid }).get()
+      .then(res => {
+        if (res.data && res.data.length > 0) {
+          const cloudUser = res.data[0]
+          const { usersCache } = this.globalData
+          const existing = usersCache[openid]
+          // 只在 cloudPath 有效且原有数据没有 cloudPath 时更新
+          if (cloudUser.cloudPath && (!existing || !existing.data.cloudPath)) {
+            // 同步内存缓存（下次 fetchUsersWithCache 直接命中）
+            usersCache[openid] = {
+              data: {
+                ...(existing ? existing.data : {}),
+                cloudPath: cloudUser.cloudPath,
+                nickName: cloudUser.nickName || (existing ? existing.data.nickName : ''),
+                positions: cloudUser.positions || []
+              },
+              timestamp: Date.now()
+            }
+            // 同步 Storage 缓存
+            this.saveUserToStorage(openid, usersCache[openid].data)
+          }
+        }
+      })
+      .catch(() => {}) // 后台任务，失败静默忽略
+  },
+
+  /**
+   * 批量获取用户可显示的头像URL（同步，cloudPath 优先）
    * @param {Object[]} users - 用户信息对象数组
    * @returns {string[]} 可直接用于 <image src> 的URL数组
    */
