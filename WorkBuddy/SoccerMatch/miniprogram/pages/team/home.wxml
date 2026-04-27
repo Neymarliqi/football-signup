@@ -168,5 +168,30 @@
 
 </view>
 
+<!-- 加入球队确认半屏卡片 -->
+<view wx:if="{{showJoinSheet}}" class="join-sheet-mask" catchtap="closeJoinSheetMask">
+  <view class="join-sheet" catchtap="">
+    <!-- 把手 -->
+    <view class="join-sheet-handle"></view>
+
+    <!-- 球队信息 -->
+    <view class="join-sheet-logo-wrap">
+      <view class="join-sheet-logo-frame">
+        <image wx:if="{{team.logoPath}}" class="join-sheet-logo" src="{{displayLogo}}" mode="aspectFill"/>
+        <text wx:if="{{!team.logoPath}}" class="join-sheet-logo-icon">⚽</text>
+      </view>
+    </view>
+
+    <text class="join-sheet-invite">邀请你加入</text>
+    <text class="join-sheet-teamname">{{team.name}}</text>
+    <text class="join-sheet-meta">👥 {{team.memberCount}} 人</text>
+    <text wx:if="{{team.description}}" class="join-sheet-desc">{{team.description}}</text>
+
+    <!-- 操作按钮 -->
+    <view class="join-sheet-btn-confirm" bindtap="confirmJoin">加入球队</view>
+    <view class="join-sheet-btn-cancel" bindtap="cancelJoin">暂不加入</view>
+  </view>
+</view>
+
 <!-- 注册弹窗 -->
 <register-modal show="{{showRegisterModal}}" bind:registered="onRegistered" bind:close="onCloseRegister" />

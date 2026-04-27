@@ -22,7 +22,9 @@ Page({
     loadingApplications: false,
     hasPendingApplication: false, // 非成员：是否有待审批的申请
     // 注册弹窗
-    showRegisterModal: false
+    showRegisterModal: false,
+    // 加入确认半屏卡片
+    showJoinSheet: false
   },
 
   // 待执行的加入操作（注册完成后执行）
@@ -102,9 +104,9 @@ Page({
             this.setData({ team: cloudTeam.data, myRole: null, displayLogo, displayCover })
             // 检查是否有待审批的申请
             this.checkPendingApplication()
-            // 如果是 qrcode 模式，自动加入
+            // 如果是 qrcode 模式，弹出确认加入卡片（先检查注册）
             if (cloudTeam.data.joinMethod === 'qrcode') {
-              this.autoJoinTeam()
+              this.promptJoinTeam()
             }
           }
         }
@@ -114,28 +116,28 @@ Page({
     }
   },
 
-  // ========== 自动加入球队（qrcode 模式）==========
-  async autoJoinTeam() {
-    const { teamId, team } = this.data
-    if (!teamId || !team) return
+  // ========== 邀请链接：弹确认加入卡片（qrcode 模式）==========
+  promptJoinTeam() {
+    // 先检查注册状态，未注册先弹注册弹窗
+    if (!this.checkRegisterBeforeJoin('prompt')) return
+    // 已注册，弹出半屏确认卡片
+    this.setData({ showJoinSheet: true })
+  },
 
-    wx.showLoading({ title: '加入中...' })
-    try {
-      const res = await wx.cloud.callFunction({
-        name: 'joinTeam',
-        data: { teamId }
-      })
-      wx.hideLoading()
-      if (res.result.success && res.result.type === 'direct') {
-        wx.showToast({ title: '加入成功', icon: 'success' })
-        // 重新加载球队信息
-        this.loadTeamInfo()
-        this.loadMembers()
-      }
-    } catch (e) {
-      wx.hideLoading()
-      console.error('autoJoinTeam error', e)
-    }
+  // 确认加入（半屏卡片点"加入球队"）
+  async confirmJoin() {
+    this.setData({ showJoinSheet: false })
+    await this._doJoin()
+  },
+
+  // 取消加入（半屏卡片点"暂不加入"）
+  cancelJoin() {
+    this.setData({ showJoinSheet: false })
+  },
+
+  // 遮罩点击关闭
+  closeJoinSheetMask() {
+    this.setData({ showJoinSheet: false })
   },
 
   switchTab(e) {
@@ -500,6 +502,9 @@ Page({
       setTimeout(() => {
         if (action === 'apply') {
           this.doApplyConfirm()
+        } else if (action === 'prompt') {
+          // qrcode 邀请链接：注册完成后弹确认卡片
+          this.setData({ showJoinSheet: true })
         } else {
           this._doJoin()
         }
