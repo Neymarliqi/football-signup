@@ -44,7 +44,8 @@
       <text class="pending-icon">⏳</text>
       <text class="pending-text">已申请，等待审批</text>
     </view>
-    <view wx:else class="apply-status">
+    <!-- apply 模式才显示申请入队提示，qrcode 模式由半屏卡片处理，不展示此栏 -->
+    <view wx:elif="{{team.joinMethod === 'apply'}}" class="apply-status">
       <text class="apply-text">您还不是球队成员</text>
       <view class="btn-apply" bindtap="joinTeam">申请加入</view>
     </view>
