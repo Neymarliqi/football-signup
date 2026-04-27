@@ -190,7 +190,6 @@
 
     <!-- 操作按钮 -->
     <view class="join-sheet-btn-confirm" bindtap="confirmJoin">加入球队</view>
-    <view class="join-sheet-btn-cancel" bindtap="cancelJoin">暂不加入</view>
   </view>
 </view>
 
