@@ -283,27 +283,17 @@ Page({
     wx.showLoading({ title: '保存中...' })
     
     try {
-      const existing = await db.collection('tactics').where({ activityId }).get()
-      
-      if (existing.data.length > 0) {
-        await db.collection('tactics').doc(existing.data[0]._id).update({
-          data: { 
-            positions, 
-            updatedAt: db.serverDate() 
-          }
-        })
-      } else {
-        await db.collection('tactics').add({
-          data: { 
-            activityId, 
-            positions, 
-            createdAt: db.serverDate() 
-          }
-        })
-      }
+      const res = await wx.cloud.callFunction({
+        name: 'saveTactics',
+        data: { activityId, positions }
+      })
       
       wx.hideLoading()
-      wx.showToast({ title: '保存成功', icon: 'success' })
+      if (res.result && res.result.success) {
+        wx.showToast({ title: '保存成功', icon: 'success' })
+      } else {
+        wx.showToast({ title: res.result.message || '保存失败', icon: 'none' })
+      }
     } catch (e) {
       console.error('保存失败', e)
       wx.hideLoading()

@@ -1,0 +1,9 @@
+{
+  "name": "saveTactics",
+  "version": "1.0.0",
+  "description": "保存/更新战术板（仅创建者和报名者可操作）",
+  "main": "index.js",
+  "dependencies": {
+    "wx-server-sdk": "latest"
+  }
+}
