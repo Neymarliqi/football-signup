@@ -13,8 +13,10 @@
     <view class="score-section">
       <!-- 我方 -->
       <view class="team-score-wrap">
-        <text class="team-score-label">{{activity.teamName || '我方'}}</text>
-        <!-- 有权限：可输入；无权限：只读 -->
+        <view class="team-score-label-row">
+          <text class="team-score-label">{{activity.teamName || '我方'}}</text>
+          <view wx:if="{{canEdit}}" class="edit-name-btn edit-name-placeholder"></view>
+        </view>
         <view wx:if="{{canEdit}}" class="score-input-wrap">
           <input class="score-input" type="number" value="{{goals}}" bindinput="onGoalsInput" placeholder="0"/>
         </view>
@@ -23,7 +25,6 @@
 
       <view class="vs-wrap">
         <text class="vs-text">VS</text>
-        <!-- 结果标签 -->
         <view wx:if="{{result}}" class="result-badge result-{{result}}">
           <text wx:if="{{result === 'win'}}">胜</text>
           <text wx:elif="{{result === 'draw'}}">平</text>
@@ -33,7 +34,10 @@
 
       <!-- 对方 -->
       <view class="team-score-wrap">
-        <text class="team-score-label">对方</text>
+        <view class="team-score-label-row">
+          <text class="team-score-label">{{opponentName || '对手'}}</text>
+          <view wx:if="{{canEdit}}" class="edit-name-btn" bindtap="editOpponentName">✎</view>
+        </view>
         <view wx:if="{{canEdit}}" class="score-input-wrap">
           <input class="score-input" type="number" value="{{opponentGoals}}" bindinput="onOpponentGoalsInput" placeholder="0"/>
         </view>
@@ -65,7 +69,7 @@
           <image class="player-avatar" src="{{item.displayAvatar}}" mode="aspectFill"/>
           <view class="player-name-wrap">
             <text class="player-name">{{item.displayName || item.nickName}}</text>
-            <text class="player-type-tag {{item.memberType === 'member' ? 'tag-member' : 'tag-casual'}}">
+            <text class="player-type-tag {{item.memberType === 'member' ? 'tag-member' : 'tag-casual'}}" wx:if="{{activity.teamId}}">
               {{item.memberType === 'member' ? '队员' : '散客'}}
             </text>
           </view>

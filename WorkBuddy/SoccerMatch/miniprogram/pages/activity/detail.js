@@ -899,9 +899,12 @@ Page({
         const usersMap = openids.length > 0 ? await app.fetchUsersWithCache(openids) : {}
         matchStatsPlayers = topPlayers.map(p => {
           const user = usersMap[p.openid] || {}
+          const nickName = user.nickName || '未知'
+          const displayName = nickName.length > 4 ? nickName.slice(0, 4) + '...' : nickName
           return {
             ...p,
-            nickName: user.nickName || '未知',
+            nickName,
+            displayName,
             displayAvatar: app.getDisplayAvatar(user) || app.globalData.defaultAvatar
           }
         })

@@ -23,6 +23,9 @@
           <image class="player-avatar" src="{{item.displayAvatar}}" mode="aspectFill"/>
           <view class="player-info">
             <text class="player-name">{{item.nickName}}</text>
+            <view class="type-tag type-tag-{{item.type || 'member'}}">
+              <text>{{item.type === 'casual' ? '散客' : '队员'}}</text>
+            </view>
             <text class="player-time">{{item.registerTimeText}}</text>
           </view>
         </view>
@@ -46,8 +49,11 @@
           <view class="player-left">
             <image class="player-avatar" src="{{item.displayAvatar}}" mode="aspectFill"/>
             <view class="player-info">
-              <text class="player-name">{{item.nickName}}</text>
+            <text class="player-name">{{item.nickName}}</text>
+            <view class="type-tag type-tag-{{item.type || 'member'}}">
+              <text>{{item.type === 'casual' ? '散客' : '队员'}}</text>
             </view>
+          </view>
           </view>
           <view class="attend-checkbox {{item.attended ? 'checked' : ''}}">
             <text wx:if="{{item.attended}}" class="check-icon">✓</text>

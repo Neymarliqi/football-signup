@@ -10,6 +10,7 @@ Page({
     // 比赛数据
     goals: 0,
     opponentGoals: 0,
+    opponentName: '',    // 对手名称
     result: '',            // 'win'/'draw'/'lose'
     players: [],           // { openid, nickName, displayAvatar, type, attended, goals, assists }
     hasStats: false,
@@ -30,7 +31,6 @@ Page({
       return
     }
     this.setData({ activityId, mode })
-    wx.setNavigationBarTitle({ title: '活动数据' })
     this.loadData()
   },
 
@@ -128,18 +128,22 @@ Page({
 
       const goals = existStats ? (existStats.goals || 0) : 0
       const opponentGoals = existStats ? (existStats.opponentGoals || 0) : 0
+      const opponentName = existStats ? (existStats.opponentName || '') : ''
       const result = existStats ? (existStats.result || '') : ''
 
       this.setData({
         activity,
         goals,
         opponentGoals,
+        opponentName,
         result,
         players,
         hasStats: !!existStats,
         canEdit,
         loading: false
       })
+      // 导航栏显示活动标题
+      wx.setNavigationBarTitle({ title: activity.title || '活动数据' })
     } catch (e) {
       console.error('loadData error', e)
       this.setData({ loading: false })
@@ -159,6 +163,21 @@ Page({
     const val = parseInt(e.detail.value) || 0
     this.setData({ opponentGoals: val })
     this.calcResult(this.data.goals, val)
+  },
+
+  // 点击编辑对手名称（弹出输入框，限制10字）
+  editOpponentName() {
+    wx.showModal({
+      title: '对手名称',
+      editable: true,
+      placeholderText: '请输入对手名称（最多10字）',
+      content: this.data.opponentName || '',
+      success: (res) => {
+        if (res.confirm) {
+          this.setData({ opponentName: (res.content || '').trim().slice(0, 10) })
+        }
+      }
+    })
   },
 
   calcResult(goals, opponentGoals) {
@@ -214,17 +233,16 @@ Page({
     wx.showLoading({ title: '保存中...' })
 
     try {
-      const { activityId, goals, opponentGoals, players } = this.data
+      const { activityId, goals, opponentGoals, opponentName, players } = this.data
       const res = await wx.cloud.callFunction({
         name: 'saveMatchStats',
-        data: { activityId, goals, opponentGoals, players }
+        data: { activityId, goals, opponentGoals, opponentName, players }
       })
 
       wx.hideLoading()
       if (res.result && res.result.success) {
         wx.showToast({ title: '保存成功', icon: 'success' })
         this.setData({ mode: 'view', saving: false, hasStats: true })
-        wx.setNavigationBarTitle({ title: '活动数据' })
         this.loadData()
       } else {
         wx.showToast({ title: res.result.message || '保存失败', icon: 'none' })

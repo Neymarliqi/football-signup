@@ -3,7 +3,7 @@
 /* 头部 */
 .team-header {
   position: relative;
-  height: 400rpx;
+  height: 280rpx;
   overflow: hidden;
 }
 
@@ -53,13 +53,13 @@
   bottom: 0;
   left: 0;
   right: 0;
-  height: 200rpx;
+  height: 140rpx;
   background: linear-gradient(to top, rgba(0,0,0,0.6), transparent);
 }
 
 .header-logo-wrap {
   position: absolute;
-  top: 60rpx;
+  top: 40rpx;
   left: 50%;
   transform: translateX(-50%);
   z-index: 2;
@@ -263,23 +263,77 @@
 .join-status-icon { font-size: 40rpx; }
 .join-status-text { font-size: 28rpx; color: #2ecc71; font-weight: bold; }
 
-/* 成员列表 */
-.member-item {
+/* 成员列表 - 滑动操作（微信风格） */
+.member-item-wrap {
+  overflow: hidden;
+  position: relative;
+}
+
+/* 左滑后内容层左移，露出右侧操作按钮（两个按钮宽度） */
+.member-item-wrap.swiped .member-item-content {
+  transform: translateX(-460rpx);
+}
+
+.member-item-content {
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: 20rpx 0;
   border-bottom: 1rpx solid #f5f5f5;
+  background: #fff;
+  position: relative;
+  z-index: 2;
+  transition: transform 0.25s ease;
 }
 
-.member-item:last-child { border-bottom: none; }
+/* 操作按钮层 - 固定在右侧，微信风格：危险操作在左，主操作在右 */
+.member-actions {
+  position: absolute;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  z-index: 1;
+}
+
+.action-btn {
+  min-width: 180rpx;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 26rpx;
+  font-weight: 500;
+  flex-shrink: 0;
+  padding: 0 20rpx;
+}
+
+/* 蓝色：主操作 */
+.action-admin {
+  background: #576b95;
+  color: #fff;
+}
+
+/* 红色：危险操作 */
+.action-remove {
+  background: #e64340;
+  color: #fff;
+}
+
+.member-swipe-hint {
+  font-size: 32rpx;
+  color: #ccc;
+  padding-right: 8rpx;
+  flex-shrink: 0;
+}
 
 .member-left {
   display: flex;
   align-items: center;
   gap: 20rpx;
   flex: 1;
-  min-width: 0; /* 关键：允许 flex 子项收缩 */
+  min-width: 0;
   overflow: hidden;
 }
 
@@ -333,33 +387,6 @@
 .role-member {
   background: #f5f5f5;
   color: #999;
-}
-
-.member-actions {
-  display: flex;
-  gap: 12rpx;
-  align-items: center;
-  flex-shrink: 0; /* 关键：操作按钮不被压缩 */
-  margin-left: 16rpx;
-}
-
-.action-btn {
-  padding: 10rpx 16rpx;
-  border-radius: 30rpx;
-  font-size: 22rpx;
-  font-weight: 500;
-}
-
-.action-admin {
-  background: #e8f8f0;
-  color: #27ae60;
-  border: 1rpx solid #27ae60;
-}
-
-.action-remove {
-  background: #fdf2f2;
-  color: #e74c3c;
-  border: 1rpx solid #e74c3c;
 }
 
 /* 活动卡片 */
@@ -805,26 +832,26 @@
 .stats-date-filter {
   display: flex;
   align-items: center;
-  gap: 16rpx;
+  gap: 12rpx;
   padding: 20rpx 24rpx;
   background: #fff;
   margin-bottom: 16rpx;
 }
 
-.date-picker-btn {
-  background: #f5f5f5;
-  border-radius: 12rpx;
-  padding: 14rpx 24rpx;
-  font-size: 26rpx;
-  color: #333;
+.filter-btn {
   flex: 1;
   text-align: center;
-}
-
-.date-to {
+  padding: 14rpx 0;
   font-size: 26rpx;
   color: #999;
-  flex-shrink: 0;
+  background: #f5f5f5;
+  border-radius: 12rpx;
+}
+
+.filter-btn-active {
+  background: #ff6b35;
+  color: #fff;
+  font-weight: 600;
 }
 
 /* 数据总览卡片 */
@@ -989,10 +1016,35 @@
   flex-shrink: 0;
 }
 
+.stats-player-text {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4rpx;
+}
+
 .stats-player-name {
   font-size: 28rpx;
   color: #333;
   font-weight: 500;
+}
+
+.stats-player-type {
+  font-size: 20rpx;
+  padding: 4rpx 12rpx;
+  border-radius: 20rpx;
+  font-weight: 500;
+  line-height: 1;
+}
+
+.type-member {
+  background: #e8f8f0;
+  color: #27ae60;
+}
+
+.type-casual {
+  background: #fff7e6;
+  color: #fa8c16;
 }
 
 .val-active {

@@ -196,17 +196,29 @@
 
       <!-- 有数据：显示比分 + 进球榜 -->
       <view wx:if="{{matchStats}}">
-        <view class="stats-score-row">
-          <text class="stats-score-my">{{matchStats.goals}}</text>
-          <view class="stats-vs-wrap">
-            <text class="stats-vs">:</text>
+        <!-- 比分块：三列视觉分组 -->
+        <view class="stats-score-block-row">
+          <!-- 我方块 -->
+          <view class="stats-team-block">
+            <text class="stats-team-name">{{activity.teamName || '我方'}}</text>
+            <text class="stats-score-num">{{matchStats.goals}}</text>
+          </view>
+
+          <!-- 中间 VS + 结果 -->
+          <view class="stats-vs-block">
+            <text class="stats-vs">VS</text>
             <view class="stats-result-badge stats-result-{{matchStats.result}}">
               <text wx:if="{{matchStats.result === 'win'}}">胜</text>
               <text wx:elif="{{matchStats.result === 'draw'}}">平</text>
               <text wx:else>负</text>
             </view>
           </view>
-          <text class="stats-score-them">{{matchStats.opponentGoals}}</text>
+
+          <!-- 对方块 -->
+          <view class="stats-team-block">
+            <text class="stats-team-name">{{matchStats.opponentName || '对方'}}</text>
+            <text class="stats-score-num">{{matchStats.opponentGoals}}</text>
+          </view>
         </view>
         <view wx:if="{{matchStatsPlayers.length > 0}}" class="stats-table">
           <view class="stats-table-header">
@@ -215,7 +227,7 @@
             <text class="col-val">助攻</text>
           </view>
           <view wx:for="{{matchStatsPlayers}}" wx:key="openid" class="stats-table-row">
-            <text class="col-name stats-player-name">{{item.nickName}}</text>
+            <text class="col-name stats-player-name">{{item.displayName}}</text>
             <text class="col-val stats-val-num">{{item.goals}}</text>
             <text class="col-val stats-val-num">{{item.assists}}</text>
           </view>

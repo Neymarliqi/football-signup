@@ -1,5 +1,5 @@
 <!-- pages/team/home.wxml - 球队主页 -->
-<view class="container">
+<view class="container" catchtap="onContainerTap">
 
   <!-- 封面 + Logo 头部 -->
   <view class="team-header">
@@ -56,13 +56,9 @@
 
     <!-- 日期筛选 -->
     <view class="stats-date-filter">
-      <picker mode="date" value="{{statsStartDate}}" bindchange="onStartDateChange">
-        <view class="date-picker-btn">{{statsStartDate || '开始日期'}} ▾</view>
-      </picker>
-      <text class="date-to">至</text>
-      <picker mode="date" value="{{statsEndDate}}" bindchange="onEndDateChange">
-        <view class="date-picker-btn">{{statsEndDate || '结束日期'}} ▾</view>
-      </picker>
+      <view wx:for="{{['全部','本月','本季度','本年']}}" wx:key="*this"
+            class="filter-btn {{statsFilter === item ? 'filter-btn-active' : ''}}"
+            bindtap="onFilterChange" data-filter="{{item}}">{{item}}</view>
     </view>
 
     <!-- 加载中 -->
@@ -80,9 +76,9 @@
           <!-- 总活动数（圆圈）-->
           <view class="overview-total-wrap">
             <view class="overview-circle">
-              <text class="overview-circle-num">{{statsSummary.totalActivities}}</text>
+              <text class="overview-circle-num">{{statsSummary.totalNormalActivities}}</text>
             </view>
-            <text class="overview-circle-label">总活动数</text>
+            <text class="overview-circle-label">活动总数</text>
           </view>
 
           <!-- 胜平负 -->
@@ -127,7 +123,10 @@
         <view wx:for="{{statsPlayers}}" wx:key="openid" class="stats-player-row">
           <view class="stats-col-player stats-player-info">
             <image class="stats-avatar" src="{{item.displayAvatar}}" mode="aspectFill"/>
-            <text class="stats-player-name">{{item.nickName}}</text>
+            <view class="stats-player-text">
+              <text class="stats-player-name">{{item.nickName}}</text>
+              <text class="stats-player-type type-{{item.type}}">{{item.type === 'member' ? '队员' : '散客'}}</text>
+            </view>
           </view>
           <!-- 当前排序列高亮 -->
           <text class="stats-col-val {{statsActiveSortCol === 'attended' ? 'val-active' : ''}}">{{item.attended}}</text>
@@ -150,22 +149,35 @@
       <!-- 成员列表 -->
       <view class="card">
         <view class="section-title">👥 成员列表 ({{members.length}}人)</view>
-        <view wx:for="{{members}}" wx:key="_id" class="member-item">
-          <view class="member-left">
-            <image class="member-avatar" src="{{item.displayAvatar || '/images/default-avatar.png'}}" mode="aspectFill"/>
-            <view class="member-info">
-              <text class="member-name">{{item.displayName || item.nickName}}</text>
-              <text class="member-role {{item.roleClass}}">{{item.roleText}}</text>
-            </view>
-          </view>
-          <view wx:if="{{(myRole === 'creator' || myRole === 'admin') && item.openid !== myOpenid}}" class="member-actions">
-            <view wx:if="{{myRole === 'creator' && item.role !== 'creator' && item.role !== 'admin'}}" class="action-btn action-admin" bindtap="toggleAdmin" data-openid="{{item.openid}}">
-              设为管理员
-            </view>
-            <view wx:if="{{myRole === 'creator' && item.role === 'admin'}}" class="action-btn action-admin" bindtap="toggleAdmin" data-openid="{{item.openid}}">
+        <view wx:for="{{members}}" wx:key="_id" class="member-item-wrap {{slideIndex === index ? 'swiped' : ''}}">
+          <!-- 操作按钮层（固定在右侧） -->
+          <view class="member-actions">
+            <view wx:if="{{myRole === 'creator' && item.role === 'admin'}}"
+                  class="action-btn action-admin" catchtap="toggleAdmin" data-open-id="{{item.openid}}">
               取消管理员
             </view>
-            <view wx:if="{{item.role !== 'creator'}}" class="action-btn action-remove" bindtap="removeMember" data-openid="{{item.openid}}">移除</view>
+            <view wx:if="{{myRole === 'creator' && item.role !== 'creator' && item.role !== 'admin'}}"
+                  class="action-btn action-admin" catchtap="toggleAdmin" data-open-id="{{item.openid}}">
+              设为管理员
+            </view>
+            <view class="action-btn action-remove" catchtap="removeMember" data-open-id="{{item.openid}}">
+              移除
+            </view>
+          </view>
+          <!-- 内容层（可滑动） -->
+          <view class="member-item-content"
+                catchtouchstart="onTouchStart"
+                catchtouchend="onTouchEnd"
+                data-index="{{index}}">
+            <view class="member-left">
+              <image class="member-avatar" src="{{item.displayAvatar || '/images/default-avatar.png'}}" mode="aspectFill"/>
+              <view class="member-info">
+                <text class="member-name">{{item.displayName || item.nickName}}</text>
+                <text class="member-role {{item.roleClass}}">{{item.roleText}}</text>
+              </view>
+            </view>
+            <view wx:if="{{(myRole === 'creator' || myRole === 'admin') && item.openid !== myOpenid}}"
+                  class="member-swipe-hint">‹</view>
           </view>
         </view>
       </view>

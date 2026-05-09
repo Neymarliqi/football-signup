@@ -14,8 +14,8 @@ exports.main = async (event, context) => {
   }
 
   try {
-    // 1. 查询球队的所有活动
-    let actFilter = { teamId }
+    // 1. 查询球队的所有活动（排除已取消）
+    let actFilter = { teamId, status: _.neq('cancelled') }
     if (startDate && endDate) {
       actFilter.activityDate = _.gte(new Date(startDate)).and(_.lte(new Date(endDate)))
     } else if (startDate) {
@@ -79,7 +79,7 @@ exports.main = async (event, context) => {
             type: memberOpenids.has(p.openid) ? 'member' : 'casual'
           }
         }
-        if (p.attended) playerStatsMap[p.openid].attended++
+        if (p.attended === true) playerStatsMap[p.openid].attended++
         playerStatsMap[p.openid].goals += p.goals || 0
         playerStatsMap[p.openid].assists += p.assists || 0
       })
@@ -89,7 +89,7 @@ exports.main = async (event, context) => {
 
     return {
       success: true,
-      summary: { totalActivities, wins, draws, losses },
+      summary: { totalNormalActivities: totalActivities, wins, draws, losses },
       playerStats,
       activityIds
     }

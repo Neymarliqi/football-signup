@@ -72,6 +72,26 @@
   font-weight: 500;
 }
 
+.type-tag {
+  display: inline-block;
+  font-size: 20rpx;
+  padding: 4rpx 12rpx;
+  border-radius: 20rpx;
+  font-weight: 500;
+  margin-top: 4rpx;
+  align-self: flex-start;  /* 防止被 flex column 拉伸 */
+}
+
+.type-tag-member {
+  background: #e8f4ff;
+  color: #1890ff;
+}
+
+.type-tag-casual {
+  background: #fff7e6;
+  color: #fa8c16;
+}
+
 .player-time {
   font-size: 24rpx;
   color: #999;

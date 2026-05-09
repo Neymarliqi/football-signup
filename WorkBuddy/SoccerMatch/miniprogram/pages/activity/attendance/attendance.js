@@ -36,7 +36,7 @@ Page({
       const actRes = await db.collection('activities').doc(activityId).get()
       const activity = actRes.data
 
-      // 2. 获取已有的 match_stats（读取出勤状态）
+      // 2. 获取已有的 match_stats（读取出勤/进球/助攻）
       const statsRes = await wx.cloud.callFunction({ name: 'getMatchStats', data: { activityId } })
       const existStats = statsRes.result && statsRes.result.stats
       const statsPlayersMap = {}
@@ -49,9 +49,33 @@ Page({
       const openids = confirmedRegs.map(r => r.openid)
       const usersMap = openids.length > 0 ? await app.fetchUsersWithCache(openids) : {}
 
+      // 4. 如果有球队，先查 member/casual 归属，用于判断 type
+      const memberOpenidSet = new Set()
+      const casualOpenidSet = new Set()
+      if (activity.teamId) {
+        const [membersRes, casualsRes] = await Promise.all([
+          db.collection('team_members').where({ teamId: activity.teamId }).get(),
+          db.collection('team_casuals').where({ teamId: activity.teamId }).get()
+        ])
+        ;(membersRes.data || []).forEach(m => memberOpenidSet.add(m.openid))
+        ;(casualsRes.data || []).forEach(c => casualOpenidSet.add(c.openid))
+      }
+
+      // 5. 组装已报名球员（type 以 team_members/team_casuals 为准，match_stats 优先）
       const confirmedPlayers = confirmedRegs.map(r => {
         const user = usersMap[r.openid] || {}
         const sp = statsPlayersMap[r.openid]
+
+        // type 判断：始终以 team_members/team_casuals 查询为准（不信任 match_stats 里的旧数据）
+        let type = 'member'
+        if (memberOpenidSet.has(r.openid)) {
+          type = 'member'
+        } else if (casualOpenidSet.has(r.openid)) {
+          type = 'casual'
+        } else {
+          type = 'casual' // 不在球队成员表里，就不是队员
+        }
+
         return {
           openid: r.openid,
           nickName: user.nickName || r.nickName || '未知',
@@ -59,27 +83,39 @@ Page({
           attended: sp !== undefined ? sp.attended : true,  // 默认已出勤
           goals: sp ? (sp.goals || 0) : 0,
           assists: sp ? (sp.assists || 0) : 0,
-          type: sp ? (sp.type || 'member') : 'member',
+          type,
           fromReg: true
         }
       })
 
-      // 4. 如果有球队，查询未报名的球队成员（允许额外标记出勤）
+      // 6. 未报名的球队成员 + 散客（允许额外标记出勤）
       let extraMembers = []
       if (activity.teamId) {
-        const membersRes = await db.collection('team_members')
-          .where({ teamId: activity.teamId })
-          .get()
+        const [membersRes, casualsRes] = await Promise.all([
+          db.collection('team_members').where({ teamId: activity.teamId }).get(),
+          db.collection('team_casuals').where({ teamId: activity.teamId }).get()
+        ])
         const confirmedOpenids = new Set(openids)
-        const extraOpenids = (membersRes.data || [])
+
+        const memberOpenids = (membersRes.data || [])
           .map(m => m.openid)
           .filter(id => !confirmedOpenids.has(id))
+        const casualOpenids = (casualsRes.data || [])
+          .map(c => c.openid)
+          .filter(id => !confirmedOpenids.has(id))
+
+        const extraOpenids = [...memberOpenids, ...casualOpenids]
 
         if (extraOpenids.length > 0) {
           const extraUsersMap = await app.fetchUsersWithCache(extraOpenids)
           extraMembers = extraOpenids.map(oid => {
             const user = extraUsersMap[oid] || {}
             const sp = statsPlayersMap[oid]
+            const isMember = memberOpenids.includes(oid)
+
+            let type = isMember ? 'member' : 'casual'
+            // 不以 match_stats 的旧 type 为准，始终以数据库查询结果为依据
+
             return {
               openid: oid,
               nickName: user.nickName || '未知',
@@ -87,7 +123,7 @@ Page({
               attended: sp !== undefined ? sp.attended : false, // 默认未出勤
               goals: sp ? (sp.goals || 0) : 0,
               assists: sp ? (sp.assists || 0) : 0,
-              type: 'member',
+              type,
               fromReg: false
             }
           })

@@ -10,7 +10,7 @@ exports.main = async (event, context) => {
   const wxContext = cloud.getWXContext()
   const openid = wxContext.OPENID
 
-  const { activityId, goals, opponentGoals, players } = event
+  const { activityId, goals, opponentGoals, opponentName, players } = event
 
   if (!activityId) {
     return { success: false, message: '缺少 activityId' }
@@ -56,6 +56,7 @@ exports.main = async (event, context) => {
       teamId: activity.teamId || '',
       goals: myGoals,
       opponentGoals: theirGoals,
+      opponentName: opponentName || '',
       result,
       players: players || [],
       updatedAt: db.serverDate(),

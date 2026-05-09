@@ -10,7 +10,7 @@ Page({
     myOpenid: '',
     myRole: 'loading', // 'loading'=加载中, null=非成员, 'creator'/'admin'/'member'=成员
     tabs: ['数据', '活动', '成员', '散客', '申请'],
-    activeTab: '活动',
+    activeTab: '数据',
     members: [],
     activities: [],
     casuals: [],
@@ -23,15 +23,18 @@ Page({
     hasPendingApplication: false, // 非成员：是否有待审批的申请
     // 数据 Tab
     loadingStats: false,
+    statsFilter: '全部',   // 当前筛选：全部/本月/本季度/本年
     statsStartDate: '',
     statsEndDate: '',
-    statsSummary: { totalActivities: 0, wins: 0, draws: 0, losses: 0 },
+    statsSummary: { totalNormalActivities: 0, wins: 0, draws: 0, losses: 0 },
     statsPlayers: [],         // 所有球员统计（带用户信息）
     statsActiveSortCol: 'attended', // 当前排序列：attended/goals/assists
     // 注册弹窗
     showRegisterModal: false,
     // 加入确认半屏卡片
-    showJoinSheet: false
+    showJoinSheet: false,
+    // 滑动操作
+    slideIndex: -1
   },
 
   // 待执行的加入操作（注册完成后执行）
@@ -56,6 +59,43 @@ Page({
     this.setData({ teamId })
     this.loadTeamInfo()
     this.loadActivities()
+    this.loadTeamStats()  // 默认选中「数据」Tab，进入时加载统计数据
+    // 滑动操作：当前展开的成员索引
+    this._slideIndex = -1
+    this._startX = 0
+  },
+
+  // ========== 滑动操作 ==========
+  onContainerTap() {
+    // 点击空白处关闭已展开的滑动菜单
+    if (this._slideIndex !== -1) {
+      this.closeSlideMenu()
+    }
+  },
+
+  onTouchStart(e) {
+    this._startX = e.touches[0].clientX
+  },
+
+  onTouchEnd(e) {
+    const index = parseInt(e.currentTarget.dataset.index)
+    const endX = e.changedTouches[0].clientX
+    const diffX = this._startX - endX
+
+    // 左滑超过60px，展开操作菜单
+    if (diffX > 60) {
+      this._slideIndex = index
+      this.setData({ slideIndex: index })
+    } else {
+      this._slideIndex = -1
+      this.setData({ slideIndex: -1 })
+    }
+  },
+
+  // 关闭滑动菜单（点击操作按钮后调用，防止下次打开时仍是展开状态）
+  closeSlideMenu() {
+    this._slideIndex = -1
+    this.setData({ slideIndex: -1 })
   },
 
   onShow() {
@@ -159,16 +199,56 @@ Page({
 
   // ========== 数据 Tab ==========
 
-  // 初始化默认日期范围（本年1月1日 - 今天）
-  initDefaultDateRange() {
+  // 根据筛选类型计算日期范围
+  calcDateRangeByFilter(filter) {
     const now = new Date()
     const y = now.getFullYear()
-    const m = String(now.getMonth() + 1).padStart(2, '0')
-    const d = String(now.getDate()).padStart(2, '0')
-    const startDate = `${y}-01-01`
-    const endDate = `${y}-${m}-${d}`
-    this.setData({ statsStartDate: startDate, statsEndDate: endDate })
-    return { startDate: `${y}-01-01T00:00:00.000Z`, endDate: `${y}-${m}-${d}T23:59:59.000Z` }
+    const m = now.getMonth()   // 0-11
+
+    if (filter === '全部') {
+      return { startDate: null, endDate: null, startStr: '', endStr: '' }
+    }
+
+    if (filter === '本月') {
+      // 当月最后一天
+      const lastDay = new Date(y, m + 1, 0).getDate()
+      const startStr = `${y}-${String(m + 1).padStart(2, '0')}-01`
+      const endStr = `${y}-${String(m + 1).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`
+      return {
+        startDate: `${startStr}T00:00:00.000Z`,
+        endDate: `${endStr}T23:59:59.000Z`,
+        startStr, endStr
+      }
+    }
+
+    if (filter === '本季度') {
+      const quarterStartMonth = Math.floor(m / 3) * 3
+      const quarterEndMonth = quarterStartMonth + 2
+      const lastDay = new Date(y, quarterEndMonth + 1, 0).getDate()
+      const startStr = `${y}-${String(quarterStartMonth + 1).padStart(2, '0')}-01`
+      const endStr = `${y}-${String(quarterEndMonth + 1).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`
+      return {
+        startDate: `${startStr}T00:00:00.000Z`,
+        endDate: `${endStr}T23:59:59.000Z`,
+        startStr, endStr
+      }
+    }
+
+    // 本年
+    const startStr = `${y}-01-01`
+    const endStr = `${y}-12-31`
+    return {
+      startDate: `${startStr}T00:00:00.000Z`,
+      endDate: `${endStr}T23:59:59.000Z`,
+      startStr, endStr
+    }
+  },
+
+  // 初始化默认日期范围（首次加载默认本年）
+  initDefaultDateRange() {
+    const range = this.calcDateRangeByFilter(this.data.statsFilter)
+    this.setData({ statsStartDate: range.startStr, statsEndDate: range.endStr })
+    return { startDate: range.startDate, endDate: range.endDate }
   },
 
   // 日期选择变更
@@ -179,6 +259,13 @@ Page({
 
   onEndDateChange(e) {
     this.setData({ statsEndDate: e.detail.value })
+    this.loadTeamStats()
+  },
+
+  // 筛选按钮切换
+  onFilterChange(e) {
+    const filter = e.currentTarget.dataset.filter
+    this.setData({ statsFilter: filter })
     this.loadTeamStats()
   },
 
@@ -202,7 +289,11 @@ Page({
 
     // 初始化默认日期（首次加载）
     let startDate, endDate
-    if (!this.data.statsStartDate) {
+    if (this.data.statsFilter === '全部') {
+      // 全部：不限制日期
+      startDate = null
+      endDate = null
+    } else if (!this.data.statsStartDate) {
       const range = this.initDefaultDateRange()
       startDate = range.startDate
       endDate = range.endDate
@@ -242,6 +333,10 @@ Page({
       const sortCol = this.data.statsActiveSortCol || 'attended'
       players.sort((a, b) => (b[sortCol] || 0) - (a[sortCol] || 0))
 
+      // 兼容云函数新旧字段名
+      if (summary.totalNormalActivities === undefined) {
+        summary.totalNormalActivities = summary.totalActivities || 0
+      }
       this.setData({
         statsSummary: summary,
         statsPlayers: players,
@@ -555,7 +650,7 @@ Page({
   // ========== 成员操作 ==========
   async toggleAdmin(e) {
     const { teamId } = this.data
-    const targetOpenid = e.currentTarget.dataset.openid
+    const targetOpenid = e.currentTarget.dataset.openId
     try {
       const res = await wx.cloud.callFunction({
         name: 'updateTeamMember',
@@ -564,6 +659,7 @@ Page({
       if (res.result.success) {
         wx.showToast({ title: res.result.message, icon: 'success' })
         this.loadMembers(true) // 强制刷新
+        this.closeSlideMenu() // 关闭滑动菜单
       } else {
         wx.showToast({ title: res.result.message, icon: 'none' })
       }
@@ -574,7 +670,7 @@ Page({
 
   async removeMember(e) {
     const { teamId } = this.data
-    const targetOpenid = e.currentTarget.dataset.openid
+    const targetOpenid = e.currentTarget.dataset.openId
     wx.showModal({
       title: '确认移除',
       content: '确定将该成员移除出球队？',
@@ -588,6 +684,7 @@ Page({
           if (result.result.success) {
             wx.showToast({ title: '已移除', icon: 'success' })
             this.loadMembers(true) // 强制刷新
+            this.closeSlideMenu() // 关闭滑动菜单
           } else {
             wx.showToast({ title: result.result.message, icon: 'none' })
           }
