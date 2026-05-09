@@ -1,0 +1,6 @@
+{
+  "permissions": {
+    "openapi": []
+  },
+  "desc": "数据修复脚本：修复缺失的 team_casuals 记录"
+}

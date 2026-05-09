@@ -94,7 +94,11 @@
 
   <!-- 我的统计 -->
   <view class="card">
-    <view class="section-title">📊 我的数据</view>
+    <view class="section-header">
+      <view class="section-title">📊 我的数据</view>
+      <view class="section-more" bindtap="goMyStats">更多 ›</view>
+    </view>
+    <!-- 报名统计 -->
     <view class="stats-row">
       <view class="stat-block">
         <view class="stat-num text-primary">{{myStats.totalGames}}</view>
@@ -111,6 +115,22 @@
       <view class="stat-block">
         <view class="stat-num text-danger">{{myStats.leaveCount}}</view>
         <view class="stat-label">请假次数</view>
+      </view>
+    </view>
+    <!-- 足球数据 -->
+    <view class="stats-divider"></view>
+    <view class="stats-row stats-football-row">
+      <view class="stat-block">
+        <view class="stat-num" style="color: #ff6b35;">{{myStats.totalGoals || 0}}</view>
+        <view class="stat-label">进球数</view>
+      </view>
+      <view class="stat-block">
+        <view class="stat-num" style="color: #52c41a;">{{myStats.totalAssists || 0}}</view>
+        <view class="stat-label">助攻数</view>
+      </view>
+      <view class="stat-block">
+        <view class="stat-num" style="color: #1890ff;">{{myStats.totalAttended || 0}}</view>
+        <view class="stat-label">出勤场次</view>
       </view>
     </view>
   </view>

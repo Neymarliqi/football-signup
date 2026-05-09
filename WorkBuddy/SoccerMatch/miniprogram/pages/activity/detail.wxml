@@ -149,8 +149,9 @@
       <view class="notice-text">{{activity.notice}}</view>
     </view>
 
-    <!-- 报名状态统计 -->
-    <view class="card">
+    <!-- 报名情况 / 活动数据（根据状态切换） -->
+    <!-- open：报名情况 -->
+    <view class="card" wx:if="{{activity.effectiveStatus === 'open'}}">
       <view class="section-title flex-between">
         <text>📊 报名情况</text>
         <text class="stat-detail">共{{totalCount}}人</text>
@@ -180,6 +181,51 @@
       <!-- 进度条（不限人数时隐藏） -->
       <view class="progress-bar-bg mt-20" wx:if="{{!isUnlimited}}">
         <view class="progress-bar-fill {{isFull ? 'bar-full' : 'bar-normal'}}" style="width: {{progressPercent}}%"></view>
+      </view>
+    </view>
+
+    <!-- ongoing / finished：活动数据 -->
+    <view wx:elif="{{activity.effectiveStatus === 'ongoing' || activity.effectiveStatus === 'finished'}}" class="card stats-card" bindtap="goMatchStats">
+      <view class="stats-card-header">
+        <view class="stats-card-title">
+          <text class="stats-icon">📊</text>
+          <text>活动数据</text>
+        </view>
+        <text class="stats-arrow">›</text>
+      </view>
+
+      <!-- 有数据：显示比分 + 进球榜 -->
+      <view wx:if="{{matchStats}}">
+        <view class="stats-score-row">
+          <text class="stats-score-my">{{matchStats.goals}}</text>
+          <view class="stats-vs-wrap">
+            <text class="stats-vs">:</text>
+            <view class="stats-result-badge stats-result-{{matchStats.result}}">
+              <text wx:if="{{matchStats.result === 'win'}}">胜</text>
+              <text wx:elif="{{matchStats.result === 'draw'}}">平</text>
+              <text wx:else>负</text>
+            </view>
+          </view>
+          <text class="stats-score-them">{{matchStats.opponentGoals}}</text>
+        </view>
+        <view wx:if="{{matchStatsPlayers.length > 0}}" class="stats-table">
+          <view class="stats-table-header">
+            <text class="col-name">球员</text>
+            <text class="col-val">进球</text>
+            <text class="col-val">助攻</text>
+          </view>
+          <view wx:for="{{matchStatsPlayers}}" wx:key="openid" class="stats-table-row">
+            <text class="col-name stats-player-name">{{item.nickName}}</text>
+            <text class="col-val stats-val-num">{{item.goals}}</text>
+            <text class="col-val stats-val-num">{{item.assists}}</text>
+          </view>
+        </view>
+        <view wx:else class="stats-no-player">暂无进球记录，点击录入 ›</view>
+      </view>
+
+      <!-- 无数据 -->
+      <view wx:else class="stats-empty-tip">
+        <text>暂无数据，点击录入 ›</text>
       </view>
     </view>
 
@@ -313,6 +359,14 @@
       </view>
       <view class="full-tip" wx:if="{{isDeadlinePassed && myStatus !== 'confirmed'}}">
         🔒 报名已截止（{{deadlineText}}），待定/请假仍可操作
+      </view>
+    </view>
+
+    <!-- 进行中/已结束时的数据操作栏（仅创建者/球队管理员）-->
+    <view wx:if="{{(activity.effectiveStatus === 'ongoing' || activity.effectiveStatus === 'finished') && canEditStats}}" class="bottom-action-bar stats-action-bar">
+      <view class="action-bar-content">
+        <view class="btn-enter-stats" bindtap="goMatchStats">录入数据</view>
+        <view class="btn-attendance" bindtap="goEditAttendance">编辑出勤</view>
       </view>
     </view>
 

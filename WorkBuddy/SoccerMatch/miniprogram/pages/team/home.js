@@ -9,7 +9,7 @@ Page({
     team: {},
     myOpenid: '',
     myRole: 'loading', // 'loading'=加载中, null=非成员, 'creator'/'admin'/'member'=成员
-    tabs: ['活动', '成员', '散客', '申请'],
+    tabs: ['数据', '活动', '成员', '散客', '申请'],
     activeTab: '活动',
     members: [],
     activities: [],
@@ -21,6 +21,13 @@ Page({
     loadingCasuals: false,
     loadingApplications: false,
     hasPendingApplication: false, // 非成员：是否有待审批的申请
+    // 数据 Tab
+    loadingStats: false,
+    statsStartDate: '',
+    statsEndDate: '',
+    statsSummary: { totalActivities: 0, wins: 0, draws: 0, losses: 0 },
+    statsPlayers: [],         // 所有球员统计（带用户信息）
+    statsActiveSortCol: 'attended', // 当前排序列：attended/goals/assists
     // 注册弹窗
     showRegisterModal: false,
     // 加入确认半屏卡片
@@ -147,6 +154,103 @@ Page({
     if (tab === '活动') this.loadActivities()
     if (tab === '散客') this.loadCasuals()
     if (tab === '申请') this.loadApplications()
+    if (tab === '数据') this.loadTeamStats()
+  },
+
+  // ========== 数据 Tab ==========
+
+  // 初始化默认日期范围（本年1月1日 - 今天）
+  initDefaultDateRange() {
+    const now = new Date()
+    const y = now.getFullYear()
+    const m = String(now.getMonth() + 1).padStart(2, '0')
+    const d = String(now.getDate()).padStart(2, '0')
+    const startDate = `${y}-01-01`
+    const endDate = `${y}-${m}-${d}`
+    this.setData({ statsStartDate: startDate, statsEndDate: endDate })
+    return { startDate: `${y}-01-01T00:00:00.000Z`, endDate: `${y}-${m}-${d}T23:59:59.000Z` }
+  },
+
+  // 日期选择变更
+  onStartDateChange(e) {
+    this.setData({ statsStartDate: e.detail.value })
+    this.loadTeamStats()
+  },
+
+  onEndDateChange(e) {
+    this.setData({ statsEndDate: e.detail.value })
+    this.loadTeamStats()
+  },
+
+  // 切换榜单排序列
+  switchSortCol(e) {
+    const col = e.currentTarget.dataset.col
+    this.setData({ statsActiveSortCol: col })
+    // 重新排序
+    this.sortStatsPlayers(col)
+  },
+
+  sortStatsPlayers(col) {
+    const players = [...this.data.statsPlayers]
+    players.sort((a, b) => (b[col] || 0) - (a[col] || 0))
+    this.setData({ statsPlayers: players })
+  },
+
+  async loadTeamStats(force = false) {
+    const { teamId } = this.data
+    if (!teamId) return
+
+    // 初始化默认日期（首次加载）
+    let startDate, endDate
+    if (!this.data.statsStartDate) {
+      const range = this.initDefaultDateRange()
+      startDate = range.startDate
+      endDate = range.endDate
+    } else {
+      startDate = `${this.data.statsStartDate}T00:00:00.000Z`
+      endDate = `${this.data.statsEndDate}T23:59:59.000Z`
+    }
+
+    this.setData({ loadingStats: true })
+    try {
+      const res = await wx.cloud.callFunction({
+        name: 'getTeamStats',
+        data: { teamId, startDate, endDate }
+      })
+
+      if (!res.result || !res.result.success) {
+        this.setData({ loadingStats: false })
+        return
+      }
+
+      const { summary, playerStats } = res.result
+
+      // 补充用户信息
+      const openids = playerStats.map(p => p.openid)
+      const usersMap = openids.length > 0 ? await app.fetchUsersWithCache(openids) : {}
+
+      const players = playerStats.map(p => {
+        const user = usersMap[p.openid] || {}
+        return {
+          ...p,
+          nickName: user.nickName || '未知',
+          displayAvatar: app.getDisplayAvatar(user) || app.globalData.defaultAvatar
+        }
+      })
+
+      // 默认按出勤排序
+      const sortCol = this.data.statsActiveSortCol || 'attended'
+      players.sort((a, b) => (b[sortCol] || 0) - (a[sortCol] || 0))
+
+      this.setData({
+        statsSummary: summary,
+        statsPlayers: players,
+        loadingStats: false
+      })
+    } catch (e) {
+      console.error('loadTeamStats error', e)
+      this.setData({ loadingStats: false })
+    }
   },
 
   // ========== 成员列表 ==========
@@ -171,9 +275,14 @@ Page({
         const user = usersMap[m.openid] || {}
         const roleTextMap = { creator: '👑 创建者', admin: '⚡ 管理员', member: '队员' }
         const roleClassMap = { creator: 'role-creator', admin: 'role-admin', member: 'role-member' }
+        const nickName = user.nickName || '未知'
+        // 名字超过4个字截断
+        const displayName = nickName.length > 4 ? nickName.slice(0, 4) + '...' : nickName
         return {
           ...m,
           ...user,
+          nickName,
+          displayName,
           roleText: roleTextMap[m.role] || m.role,
           roleClass: roleClassMap[m.role] || '',
           displayAvatar: app.getDisplayAvatar(user)

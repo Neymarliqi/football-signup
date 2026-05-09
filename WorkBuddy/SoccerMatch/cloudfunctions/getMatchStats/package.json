@@ -1,0 +1,9 @@
+{
+  "name": "getMatchStats",
+  "version": "1.0.0",
+  "description": "查询单场比赛数据",
+  "main": "index.js",
+  "dependencies": {
+    "wx-server-sdk": "latest"
+  }
+}

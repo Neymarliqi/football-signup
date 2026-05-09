@@ -1,0 +1,289 @@
+/* pages/activity/match-stats/match-stats.wxss */
+
+.container {
+  background: #f5f5f5;
+  min-height: 100vh;
+  padding-bottom: 200rpx;
+}
+
+.loading-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 400rpx;
+}
+.loading-text { color: #999; font-size: 28rpx; }
+
+/* ========== 比分区域 ========== */
+.score-section {
+  background: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 40rpx 32rpx 32rpx;
+  margin-bottom: 16rpx;
+}
+
+.team-score-wrap {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12rpx;
+}
+
+.team-score-label {
+  font-size: 26rpx;
+  color: #666;
+  max-width: 180rpx;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.score-num {
+  font-size: 72rpx;
+  font-weight: 700;
+  color: #222;
+  background: #f5f5f5;
+  border-radius: 20rpx;
+  min-width: 120rpx;
+  text-align: center;
+  padding: 8rpx 24rpx;
+  box-sizing: border-box;
+}
+
+.score-input-wrap {
+  background: #f5f5f5;
+  border-radius: 14rpx;
+  padding: 12rpx 20rpx;
+  min-width: 120rpx;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 96rpx;
+}
+
+.score-input {
+  font-size: 48rpx;
+  font-weight: 700;
+  color: #222;
+  text-align: center;
+  min-width: 60rpx;
+  height: 60rpx;
+  line-height: 60rpx;
+}
+
+.vs-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12rpx;
+  padding: 0 20rpx;
+}
+
+.vs-text {
+  font-size: 32rpx;
+  font-weight: 700;
+  color: #ccc;
+}
+
+.result-badge {
+  font-size: 22rpx;
+  font-weight: 700;
+  padding: 4rpx 16rpx;
+  border-radius: 20rpx;
+}
+.result-win { background: #e8f7ee; color: #2db55d; }
+.result-draw { background: #f5f5f5; color: #999; }
+.result-lose { background: #fff0ef; color: #ff4d4f; }
+
+/* ========== 出勤标题行 ========== */
+.section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #fff;
+  padding: 24rpx 32rpx 0;
+  margin-bottom: 0;
+}
+
+.section-label {
+  font-size: 28rpx;
+  color: #333;
+  font-weight: 600;
+}
+
+.edit-attendance-btn {
+  font-size: 26rpx;
+  color: #ff6b35;
+}
+
+/* ========== 列表表头 ========== */
+.player-list-header {
+  display: flex;
+  align-items: center;
+  background: #fff;
+  padding: 20rpx 32rpx;
+  border-bottom: 1rpx solid #f0f0f0;
+  margin-bottom: 0;
+}
+
+.col-player {
+  flex: 1;
+  font-size: 26rpx;
+  color: #999;
+}
+.col-stat {
+  width: 160rpx;
+  text-align: center;
+  font-size: 26rpx;
+  color: #999;
+}
+
+/* ========== 球员列表 ========== */
+.player-list { background: #fff; }
+
+.player-row {
+  display: flex;
+  align-items: center;
+  padding: 24rpx 32rpx;
+  border-bottom: 1rpx solid #f7f7f7;
+}
+
+.player-absent {
+  opacity: 0.4;
+}
+
+.player-info-cell {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+  flex: 1;
+}
+
+.player-avatar {
+  width: 80rpx;
+  height: 80rpx;
+  border-radius: 50%;
+  background: #eee;
+  flex-shrink: 0;
+  display: block;
+}
+
+.player-name-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 4rpx;
+  margin-top: 8rpx;
+}
+
+.player-name {
+  font-size: 28rpx;
+  color: #333;
+  font-weight: 500;
+  line-height: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 160rpx;
+  display: block;
+}
+
+.player-type-tag {
+  font-size: 20rpx;
+  height: 36rpx;
+  line-height: 0rpx;
+  padding: 0 12rpx;
+  border-radius: 10rpx;
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0;
+  box-sizing: border-box;
+}
+.tag-member { background: #f0f0f0; color: #999; }
+.tag-casual { background: #f0f0f0; color: #999; }
+
+/* ========== +/- 按钮 ========== */
+.stat-cell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8rpx;
+  width: 160rpx;
+}
+
+.pm-btn {
+  width: 44rpx;
+  height: 44rpx;
+  border-radius: 50%;
+  border: 2rpx solid #ddd;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 30rpx;
+  color: #999;
+  background: #fafafa;
+  line-height: 1;
+}
+.pm-plus {
+  border-color: #ff6b35;
+  color: #ff6b35;
+}
+.pm-disabled {
+  opacity: 0.3;
+  pointer-events: none;
+}
+
+.stat-num {
+  font-size: 30rpx;
+  font-weight: 600;
+  color: #222;
+  min-width: 32rpx;
+  text-align: center;
+}
+
+.stat-num-view {
+  font-size: 32rpx;
+  font-weight: 600;
+  color: #222;
+  min-width: 60rpx;
+  text-align: center;
+}
+
+/* ========== 底部按钮 ========== */
+.bottom-bar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: #fff;
+  padding: 20rpx 32rpx calc(env(safe-area-inset-bottom) + 20rpx);
+  box-shadow: 0 -2rpx 12rpx rgba(0,0,0,0.06);
+}
+
+.btn-enter-edit, .btn-save {
+  background: #ff6b35;
+  color: #fff;
+  border-radius: 50rpx;
+  height: 90rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 32rpx;
+  font-weight: 600;
+}
+
+.btn-disabled {
+  opacity: 0.5;
+}
+
+.empty-tip {
+  text-align: center;
+  color: #999;
+  font-size: 28rpx;
+  padding: 60rpx 0;
+}

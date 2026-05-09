@@ -1,0 +1,156 @@
+/* pages/profile/stats/stats.wxss */
+
+.container {
+  background: #f5f5f5;
+  min-height: 100vh;
+}
+
+/* 筛选栏 */
+.filter-bar {
+  display: flex;
+  background: #fff;
+  padding: 16rpx 24rpx;
+  gap: 16rpx;
+  margin-bottom: 20rpx;
+}
+
+.filter-item {
+  padding: 12rpx 28rpx;
+  border-radius: 30rpx;
+  font-size: 26rpx;
+  color: #666;
+  background: #f5f5f5;
+}
+
+.filter-active {
+  background: #ff6b35;
+  color: #fff;
+  font-weight: 600;
+}
+
+/* 汇总卡片 */
+.summary-card {
+  background: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  padding: 40rpx 24rpx;
+  margin-bottom: 20rpx;
+}
+
+.summary-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8rpx;
+}
+
+.summary-num {
+  font-size: 56rpx;
+  font-weight: 700;
+}
+
+.summary-label {
+  font-size: 24rpx;
+  color: #999;
+}
+
+.attend-color { color: #1890ff; }
+.goal-color   { color: #ff6b35; }
+.assist-color { color: #52c41a; }
+
+.summary-divider {
+  width: 2rpx;
+  height: 60rpx;
+  background: #f0f0f0;
+}
+
+/* 加载 */
+.loading-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 300rpx;
+}
+.loading-text { color: #999; font-size: 28rpx; }
+
+/* 记录列表 */
+.section-label {
+  font-size: 26rpx;
+  color: #999;
+  padding: 12rpx 32rpx;
+}
+
+.record-list { background: #fff; }
+
+.record-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 28rpx 32rpx;
+  border-bottom: 1rpx solid #f7f7f7;
+}
+
+.record-left {
+  display: flex;
+  align-items: center;
+  gap: 20rpx;
+  flex: 1;
+}
+
+.record-dot {
+  width: 16rpx;
+  height: 16rpx;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.dot-attended { background: #52c41a; }
+.dot-absent   { background: #ccc; }
+
+.record-info {
+  display: flex;
+  flex-direction: column;
+  gap: 6rpx;
+}
+
+.record-title {
+  font-size: 28rpx;
+  color: #333;
+  font-weight: 500;
+}
+
+.record-date {
+  font-size: 24rpx;
+  color: #999;
+}
+
+.record-right {
+  flex-shrink: 0;
+}
+
+.record-stats {
+  display: flex;
+  gap: 20rpx;
+}
+
+.record-stat-item {
+  font-size: 26rpx;
+  font-weight: 600;
+}
+
+.record-no-stats {
+  font-size: 24rpx;
+  color: #ccc;
+}
+
+/* 空状态 */
+.empty-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 400rpx;
+}
+.empty-text {
+  font-size: 28rpx;
+  color: #ccc;
+}

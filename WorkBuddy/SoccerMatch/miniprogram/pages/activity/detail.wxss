@@ -1112,3 +1112,159 @@
   color: #fff !important;
   opacity: 0.6;
 }
+
+/* ========== 活动数据卡片 ========== */
+.stats-card {
+  cursor: pointer;
+}
+
+.stats-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20rpx;
+}
+
+.stats-card-title {
+  display: flex;
+  align-items: center;
+  gap: 10rpx;
+  font-size: 30rpx;
+  font-weight: 600;
+  color: #333;
+}
+
+.stats-icon { font-size: 32rpx; }
+
+.stats-arrow {
+  font-size: 32rpx;
+  color: #bbb;
+}
+
+/* 比分行 */
+.stats-score-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 20rpx;
+  margin-bottom: 24rpx;
+}
+
+.stats-score-my, .stats-score-them {
+  font-size: 64rpx;
+  font-weight: 700;
+  color: #222;
+  background: #f5f5f5;
+  border-radius: 16rpx;
+  padding: 8rpx 28rpx;
+  min-width: 100rpx;
+  text-align: center;
+}
+
+.stats-vs-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8rpx;
+}
+
+.stats-vs {
+  font-size: 28rpx;
+  color: #ccc;
+  font-weight: 700;
+}
+
+.stats-result-badge {
+  font-size: 22rpx;
+  font-weight: 700;
+  padding: 4rpx 16rpx;
+  border-radius: 20rpx;
+}
+.stats-result-win { background: #e8f7ee; color: #2db55d; }
+.stats-result-draw { background: #f5f5f5; color: #999; }
+.stats-result-lose { background: #fff0ef; color: #ff4d4f; }
+
+/* 进球榜 */
+.stats-table { }
+
+.stats-table-header {
+  display: flex;
+  padding: 8rpx 0 12rpx;
+  border-bottom: 1rpx solid #f0f0f0;
+}
+
+.stats-table-row {
+  display: flex;
+  padding: 16rpx 0;
+  border-bottom: 1rpx solid #f7f7f7;
+  align-items: center;
+}
+
+.col-name {
+  flex: 1;
+  font-size: 24rpx;
+  color: #999;
+}
+
+.col-val {
+  width: 80rpx;
+  text-align: center;
+  font-size: 24rpx;
+  color: #999;
+}
+
+.stats-player-name {
+  font-size: 28rpx;
+  color: #333;
+}
+
+.stats-val-num {
+  font-size: 30rpx;
+  color: #222;
+  font-weight: 600;
+}
+
+.stats-empty-tip, .stats-no-player {
+  text-align: center;
+  font-size: 26rpx;
+  color: #bbb;
+  padding: 20rpx 0;
+}
+
+/* ========== 数据操作底部栏 ========== */
+.stats-action-bar {
+  display: block;
+}
+
+.stats-action-bar .action-bar-content {
+  display: flex;
+  gap: 20rpx;
+  align-items: center;
+}
+
+.btn-attendance {
+  flex: 1;
+  height: 88rpx;
+  border-radius: 50rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 30rpx;
+  font-weight: 600;
+  background: #f5f5f5;
+  color: #555;
+}
+
+.btn-enter-stats {
+  flex: 1.5;
+  height: 88rpx;
+  border-radius: 50rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 30rpx;
+  font-weight: 600;
+  background: #ff6b35;
+  color: #fff;
+}
+

@@ -51,6 +51,95 @@
     </view>
   </view>
 
+  <!-- ====== 数据 Tab ====== -->
+  <view wx:if="{{activeTab === '数据'}}" class="tab-content">
+
+    <!-- 日期筛选 -->
+    <view class="stats-date-filter">
+      <picker mode="date" value="{{statsStartDate}}" bindchange="onStartDateChange">
+        <view class="date-picker-btn">{{statsStartDate || '开始日期'}} ▾</view>
+      </picker>
+      <text class="date-to">至</text>
+      <picker mode="date" value="{{statsEndDate}}" bindchange="onEndDateChange">
+        <view class="date-picker-btn">{{statsEndDate || '结束日期'}} ▾</view>
+      </picker>
+    </view>
+
+    <!-- 加载中 -->
+    <view wx:if="{{loadingStats}}" class="empty-tip">加载中...</view>
+
+    <block wx:else>
+      <!-- 数据总览 -->
+      <view class="stats-overview-card">
+        <view class="overview-section-title">
+          <view class="overview-title-bar"></view>
+          <text>数据总览</text>
+        </view>
+
+        <view class="overview-body">
+          <!-- 总活动数（圆圈）-->
+          <view class="overview-total-wrap">
+            <view class="overview-circle">
+              <text class="overview-circle-num">{{statsSummary.totalActivities}}</text>
+            </view>
+            <text class="overview-circle-label">总活动数</text>
+          </view>
+
+          <!-- 胜平负 -->
+          <view class="overview-wdl">
+            <view class="wdl-item">
+              <view class="wdl-circle wdl-win">{{statsSummary.wins}}</view>
+              <text class="wdl-label">胜</text>
+            </view>
+            <view class="wdl-item">
+              <view class="wdl-circle wdl-draw">{{statsSummary.draws}}</view>
+              <text class="wdl-label">平</text>
+            </view>
+            <view class="wdl-item">
+              <view class="wdl-circle wdl-lose">{{statsSummary.losses}}</view>
+              <text class="wdl-label">负</text>
+            </view>
+          </view>
+        </view>
+      </view>
+
+      <!-- 球员榜单 -->
+      <view wx:if="{{statsPlayers.length > 0}}" class="stats-player-card">
+        <!-- 表头（可点击切换排序） -->
+        <view class="stats-player-header">
+          <view class="stats-col-player">
+            <!-- 空，对齐球员列 -->
+          </view>
+          <view class="stats-col-val stats-col-clickable {{statsActiveSortCol === 'attended' ? 'col-active' : ''}}"
+                bindtap="switchSortCol" data-col="attended">
+            出勤
+          </view>
+          <view class="stats-col-val stats-col-clickable {{statsActiveSortCol === 'goals' ? 'col-active' : ''}}"
+                bindtap="switchSortCol" data-col="goals">
+            进球
+          </view>
+          <view class="stats-col-val stats-col-clickable {{statsActiveSortCol === 'assists' ? 'col-active' : ''}}"
+                bindtap="switchSortCol" data-col="assists">
+            助攻
+          </view>
+        </view>
+
+        <view wx:for="{{statsPlayers}}" wx:key="openid" class="stats-player-row">
+          <view class="stats-col-player stats-player-info">
+            <image class="stats-avatar" src="{{item.displayAvatar}}" mode="aspectFill"/>
+            <text class="stats-player-name">{{item.nickName}}</text>
+          </view>
+          <!-- 当前排序列高亮 -->
+          <text class="stats-col-val {{statsActiveSortCol === 'attended' ? 'val-active' : ''}}">{{item.attended}}</text>
+          <text class="stats-col-val {{statsActiveSortCol === 'goals' ? 'val-active' : ''}}">{{item.goals}}</text>
+          <text class="stats-col-val {{statsActiveSortCol === 'assists' ? 'val-active' : ''}}">{{item.assists}}</text>
+        </view>
+      </view>
+
+      <view wx:elif="{{!loadingStats}}" class="empty-tip">暂无数据，赛后录入比赛数据即可查看</view>
+    </block>
+  </view>
+
   <!-- ====== 成员 Tab ====== -->
   <view wx:if="{{activeTab === '成员'}}" class="tab-content">
     <view wx:if="{{loadingMembers}}" class="empty-tip">加载中...</view>
@@ -65,7 +154,7 @@
           <view class="member-left">
             <image class="member-avatar" src="{{item.displayAvatar || '/images/default-avatar.png'}}" mode="aspectFill"/>
             <view class="member-info">
-              <text class="member-name">{{item.nickName}}</text>
+              <text class="member-name">{{item.displayName || item.nickName}}</text>
               <text class="member-role {{item.roleClass}}">{{item.roleText}}</text>
             </view>
           </view>
@@ -137,7 +226,7 @@
           <view class="member-left">
             <image class="member-avatar" src="{{item.displayAvatar || '/images/default-avatar.png'}}" mode="aspectFill"/>
             <view class="member-info">
-              <text class="member-name">{{item.nickName}}</text>
+              <text class="member-name">{{item.displayName || item.nickName}}</text>
               <text class="member-meta">申请于 {{item.appliedAtText}}</text>
             </view>
           </view>

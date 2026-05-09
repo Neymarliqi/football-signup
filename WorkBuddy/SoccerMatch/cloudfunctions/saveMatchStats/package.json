@@ -1,0 +1,9 @@
+{
+  "name": "saveMatchStats",
+  "version": "1.0.0",
+  "description": "保存/更新比赛数据",
+  "main": "index.js",
+  "dependencies": {
+    "wx-server-sdk": "latest"
+  }
+}

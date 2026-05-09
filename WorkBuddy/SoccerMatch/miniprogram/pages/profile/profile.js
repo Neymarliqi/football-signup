@@ -34,7 +34,10 @@ Page({
       totalGames: 0,
       confirmedCount: 0,
       pendingCount: 0,
-      leaveCount: 0
+      leaveCount: 0,
+      totalGoals: 0,
+      totalAssists: 0,
+      totalAttended: 0
     },
     history: [],
     version: '3.0.0',
@@ -592,8 +595,31 @@ Page({
           myStats: newStats
         })
       }
+
+      // 异步加载足球数据（进球/助攻/出勤）
+      this.loadFootballStats(newStats)
     } catch (e) {
       console.error('同步历史失败', e)
+    }
+  },
+
+  // 加载足球数据（进球/助攻/出勤）
+  async loadFootballStats(baseStats) {
+    try {
+      const res = await wx.cloud.callFunction({ name: 'getPersonalStats', data: {} })
+      if (res.result && res.result.success) {
+        const { summary } = res.result
+        this.setData({
+          myStats: {
+            ...baseStats,
+            totalGoals: summary.totalGoals || 0,
+            totalAssists: summary.totalAssists || 0,
+            totalAttended: summary.totalAttended || 0
+          }
+        })
+      }
+    } catch (e) {
+      // 静默失败，不影响主流程
     }
   },
 
@@ -602,6 +628,11 @@ Page({
     wx.navigateTo({
       url: '/pages/profile/history'
     })
+  },
+
+  // 跳转到个人数据详情页
+  goMyStats() {
+    wx.navigateTo({ url: '/pages/profile/stats/stats' })
   },
 
   // 跳转到隐私保护指引

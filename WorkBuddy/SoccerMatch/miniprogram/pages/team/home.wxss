@@ -295,7 +295,7 @@
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: 6rpx;
+  gap: 2rpx;
   width: 0;
   flex: 1;
   overflow: hidden;
@@ -309,6 +309,7 @@
   text-overflow: ellipsis;
   white-space: nowrap;
   max-width: 200rpx; /* 限制最大宽度，让超长昵称更早截断 */
+  line-height: 1;
 }
 
 .member-role {
@@ -316,6 +317,7 @@
   padding: 4rpx 12rpx;
   border-radius: 10rpx;
   display: inline-block;
+  line-height: 1;
 }
 
 .role-creator {
@@ -796,3 +798,206 @@
   text-align: center;
   padding: 16rpx 0;
 }
+
+/* ==================== 球队数据 Tab ==================== */
+
+/* 日期筛选 */
+.stats-date-filter {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+  padding: 20rpx 24rpx;
+  background: #fff;
+  margin-bottom: 16rpx;
+}
+
+.date-picker-btn {
+  background: #f5f5f5;
+  border-radius: 12rpx;
+  padding: 14rpx 24rpx;
+  font-size: 26rpx;
+  color: #333;
+  flex: 1;
+  text-align: center;
+}
+
+.date-to {
+  font-size: 26rpx;
+  color: #999;
+  flex-shrink: 0;
+}
+
+/* 数据总览卡片 */
+.stats-overview-card {
+  background: #fff;
+  margin: 0 0 16rpx;
+  padding: 28rpx 32rpx;
+}
+
+.overview-section-title {
+  display: flex;
+  align-items: center;
+  gap: 10rpx;
+  font-size: 28rpx;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 28rpx;
+}
+
+.overview-title-bar {
+  width: 6rpx;
+  height: 28rpx;
+  background: #ff6b35;
+  border-radius: 4rpx;
+}
+
+.overview-body {
+  display: flex;
+  align-items: center;
+  gap: 40rpx;
+}
+
+/* 总活动数圆圈 */
+.overview-total-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12rpx;
+}
+
+.overview-circle {
+  width: 140rpx;
+  height: 140rpx;
+  border-radius: 50%;
+  border: 12rpx solid #fde9e0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.overview-circle-num {
+  font-size: 52rpx;
+  font-weight: 700;
+  color: #333;
+}
+
+.overview-circle-label {
+  font-size: 24rpx;
+  color: #999;
+}
+
+/* 胜平负 */
+.overview-wdl {
+  display: flex;
+  gap: 32rpx;
+  flex: 1;
+  justify-content: center;
+}
+
+.wdl-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10rpx;
+}
+
+.wdl-circle {
+  width: 80rpx;
+  height: 80rpx;
+  border-radius: 50%;
+  border: 4rpx solid;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 36rpx;
+  font-weight: 700;
+}
+
+.wdl-win {
+  border-color: #f5222d;
+  color: #f5222d;
+}
+
+.wdl-draw {
+  border-color: #52c41a;
+  color: #52c41a;
+}
+
+.wdl-lose {
+  border-color: #ccc;
+  color: #ccc;
+}
+
+.wdl-label {
+  font-size: 24rpx;
+  color: #999;
+}
+
+/* 球员榜单 */
+.stats-player-card {
+  background: #fff;
+  margin: 0 0 16rpx;
+}
+
+.stats-player-header {
+  display: flex;
+  align-items: center;
+  padding: 20rpx 32rpx;
+  border-bottom: 1rpx solid #f0f0f0;
+}
+
+.stats-col-player {
+  flex: 1;
+}
+
+.stats-col-val {
+  width: 110rpx;
+  text-align: center;
+  font-size: 26rpx;
+  color: #999;
+}
+
+.stats-col-clickable {
+  padding: 8rpx 0;
+  border-radius: 8rpx;
+}
+
+.col-active {
+  background: #fde9e0;
+  color: #ff6b35;
+  font-weight: 600;
+}
+
+.stats-player-row {
+  display: flex;
+  align-items: center;
+  padding: 20rpx 32rpx;
+  border-bottom: 1rpx solid #f7f7f7;
+}
+
+.stats-player-info {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+}
+
+.stats-avatar {
+  width: 72rpx;
+  height: 72rpx;
+  border-radius: 50%;
+  background: #eee;
+  flex-shrink: 0;
+}
+
+.stats-player-name {
+  font-size: 28rpx;
+  color: #333;
+  font-weight: 500;
+}
+
+.val-active {
+  font-size: 30rpx;
+  color: #ff6b35;
+  font-weight: 700;
+}
+

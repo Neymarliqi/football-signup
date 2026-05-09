@@ -44,7 +44,11 @@ Page({
     confirmBtnEnabled: false,
     confirmTimer: null,
     // 活动描述展开状态
-    isDescExpanded: false
+    isDescExpanded: false,
+    // 活动数据（match_stats）
+    matchStats: null,
+    matchStatsPlayers: [],  // 展示前5名进球球员
+    canEditStats: false,    // 是否有录入数据权限
   },
 
   // 带重试机制的通用请求方法
@@ -449,6 +453,11 @@ Page({
     })
 
     wx.setNavigationBarTitle({ title: act.title || '活动详情' })
+
+    // 加载活动数据（进行中/已结束时才加载）
+    if (effectiveStatus === 'ongoing' || effectiveStatus === 'finished') {
+      this.loadMatchStats(act, openid)
+    }
   },
 
   formatDate(date) {
@@ -853,6 +862,67 @@ Page({
       console.error('删除活动失败', e)
       wx.showToast({ title: '删除失败', icon: 'none' })
     }
+  },
+
+  // 加载活动数据（比赛统计）
+  async loadMatchStats(act, openid) {
+    const activityId = act._id || this.data.activityId
+    try {
+      // 判断编辑权限
+      const isActivityCreator = act.createdBy === openid
+      let isTeamAdmin = false
+      if (!isActivityCreator && act.teamId) {
+        try {
+          const memberRes = await db.collection('team_members')
+            .where({ teamId: act.teamId, openid })
+            .get()
+          if (memberRes.data && memberRes.data.length > 0) {
+            const role = memberRes.data[0].role
+            isTeamAdmin = role === 'creator' || role === 'admin'
+          }
+        } catch (e) {}
+      }
+      const canEditStats = isActivityCreator || isTeamAdmin
+
+      const res = await wx.cloud.callFunction({ name: 'getMatchStats', data: { activityId } })
+      const stats = res.result && res.result.stats
+
+      let matchStatsPlayers = []
+      if (stats && stats.players) {
+        // 只取有进球的球员，按进球倒序，最多5条
+        const withGoals = stats.players.filter(p => p.goals > 0)
+        withGoals.sort((a, b) => b.goals - a.goals)
+        const topPlayers = withGoals.slice(0, 5)
+
+        // 补充用户信息
+        const openids = topPlayers.map(p => p.openid)
+        const usersMap = openids.length > 0 ? await app.fetchUsersWithCache(openids) : {}
+        matchStatsPlayers = topPlayers.map(p => {
+          const user = usersMap[p.openid] || {}
+          return {
+            ...p,
+            nickName: user.nickName || '未知',
+            displayAvatar: app.getDisplayAvatar(user) || app.globalData.defaultAvatar
+          }
+        })
+      }
+
+      this.setData({ matchStats: stats, matchStatsPlayers, canEditStats })
+    } catch (e) {
+      console.error('loadMatchStats error', e)
+    }
+  },
+
+  // 跳转活动数据页
+  goMatchStats() {
+    const { activityId } = this.data
+    wx.navigateTo({ url: `/pages/activity/match-stats/match-stats?activityId=${activityId}` })
+  },
+
+  // 跳转编辑出勤页
+  goEditAttendance() {
+    const { activityId } = this.data
+    wx.navigateTo({ url: `/pages/activity/attendance/attendance?activityId=${activityId}` })
   },
 
   // 异步加载球队 Logo（不阻塞页面渲染）

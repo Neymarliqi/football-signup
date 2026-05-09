@@ -1,0 +1,69 @@
+<!-- pages/profile/stats/stats.wxml -->
+<view class="container">
+
+  <!-- 筛选栏 -->
+  <view class="filter-bar">
+    <view wx:for="{{filterOptions}}" wx:key="value"
+          class="filter-item {{activeFilter === item.value ? 'filter-active' : ''}}"
+          bindtap="switchFilter"
+          data-value="{{item.value}}">
+      {{item.label}}
+    </view>
+  </view>
+
+  <!-- 汇总卡片 -->
+  <view class="summary-card">
+    <view class="summary-item">
+      <text class="summary-num attend-color">{{summary.totalAttended}}</text>
+      <text class="summary-label">出勤场次</text>
+    </view>
+    <view class="summary-divider"></view>
+    <view class="summary-item">
+      <text class="summary-num goal-color">{{summary.totalGoals}}</text>
+      <text class="summary-label">进球数</text>
+    </view>
+    <view class="summary-divider"></view>
+    <view class="summary-item">
+      <text class="summary-num assist-color">{{summary.totalAssists}}</text>
+      <text class="summary-label">助攻数</text>
+    </view>
+  </view>
+
+  <!-- 加载中 -->
+  <view wx:if="{{loading}}" class="loading-wrap">
+    <text class="loading-text">加载中...</text>
+  </view>
+
+  <!-- 记录列表 -->
+  <block wx:elif="{{records.length > 0}}">
+    <view class="section-label">参与记录</view>
+    <view class="record-list">
+      <view wx:for="{{records}}" wx:key="activityId"
+            class="record-item"
+            bindtap="goDetail"
+            data-id="{{item.activityId}}">
+        <view class="record-left">
+          <view class="record-dot {{item.attended ? 'dot-attended' : 'dot-absent'}}"></view>
+          <view class="record-info">
+            <text class="record-title">{{item.title}}</text>
+            <text class="record-date">{{item.displayDate}}</text>
+          </view>
+        </view>
+        <view class="record-right">
+          <view wx:if="{{item.hasStats}}" class="record-stats">
+            <text class="record-stat-item goal-color">⚽ {{item.goals}}</text>
+            <text class="record-stat-item assist-color">🅰️ {{item.assists}}</text>
+          </view>
+          <view wx:else class="record-no-stats">暂无</view>
+        </view>
+      </view>
+    </view>
+  </block>
+
+  <!-- 空状态 -->
+  <view wx:elif="{{!loading}}" class="empty-wrap">
+    <text class="empty-text">暂无数据</text>
+  </view>
+
+  <view style="height: 80rpx;"></view>
+</view>

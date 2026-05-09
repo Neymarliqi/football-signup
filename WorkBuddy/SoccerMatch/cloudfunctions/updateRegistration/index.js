@@ -155,7 +155,7 @@ exports.main = async (event, context) => {
           })
         }
       } catch (casualErr) {
-        // 散客记录失败不影响报名主流程
+        console.error('[updateRegistration] 散客记录写入失败:', { teamId: activity.teamId, openid, error: casualErr })
       }
     }
 

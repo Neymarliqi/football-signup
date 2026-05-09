@@ -1,0 +1,103 @@
+<!-- pages/activity/match-stats/match-stats.wxml -->
+<!-- 活动数据详情/录入页 -->
+<view class="container">
+
+  <!-- 加载中 -->
+  <view wx:if="{{loading}}" class="loading-wrap">
+    <text class="loading-text">加载中...</text>
+  </view>
+
+  <block wx:else>
+
+    <!-- ========== 比分区域 ========== -->
+    <view class="score-section">
+      <!-- 我方 -->
+      <view class="team-score-wrap">
+        <text class="team-score-label">{{activity.teamName || '我方'}}</text>
+        <!-- 有权限：可输入；无权限：只读 -->
+        <view wx:if="{{canEdit}}" class="score-input-wrap">
+          <input class="score-input" type="number" value="{{goals}}" bindinput="onGoalsInput" placeholder="0"/>
+        </view>
+        <text wx:else class="score-num">{{goals}}</text>
+      </view>
+
+      <view class="vs-wrap">
+        <text class="vs-text">VS</text>
+        <!-- 结果标签 -->
+        <view wx:if="{{result}}" class="result-badge result-{{result}}">
+          <text wx:if="{{result === 'win'}}">胜</text>
+          <text wx:elif="{{result === 'draw'}}">平</text>
+          <text wx:else>负</text>
+        </view>
+      </view>
+
+      <!-- 对方 -->
+      <view class="team-score-wrap">
+        <text class="team-score-label">对方</text>
+        <view wx:if="{{canEdit}}" class="score-input-wrap">
+          <input class="score-input" type="number" value="{{opponentGoals}}" bindinput="onOpponentGoalsInput" placeholder="0"/>
+        </view>
+        <text wx:else class="score-num">{{opponentGoals}}</text>
+      </view>
+    </view>
+
+    <!-- ========== 出勤人员标题 + 编辑出勤按钮（所有人可见） ========== -->
+    <view class="section-header">
+      <text class="section-label">出勤人员</text>
+      <view class="edit-attendance-btn" bindtap="goEditAttendance">
+        <text>编辑出勤 ›</text>
+      </view>
+    </view>
+
+    <!-- ========== 列表表头 ========== -->
+    <view class="player-list-header">
+      <view class="col-player">球员</view>
+      <view class="col-stat">进球</view>
+      <view class="col-stat">助攻</view>
+    </view>
+
+    <!-- ========== 球员列表（已过滤：只显示 attended=true）========== -->
+    <view wx:if="{{players.length === 0}}" class="empty-tip">暂无出勤人员</view>
+    <view wx:else class="player-list">
+      <view wx:for="{{players}}" wx:key="openid" class="player-row">
+        <!-- 头像 + 昵称 + 类型标签 -->
+        <view class="col-player player-info-cell">
+          <image class="player-avatar" src="{{item.displayAvatar}}" mode="aspectFill"/>
+          <view class="player-name-wrap">
+            <text class="player-name">{{item.displayName || item.nickName}}</text>
+            <text class="player-type-tag {{item.memberType === 'member' ? 'tag-member' : 'tag-casual'}}">
+              {{item.memberType === 'member' ? '队员' : '散客'}}
+            </text>
+          </view>
+        </view>
+
+        <!-- 进球 -->
+        <view class="col-stat stat-cell">
+          <block wx:if="{{canEdit}}">
+            <view class="pm-btn {{!item.goals && item.goals !== 0 ? 'pm-disabled' : (item.goals <= 0 ? 'pm-disabled' : '')}}" bindtap="changeGoals" data-index="{{index}}" data-delta="-1">−</view>
+            <text class="stat-num">{{item.goals || 0}}</text>
+            <view class="pm-btn pm-plus {{item.goals >= 99 ? 'pm-disabled' : ''}}" bindtap="changeGoals" data-index="{{index}}" data-delta="1">+</view>
+          </block>
+          <text wx:else class="stat-num-view">{{item.goals || 0}}</text>
+        </view>
+
+        <!-- 助攻 -->
+        <view class="col-stat stat-cell">
+          <block wx:if="{{canEdit}}">
+            <view class="pm-btn {{!item.assists && item.assists !== 0 ? 'pm-disabled' : (item.assists <= 0 ? 'pm-disabled' : '')}}" bindtap="changeAssists" data-index="{{index}}" data-delta="-1">−</view>
+            <text class="stat-num">{{item.assists || 0}}</text>
+            <view class="pm-btn pm-plus {{item.assists >= 99 ? 'pm-disabled' : ''}}" bindtap="changeAssists" data-index="{{index}}" data-delta="1">+</view>
+          </block>
+          <text wx:else class="stat-num-view">{{item.assists || 0}}</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- ========== 底部按钮（有权限才显示保存）========== -->
+    <view wx:if="{{canEdit}}" class="bottom-bar">
+      <view class="btn-save {{saving ? 'btn-disabled' : ''}}" bindtap="save">保存</view>
+    </view>
+
+    <view style="height: 200rpx;"></view>
+  </block>
+</view>

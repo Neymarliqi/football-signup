@@ -1,0 +1,9 @@
+{
+  "name": "getTeamStats",
+  "version": "1.0.0",
+  "description": "查询球队足球数据",
+  "main": "index.js",
+  "dependencies": {
+    "wx-server-sdk": "latest"
+  }
+}

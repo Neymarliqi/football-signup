@@ -298,6 +298,18 @@
   color: #aaa;
 }
 
+/* 足球数据分隔线 */
+.stats-divider {
+  height: 1rpx;
+  background: #f0f0f0;
+  margin: 24rpx 0 20rpx;
+}
+
+/* 足球数据行（3列）*/
+.stats-football-row .stat-block {
+  flex: 1;
+}
+
 .text-primary { color: #2ecc71; }
 .text-blue { color: #3498db; }
 .text-danger { color: #e74c3c; }

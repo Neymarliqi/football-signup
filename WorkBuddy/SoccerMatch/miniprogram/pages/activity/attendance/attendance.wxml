@@ -1,0 +1,69 @@
+<!-- pages/activity/attendance/attendance.wxml -->
+<view class="container">
+
+  <view wx:if="{{loading}}" class="loading-wrap">
+    <text class="loading-text">加载中...</text>
+  </view>
+
+  <block wx:else>
+
+    <!-- ====== 已报名球员 ====== -->
+    <view class="section-head">
+      <text class="section-label">已报名</text>
+      <view class="btn-all" bindtap="toggleAllConfirmed">标记出勤</view>
+    </view>
+
+    <view class="player-list">
+      <view wx:for="{{confirmedPlayers}}" wx:key="openid"
+            class="player-row"
+            bindtap="toggleAttended"
+            data-openid="{{item.openid}}"
+            data-section="confirmed">
+        <view class="player-left">
+          <image class="player-avatar" src="{{item.displayAvatar}}" mode="aspectFill"/>
+          <view class="player-info">
+            <text class="player-name">{{item.nickName}}</text>
+            <text class="player-time">{{item.registerTimeText}}</text>
+          </view>
+        </view>
+        <view class="attend-checkbox {{item.attended ? 'checked' : ''}}">
+          <text wx:if="{{item.attended}}" class="check-icon">✓</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- ====== 未报名的球队成员（可额外标记）====== -->
+    <view wx:if="{{extraMembers.length > 0}}">
+      <view class="section-head section-head-gray">
+        <text class="section-label">未报名球队成员</text>
+      </view>
+      <view class="player-list">
+        <view wx:for="{{extraMembers}}" wx:key="openid"
+              class="player-row"
+              bindtap="toggleAttended"
+              data-openid="{{item.openid}}"
+              data-section="extra">
+          <view class="player-left">
+            <image class="player-avatar" src="{{item.displayAvatar}}" mode="aspectFill"/>
+            <view class="player-info">
+              <text class="player-name">{{item.nickName}}</text>
+            </view>
+          </view>
+          <view class="attend-checkbox {{item.attended ? 'checked' : ''}}">
+            <text wx:if="{{item.attended}}" class="check-icon">✓</text>
+          </view>
+        </view>
+      </view>
+    </view>
+
+    <!-- 提示 -->
+    <view class="hint-text">注：出勤数据将被同步到球队数据中</view>
+
+    <!-- 底部提交按钮 -->
+    <view style="height: 180rpx;"></view>
+    <view class="bottom-bar">
+      <view class="btn-submit {{saving ? 'btn-disabled' : ''}}" bindtap="submit">提交</view>
+    </view>
+
+  </block>
+</view>
