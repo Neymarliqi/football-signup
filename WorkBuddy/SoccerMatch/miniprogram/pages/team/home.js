@@ -26,7 +26,7 @@ Page({
     statsFilter: '全部',   // 当前筛选：全部/本月/本季度/本年
     statsStartDate: '',
     statsEndDate: '',
-    statsSummary: { totalNormalActivities: 0, wins: 0, draws: 0, losses: 0 },
+    statsSummary: { totalActivities: 0, matchCount: 0, wins: 0, draws: 0, losses: 0 },
     statsPlayers: [],         // 所有球员统计（带用户信息）
     statsActiveSortCol: 'attended', // 当前排序列：attended/goals/assists
     // 注册弹窗
@@ -215,8 +215,8 @@ Page({
       const startStr = `${y}-${String(m + 1).padStart(2, '0')}-01`
       const endStr = `${y}-${String(m + 1).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`
       return {
-        startDate: `${startStr}T00:00:00.000Z`,
-        endDate: `${endStr}T23:59:59.000Z`,
+        startDate: `${startStr}T00:00:00+08:00`,
+        endDate: `${endStr}T23:59:59+08:00`,
         startStr, endStr
       }
     }
@@ -228,8 +228,8 @@ Page({
       const startStr = `${y}-${String(quarterStartMonth + 1).padStart(2, '0')}-01`
       const endStr = `${y}-${String(quarterEndMonth + 1).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`
       return {
-        startDate: `${startStr}T00:00:00.000Z`,
-        endDate: `${endStr}T23:59:59.000Z`,
+        startDate: `${startStr}T00:00:00+08:00`,
+        endDate: `${endStr}T23:59:59+08:00`,
         startStr, endStr
       }
     }
@@ -238,8 +238,8 @@ Page({
     const startStr = `${y}-01-01`
     const endStr = `${y}-12-31`
     return {
-      startDate: `${startStr}T00:00:00.000Z`,
-      endDate: `${endStr}T23:59:59.000Z`,
+      startDate: `${startStr}T00:00:00+08:00`,
+      endDate: `${endStr}T23:59:59+08:00`,
       startStr, endStr
     }
   },
@@ -298,8 +298,8 @@ Page({
       startDate = range.startDate
       endDate = range.endDate
     } else {
-      startDate = `${this.data.statsStartDate}T00:00:00.000Z`
-      endDate = `${this.data.statsEndDate}T23:59:59.000Z`
+      startDate = `${this.data.statsStartDate}T00:00:00+08:00`
+      endDate = `${this.data.statsEndDate}T23:59:59+08:00`
     }
 
     this.setData({ loadingStats: true })
@@ -333,9 +333,12 @@ Page({
       const sortCol = this.data.statsActiveSortCol || 'attended'
       players.sort((a, b) => (b[sortCol] || 0) - (a[sortCol] || 0))
 
-      // 兼容云函数新旧字段名
-      if (summary.totalNormalActivities === undefined) {
-        summary.totalNormalActivities = summary.totalActivities || 0
+      // 兼容旧版云函数字段名
+      if (summary.matchCount === undefined) {
+        summary.matchCount = summary.totalNormalActivities || 0
+      }
+      if (summary.totalActivities === undefined) {
+        summary.totalActivities = summary.totalNormalActivities || 0
       }
       this.setData({
         statsSummary: summary,

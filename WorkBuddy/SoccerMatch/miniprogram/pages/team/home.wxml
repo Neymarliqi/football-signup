@@ -76,9 +76,9 @@
           <!-- 总活动数（圆圈）-->
           <view class="overview-total-wrap">
             <view class="overview-circle">
-              <text class="overview-circle-num">{{statsSummary.totalNormalActivities}}</text>
+              <text class="overview-circle-num">{{statsSummary.matchCount}}</text>
             </view>
-            <text class="overview-circle-label">活动总数</text>
+            <text class="overview-circle-label">比赛数</text>
           </view>
 
           <!-- 胜平负 -->

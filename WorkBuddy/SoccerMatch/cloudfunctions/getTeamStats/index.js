@@ -6,6 +6,20 @@ cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV })
 const db = cloud.database()
 const _ = db.command
 
+// 分页查询辅助（突破默认100条限制）
+async function getAll(collection, query) {
+  let all = []
+  let skip = 0
+  const batch = 100
+  while (true) {
+    const res = await db.collection(collection).where(query).skip(skip).limit(batch).get()
+    all = all.concat(res.data || [])
+    if (res.data.length < batch) break
+    skip += batch
+  }
+  return all
+}
+
 exports.main = async (event, context) => {
   const { teamId, startDate, endDate } = event
 
@@ -31,9 +45,8 @@ exports.main = async (event, context) => {
       .get()
 
     const activityIds = activitiesRes.data.map(a => a._id)
-    const totalActivities = activityIds.length
 
-    // 2. 查询这些活动的 match_stats
+    // 2. 查询这些活动的 match_stats（分批查询）
     let allStats = []
     if (activityIds.length > 0) {
       const batchSize = 20
@@ -47,6 +60,11 @@ exports.main = async (event, context) => {
     }
 
     // 3. 计算球队总览（胜/平/负）
+    // 活动总数 = 所有非取消活动；比赛数 = 有比分记录的活动
+    const totalActivities = activityIds.length
+    const matchedActivityIds = new Set(allStats.map(s => s.activityId))
+    const matchCount = matchedActivityIds.size
+
     let wins = 0, draws = 0, losses = 0
     allStats.forEach(s => {
       if (s.result === 'win') wins++
@@ -55,14 +73,14 @@ exports.main = async (event, context) => {
     })
 
     // 4. 按球员维度聚合：出勤/进球/助攻
-    // 同时查球队成员列表，区分 member/casual
-    const [membersRes, casualsRes] = await Promise.all([
-      db.collection('team_members').where({ teamId }).get(),
-      db.collection('team_casuals').where({ teamId }).get()
+    // 分页查询球队成员和散客（突破100条限制）
+    const [members, casuals] = await Promise.all([
+      getAll('team_members', { teamId }),
+      getAll('team_casuals', { teamId })
     ])
 
-    const memberOpenids = new Set((membersRes.data || []).map(m => m.openid))
-    const casualOpenids = new Set((casualsRes.data || []).map(c => c.openid))
+    const memberOpenids = new Set((members || []).map(m => m.openid))
+    const casualOpenids = new Set((casuals || []).map(c => c.openid))
 
     // 统计所有球员数据
     const playerStatsMap = {}
@@ -89,7 +107,7 @@ exports.main = async (event, context) => {
 
     return {
       success: true,
-      summary: { totalNormalActivities: totalActivities, wins, draws, losses },
+      summary: { totalActivities, matchCount, wins, draws, losses },
       playerStats,
       activityIds
     }

@@ -957,18 +957,18 @@
 }
 
 .wdl-win {
-  border-color: #f5222d;
-  color: #f5222d;
-}
-
-.wdl-draw {
   border-color: #52c41a;
   color: #52c41a;
 }
 
+.wdl-draw {
+  border-color: #999;
+  color: #999;
+}
+
 .wdl-lose {
-  border-color: #ccc;
-  color: #ccc;
+  border-color: #f5222d;
+  color: #f5222d;
 }
 
 .wdl-label {
