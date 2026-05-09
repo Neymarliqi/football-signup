@@ -265,7 +265,12 @@ Page({
   // 筛选按钮切换
   onFilterChange(e) {
     const filter = e.currentTarget.dataset.filter
-    this.setData({ statsFilter: filter })
+    if (filter === '全部') {
+      this.setData({ statsFilter: filter, statsStartDate: '', statsEndDate: '' })
+    } else {
+      const range = this.calcDateRangeByFilter(filter)
+      this.setData({ statsFilter: filter, statsStartDate: range.startStr, statsEndDate: range.endStr })
+    }
     this.loadTeamStats()
   },
 
