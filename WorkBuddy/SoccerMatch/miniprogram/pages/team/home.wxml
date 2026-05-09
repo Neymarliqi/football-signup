@@ -125,7 +125,7 @@
             <image class="stats-avatar" src="{{item.displayAvatar}}" mode="aspectFill"/>
             <view class="stats-player-text">
               <text class="stats-player-name">{{item.nickName}}</text>
-              <text class="stats-player-type type-{{item.type}}">{{item.type === 'member' ? '队员' : '散客'}}</text>
+              <view class="type-tag type-tag-{{item.type}}">{{item.type === 'member' ? '队员' : '散客'}}</view>
             </view>
           </view>
           <!-- 当前排序列高亮 -->
@@ -160,7 +160,7 @@
                   class="action-btn action-admin" catchtap="toggleAdmin" data-open-id="{{item.openid}}">
               设为管理员
             </view>
-            <view class="action-btn action-remove" catchtap="removeMember" data-open-id="{{item.openid}}">
+            <view class="action-btn action-remove" wx:if="{{item.role !== 'creator'}}" catchtap="removeMember" data-open-id="{{item.openid}}">
               移除
             </view>
           </view>
@@ -173,11 +173,12 @@
               <image class="member-avatar" src="{{item.displayAvatar || '/images/default-avatar.png'}}" mode="aspectFill"/>
               <view class="member-info">
                 <text class="member-name">{{item.displayName || item.nickName}}</text>
-                <text class="member-role {{item.roleClass}}">{{item.roleText}}</text>
+                <view class="member-meta">
+                  <text class="member-role {{item.roleClass}}">{{item.roleText}}</text>
+                  <text class="member-reg-count">报名 {{item.registrationCount}} 次</text>
+                </view>
               </view>
             </view>
-            <view wx:if="{{(myRole === 'creator' || myRole === 'admin') && item.openid !== myOpenid}}"
-                  class="member-swipe-hint">‹</view>
           </view>
         </view>
       </view>
@@ -239,7 +240,7 @@
             <image class="member-avatar" src="{{item.displayAvatar || '/images/default-avatar.png'}}" mode="aspectFill"/>
             <view class="member-info">
               <text class="member-name">{{item.displayName || item.nickName}}</text>
-              <text class="member-meta">申请于 {{item.appliedAtText}}</text>
+              <text class="application-meta">申请于 {{item.appliedAtText}}</text>
             </view>
           </view>
           <view class="application-actions">

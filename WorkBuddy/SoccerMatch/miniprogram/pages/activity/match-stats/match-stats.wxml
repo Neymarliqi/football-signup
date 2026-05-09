@@ -33,7 +33,7 @@
       </view>
 
       <!-- 对方 -->
-      <view class="team-score-wrap">
+      <view class="team-score-wrap opponent-wrap">
         <view class="team-score-label-row">
           <text class="team-score-label">{{opponentName || '对手'}}</text>
           <view wx:if="{{canEdit}}" class="edit-name-btn" bindtap="editOpponentName">✎</view>
@@ -69,9 +69,9 @@
           <image class="player-avatar" src="{{item.displayAvatar}}" mode="aspectFill"/>
           <view class="player-name-wrap">
             <text class="player-name">{{item.displayName || item.nickName}}</text>
-            <text class="player-type-tag {{item.memberType === 'member' ? 'tag-member' : 'tag-casual'}}" wx:if="{{activity.teamId}}">
+            <view class="player-type-tag {{item.memberType === 'member' ? 'tag-member' : 'tag-casual'}}" wx:if="{{activity.teamId}}">
               {{item.memberType === 'member' ? '队员' : '散客'}}
-            </text>
+            </view>
           </view>
         </view>
 

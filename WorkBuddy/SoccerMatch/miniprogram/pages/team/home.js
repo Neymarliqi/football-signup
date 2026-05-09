@@ -350,7 +350,6 @@ Page({
 
   // ========== 成员列表 ==========
   async loadMembers(force = false) {
-    // 缓存检查：30秒内不重复加载
     const cached = this._cacheTimestamps && this._cacheTimestamps.members
     const cacheValid = cached && (Date.now() - cached < this._cacheValidDuration)
     const hasData = this.data && this.data.members && this.data.members.length > 0
@@ -359,19 +358,30 @@ Page({
     }
     this.setData({ loadingMembers: true })
     try {
-      const res = await db.collection('team_members')
-        .where({ teamId: this.data.teamId })
-        .get()
+      // 并行加载成员列表和活动列表
+      const [membersRes, activitiesRes] = await Promise.all([
+        db.collection('team_members').where({ teamId: this.data.teamId }).get(),
+        db.collection('activities').where({ teamId: this.data.teamId }).get()
+      ])
 
-      const openids = res.data.map(m => m.openid)
+      // 计算每个成员的报名次数（只统计 confirmed）
+      const regCountMap = {}
+      ;(activitiesRes.data || []).forEach(act => {
+        (act.registrations || []).forEach(reg => {
+          if (reg.status === 'confirmed') {
+            regCountMap[reg.openid] = (regCountMap[reg.openid] || 0) + 1
+          }
+        })
+      })
+
+      const openids = membersRes.data.map(m => m.openid)
       const usersMap = await app.fetchUsersWithCache(openids)
 
-      const members = res.data.map(m => {
+      const members = membersRes.data.map(m => {
         const user = usersMap[m.openid] || {}
         const roleTextMap = { creator: '👑 创建者', admin: '⚡ 管理员', member: '队员' }
         const roleClassMap = { creator: 'role-creator', admin: 'role-admin', member: 'role-member' }
         const nickName = user.nickName || '未知'
-        // 名字超过4个字截断
         const displayName = nickName.length > 4 ? nickName.slice(0, 4) + '...' : nickName
         return {
           ...m,
@@ -380,7 +390,8 @@ Page({
           displayName,
           roleText: roleTextMap[m.role] || m.role,
           roleClass: roleClassMap[m.role] || '',
-          displayAvatar: app.getDisplayAvatar(user)
+          displayAvatar: app.getDisplayAvatar(user),
+          registrationCount: regCountMap[m.openid] || 0
         }
       })
 
@@ -671,6 +682,14 @@ Page({
   async removeMember(e) {
     const { teamId } = this.data
     const targetOpenid = e.currentTarget.dataset.openId
+
+    // 不允许移除创建者（双重保护）
+    const targetMember = this.data.members.find(m => m.openid === targetOpenid)
+    if (targetMember && targetMember.role === 'creator') {
+      wx.showToast({ title: '不能移除创建者', icon: 'none' })
+      return
+    }
+
     wx.showModal({
       title: '确认移除',
       content: '确定将该成员移除出球队？',
@@ -683,8 +702,8 @@ Page({
           })
           if (result.result.success) {
             wx.showToast({ title: '已移除', icon: 'success' })
-            this.loadMembers(true) // 强制刷新
-            this.closeSlideMenu() // 关闭滑动菜单
+            this.loadMembers(true)
+            this.closeSlideMenu()
           } else {
             wx.showToast({ title: result.result.message, icon: 'none' })
           }
