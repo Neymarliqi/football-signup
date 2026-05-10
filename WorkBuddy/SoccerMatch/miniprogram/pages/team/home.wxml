@@ -166,8 +166,8 @@
           </view>
           <!-- 内容层（可滑动） -->
           <view class="member-item-content"
-                catchtouchstart="onTouchStart"
-                catchtouchend="onTouchEnd"
+                bindtouchstart="onTouchStart"
+                bindtouchend="onTouchEnd"
                 data-index="{{index}}">
             <view class="member-left">
               <image class="member-avatar" src="{{item.displayAvatar || '/images/default-avatar.png'}}" mode="aspectFill"/>

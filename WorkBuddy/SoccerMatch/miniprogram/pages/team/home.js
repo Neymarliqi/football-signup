@@ -75,12 +75,18 @@ Page({
 
   onTouchStart(e) {
     this._startX = e.touches[0].clientX
+    this._startY = e.touches[0].clientY
   },
 
   onTouchEnd(e) {
     const index = parseInt(e.currentTarget.dataset.index)
     const endX = e.changedTouches[0].clientX
+    const endY = e.changedTouches[0].clientY
     const diffX = this._startX - endX
+    const diffY = Math.abs(this._startY - endY)
+
+    // 纵向滚动幅度大于横向，忽略（不误触左滑）
+    if (diffY > Math.abs(diffX)) return
 
     // 左滑超过60px，展开操作菜单
     if (diffX > 60) {
@@ -409,6 +415,8 @@ Page({
         return order[a.role] - order[b.role]
       })
 
+      // 页面可能已卸载
+      if (!this.data) return
       this.setData({ members, loadingMembers: false })
       this._cacheTimestamps.members = Date.now()
     } catch (e) {
