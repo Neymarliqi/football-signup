@@ -86,6 +86,9 @@ App({
 
         // 检查是否是管理员
         this.checkAdmin(openid)
+
+        // 静默同步模板数据
+        this.syncTemplatesFromCloud()
       },
       fail: err => {
         console.error('获取openid失败', err)
@@ -640,9 +643,10 @@ App({
   // ========== 活动模板相关 ==========
   // Storage key
   _TPL_KEY: 'activity_templates',
+  _TPL_SYNCED_KEY: 'activity_templates_synced', // 标记是否已完成首次云端同步
 
   /**
-   * 加载所有模板
+   * 加载所有模板（同步，读本地缓存）
    * @returns {Array} 模板数组
    */
   loadTemplates() {
@@ -650,7 +654,6 @@ App({
       const raw = wx.getStorageSync(this._TPL_KEY)
       if (!raw) return []
       const list = typeof raw === 'string' ? JSON.parse(raw) : raw
-      // 按创建时间倒序
       return list.sort((a, b) => b.createdAt - a.createdAt)
     } catch (e) {
       return []
@@ -658,16 +661,94 @@ App({
   },
 
   /**
-   * 保存一个新模板
-   * @param {Object} templateData - 模板数据（不含 id/createdAt）
-   * @returns {Object} 新建的模板（含 id/createdAt）
+   * 从云端同步模板到本地缓存（异步）
+   * 首次同步时会自动迁移本地模板到云端
    */
-  saveTemplate(templateData) {
+  async syncTemplatesFromCloud() {
+    const openid = this.globalData.openid || wx.getStorageSync('openid')
+    if (!openid) return
+
+    try {
+      const db = wx.cloud.database()
+      const res = await db.collection('templates')
+        .where({ _openid: openid })
+        .orderBy('createdAt', 'desc')
+        .limit(100)
+        .get()
+
+      const cloudList = res.data || []
+      const synced = wx.getStorageSync(this._TPL_SYNCED_KEY)
+
+      // 首次同步：迁移本地模板到云端
+      if (!synced) {
+        const localList = this.loadTemplates().filter(t => !t._id)
+        if (localList.length > 0) {
+          for (const tpl of localList) {
+            try {
+              await db.collection('templates').add({ data: tpl })
+            } catch (e) {
+              console.error('迁移模板到云端失败', e)
+            }
+          }
+          // 迁移完后重新拉取
+          const res2 = await db.collection('templates')
+            .where({ _openid: openid })
+            .orderBy('createdAt', 'desc')
+            .limit(100)
+            .get()
+          const merged = (res2.data || []).map(t => ({
+            ...t,
+            id: t._id,
+            createdAt: t.createdAt || 0
+          }))
+          wx.setStorageSync(this._TPL_KEY, merged)
+        } else {
+          const cacheList = cloudList.map(t => ({
+            ...t,
+            id: t._id,
+            createdAt: t.createdAt || 0
+          }))
+          wx.setStorageSync(this._TPL_KEY, cacheList)
+        }
+        wx.setStorageSync(this._TPL_SYNCED_KEY, true)
+      } else {
+        // 非首次：直接用云端数据更新缓存
+        const cacheList = cloudList.map(t => ({
+          ...t,
+          id: t._id,
+          createdAt: t.createdAt || 0
+        }))
+        wx.setStorageSync(this._TPL_KEY, cacheList)
+      }
+    } catch (e) {
+      console.error('同步模板失败', e)
+    }
+  },
+
+  /**
+   * 保存一个新模板（先写云端，再更新缓存）
+   * @param {Object} templateData - 模板数据（不含 id/createdAt）
+   * @returns {Object} 新建的模板（含 _id/createdAt）
+   */
+  async saveTemplate(templateData) {
     const tpl = {
       ...templateData,
-      id: 'tpl_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7),
       createdAt: Date.now()
     }
+
+    try {
+      const db = wx.cloud.database()
+      const res = await db.collection('templates').add({ data: tpl })
+      tpl._id = res._id
+      tpl.id = res._id
+    } catch (e) {
+      // 云端失败时用本地 id 兜底
+      tpl.id = 'tpl_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7)
+      tpl._id = tpl.id
+      console.error('保存模板到云端失败', e)
+    }
+
+    // 更新本地缓存
     const list = this.loadTemplates()
     list.unshift(tpl)
     wx.setStorageSync(this._TPL_KEY, list)
@@ -675,36 +756,50 @@ App({
   },
 
   /**
-   * 删除指定模板
-   * @param {string} id - 模板 id
+   * 删除指定模板（先删云端，再更新缓存）
+   * @param {string} id - 模板 id（云端 _id）
    */
-  deleteTemplate(id) {
+  async deleteTemplate(id) {
+    try {
+      const db = wx.cloud.database()
+      await db.collection('templates').doc(id).remove()
+    } catch (e) {
+      console.error('删除云端模板失败', e)
+    }
+
     const list = this.loadTemplates()
-    const filtered = list.filter(t => t.id !== id)
+    const filtered = list.filter(t => (t._id || t.id) !== id)
     wx.setStorageSync(this._TPL_KEY, filtered)
   },
 
   /**
-   * 更新模板指定字段
-   * @param {string} id - 模板 id
+   * 更新模板指定字段（先更新云端，再更新缓存）
+   * @param {string} id - 模板 id（云端 _id）
    * @param {Object} updates - 要更新的字段（如 { name: '新名称' }）
    */
-  updateTemplate(id, updates) {
+  async updateTemplate(id, updates) {
+    try {
+      const db = wx.cloud.database()
+      await db.collection('templates').doc(id).update({ data: updates })
+    } catch (e) {
+      console.error('更新云端模板失败', e)
+    }
+
     const list = this.loadTemplates()
-    const idx = list.findIndex(t => t.id === id)
+    const idx = list.findIndex(t => (t._id || t.id) === id)
     if (idx === -1) return
     list[idx] = { ...list[idx], ...updates }
     wx.setStorageSync(this._TPL_KEY, list)
   },
 
   /**
-   * 根据 id 获取模板
+   * 根据 id 获取模板（同步，读本地缓存）
    * @param {string} id - 模板 id
    * @returns {Object|null}
    */
   getTemplateById(id) {
     const list = this.loadTemplates()
-    return list.find(t => t.id === id) || null
+    return list.find(t => (t._id || t.id) === id) || null
   },
 
   /**

@@ -39,7 +39,6 @@ Page({
       totalAssists: 0,
       totalAttended: 0
     },
-    history: [],
     version: '3.0.0',
     templateCount: 0,
     // 注册弹窗
@@ -65,8 +64,8 @@ Page({
     // 智能加载：优先显示本地缓存（秒开）
     this.loadUserInfo()
 
-    // 加载历史记录（本地缓存优先）
-    this.loadHistory(true)
+    // 加载统计数据
+    this.loadStats()
 
     // 同步 TabBar 选中状态（个人中心索引为 1）
     if (typeof this.getTabBar === 'function' && this.getTabBar()) {
@@ -135,7 +134,7 @@ Page({
   onRegistered() {
     this.setData({ showRegisterModal: false })
     this.loadUserInfo()
-    this.loadHistory(true)
+    this.loadStats()
     this.loadMyTeams()
     // 注册完成后执行之前被拦截的操作
     if (this._pendingAction === 'editProfile') {
@@ -493,59 +492,40 @@ Page({
     }
   },
 
-  // 加载历史记录（只加载全部用于统计，显示前5条）
-  async loadHistory(useCache = false) {
+  // 加载统计数据
+  async loadStats() {
     const openid = app.globalData.openid || wx.getStorageSync('openid')
     if (!openid) return
 
     // 本地缓存优先
-    if (useCache) {
-      const cachedHistory = wx.getStorageSync('myHistory')
-      const cachedStats = wx.getStorageSync('myStats')
-      if (cachedHistory && cachedStats) {
-        this.setData({
-          history: cachedHistory,
-          historyTotal: cachedHistory.length,
-          hasMoreHistory: cachedHistory.length > 5,
-          myStats: cachedStats
-        })
-      }
+    const cachedStats = wx.getStorageSync('myStats')
+    if (cachedStats) {
+      this.setData({ myStats: cachedStats })
     }
 
-    // 后台静默更新（不阻塞界面）
-    this.syncHistory(openid)
+    // 后台静默更新
+    this.syncStats(openid)
   },
 
-  // 后台同步历史数据（服务端过滤，避免全量拉取）
-  async syncHistory(openid) {
+  // 后台同步统计数据
+  async syncStats(openid) {
     try {
-      // 并行执行：统计数据聚合查询 + 前5条历史记录
-      const [statsRes, historyRes] = await Promise.all([
-        // 聚合查询统计数据
-        db.collection('activities')
-          .aggregate()
-          .match({ 'registrations.openid': openid })
-          .project({
-            myRegs: db.command.aggregate.filter({
-              input: '$registrations',
-              as: 'r',
-              cond: db.command.aggregate.eq(['$$r.openid', openid])
-            })
+      const statsRes = await db.collection('activities')
+        .aggregate()
+        .match({ 'registrations.openid': openid })
+        .project({
+          myRegs: db.command.aggregate.filter({
+            input: '$registrations',
+            as: 'r',
+            cond: db.command.aggregate.eq(['$$r.openid', openid])
           })
-          .project({
-            myStatus: db.command.aggregate.arrayElemAt(['$myRegs', 0])
-          })
-          .project({ status: '$myStatus.status' })
-          .end(),
-        // 查询最近5条参与记录
-        db.collection('activities')
-          .where({ 'registrations.openid': openid })
-          .orderBy('activityDate', 'desc')
-          .limit(5)
-          .get()
-      ])
+        })
+        .project({
+          myStatus: db.command.aggregate.arrayElemAt(['$myRegs', 0])
+        })
+        .project({ status: '$myStatus.status' })
+        .end()
 
-      // 计算统计
       const records = statsRes.list || []
       let totalGames = 0, confirmedCount = 0, pendingCount = 0, leaveCount = 0
       records.forEach(r => {
@@ -554,52 +534,20 @@ Page({
         else if (r.status === 'leave') leaveCount++
       })
 
-      // 处理前5条历史记录
-      const statusMap = {
-        confirmed: { text: '✅ 报名', cls: 'tag-green' },
-        pending: { text: '⏳ 待定', cls: 'tag-yellow' },
-        leave: { text: '🙅 请假', cls: 'tag-red' }
-      }
-
-      const allHistory = historyRes.data.map(act => {
-        const myReg = (act.registrations || []).find(r => r.openid === openid)
-        const actDate = act.activityDate instanceof Date ? act.activityDate : new Date(act.activityDate)
-        return {
-          ...act,
-          myStatus: myReg?.status,
-          myStatusText: statusMap[myReg?.status]?.text || '',
-          myStatusClass: statusMap[myReg?.status]?.cls || '',
-          displayDate: this.formatDate(actDate)
-        }
-      })
-
-      const displayHistory = allHistory.slice(0, 5)
-      const hasMore = historyRes.data.length === 5
-
       const newStats = { totalGames, confirmedCount, pendingCount, leaveCount }
-
-      // 保存到缓存
-      wx.setStorageSync('myHistory', displayHistory)
       wx.setStorageSync('myStats', newStats)
 
-      // 数据有变化才更新界面
       const currentStats = this.data.myStats
       if (currentStats.totalGames !== newStats.totalGames ||
           currentStats.confirmedCount !== newStats.confirmedCount ||
           currentStats.pendingCount !== newStats.pendingCount ||
           currentStats.leaveCount !== newStats.leaveCount) {
-        this.setData({
-          history: displayHistory,
-          historyTotal: records.length,
-          hasMoreHistory: hasMore,
-          myStats: newStats
-        })
+        this.setData({ myStats: newStats })
       }
 
-      // 异步加载足球数据（进球/助攻/出勤）
       this.loadFootballStats(newStats)
     } catch (e) {
-      console.error('同步历史失败', e)
+      console.error('同步统计失败', e)
     }
   },
 
@@ -623,13 +571,6 @@ Page({
     }
   },
 
-  // 跳转到历史列表页
-  goHistoryList() {
-    wx.navigateTo({
-      url: '/pages/profile/history'
-    })
-  },
-
   // 跳转到个人数据详情页
   goMyStats() {
     wx.navigateTo({ url: '/pages/profile/stats/stats' })
@@ -651,11 +592,6 @@ Page({
     const m = date.getMonth() + 1
     const d = date.getDate()
     return `${m}月${d}日`
-  },
-
-  goDetail(e) {
-    const id = e.currentTarget.dataset.id
-    wx.navigateTo({ url: `/pages/activity/detail?id=${id}` })
   },
 
   about() {

@@ -37,8 +37,9 @@ Component({
     },
 
     // 打开弹窗
-    open() {
-      this._loadTemplates() // 每次打开刷新列表
+    async open() {
+      await app.syncTemplatesFromCloud()
+      this._loadTemplates()
       this.setData({ visible: true })
     },
 
@@ -67,12 +68,11 @@ Component({
         content: `确定删除「${tpl.name}」吗？`,
         confirmText: '删除',
         confirmColor: '#e74c3c',
-        success: res => {
+        success: async res => {
           if (res.confirm) {
-            app.deleteTemplate(tpl.id)
+            await app.deleteTemplate(tpl.id || tpl._id)
             this._loadTemplates()
-            // 如果删除的是当前选中项，通知父组件
-            if (tpl.id === this.data.selectedId) {
+            if ((tpl.id || tpl._id) === this.data.selectedId) {
               this.triggerEvent('deselect')
             }
           }

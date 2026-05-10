@@ -15,7 +15,8 @@ Page({
     editNameLen: 0
   },
 
-  onShow() {
+  async onShow() {
+    await app.syncTemplatesFromCloud()
     this._loadTemplates()
   },
 
@@ -53,14 +54,14 @@ Page({
     this.setData({ editVisible: false, editId: '', editName: '' })
   },
 
-  onEditConfirm() {
+  async onEditConfirm() {
     const { editId, editName } = this.data
     const name = (editName || '').trim()
     if (!name) {
       wx.showToast({ title: '名称不能为空', icon: 'none' })
       return
     }
-    app.updateTemplate(editId, { name })
+    await app.updateTemplate(editId, { name })
     this.setData({ editVisible: false, editId: '', editName: '' })
     this._loadTemplates()
     wx.showToast({ title: '已保存', icon: 'success' })
@@ -77,9 +78,9 @@ Page({
       content: `确定删除「${tpl.name}」吗？`,
       confirmText: '删除',
       confirmColor: '#e74c3c',
-      success: res => {
+      success: async res => {
         if (res.confirm) {
-          app.deleteTemplate(tpl.id)
+          await app.deleteTemplate(tpl.id || tpl._id)
           this._loadTemplates()
           wx.showToast({ title: '已删除', icon: 'success' })
         }
