@@ -609,12 +609,12 @@ Page({
     }
 
     // 活动来源标记
-    // 无 teamId = 公开活动，标记为"🏠 公开"
+    // 无 teamId = 普通活动，标记为"📋 普通"
     // 有 teamId = 球队活动，标记为球队 Logo + 名称
     const isPublic = !act.teamId
     let sourceTag, sourceTagClass, teamLogo
     if (isPublic) {
-      sourceTag = '🏠 公开'
+      sourceTag = '📋 普通'
       sourceTagClass = 'tag-public'
       teamLogo = ''
     } else {

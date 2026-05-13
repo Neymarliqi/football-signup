@@ -23,7 +23,7 @@
     <view class="form-item">
       <view class="form-label">所属球队</view>
       <view class="team-picker-btn" bindtap="pickTeam">
-        <text wx:if="{{!form.teamId}}" class="picker-placeholder">不选择 = 公开活动（所有用户可见）</text>
+        <text wx:if="{{!form.teamId}}" class="picker-placeholder">不选择 = 普通活动</text>
         <text wx:if="{{form.teamId}}" class="team-picker-value">
           <text class="team-picker-icon">⚽</text> {{form.teamName}}
         </text>

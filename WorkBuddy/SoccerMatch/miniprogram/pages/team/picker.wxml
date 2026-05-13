@@ -10,7 +10,7 @@
     </view>
   </view>
 
-  <!-- ========== 公开活动 ========== -->
+  <!-- ========== 普通活动 ========== -->
   <view class="addr-card" bindtap="{{managing ? 'preventBubble' : 'selectTeam'}}" data-teamid="">
     <view class="addr-row">
       <!-- 浏览模式：checkbox选择 -->
@@ -18,14 +18,13 @@
         <text wx:if="{{selectedTeamId === ''}}" class="checkbox-tick">✓</text>
       </view>
       <view class="addr-info">
-        <text class="addr-main">公开活动</text>
-        <text class="addr-sub">所有用户可见</text>
+        <text class="addr-main">普通活动</text>
       </view>
       <!-- 默认标记（两种模式都显示） -->
       <view wx:if="{{defaultTeamId === ''}}" class="default-badge">默认</view>
     </view>
 
-    <!-- 管理模式：设为默认 radio（公开活动也可设默认） -->
+    <!-- 管理模式：设为默认 radio（普通活动也可设默认） -->
     <view wx:if="{{managing}}" class="action-row">
       <view class="radio-default {{defaultTeamId === '' ? 'active' : ''}}" catchtap="setDefaultTeam" data-teamid="">
         <view class="radio-circle">

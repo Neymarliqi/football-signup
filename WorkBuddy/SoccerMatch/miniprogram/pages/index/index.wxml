@@ -73,10 +73,10 @@
     <view class="card-top flex-between">
       <!-- 左侧标签组：来源标签 + 状态标签 -->
       <view class="tag-group">
-        <!-- 来源标签：公开 / 球队 -->
+        <!-- 来源标签：普通 / 球队 -->
         <view class="source-tag tag {{item.sourceTagClass}}">
           <image wx:if="{{item.teamLogo}}" class="tag-logo" src="{{item.teamLogo}}" mode="aspectFill"/>
-          <text wx:if="{{item.isPublic}}" class="tag-text">🏠 公开</text>
+          <text wx:if="{{item.isPublic}}" class="tag-text">📋 普通</text>
           <text wx:else class="tag-text team-name">{{item.sourceTag}}</text>
         </view>
         <view class="act-status-tag tag {{item.statusClass}}">{{item.statusText}}</view>

@@ -126,7 +126,7 @@ Page({
   // ========== 球队选择 ==========
   pickTeam() {
     const { teamId } = this.data.form
-    // hasChosen=1 表示用户已主动选择过（包括公开活动），picker 需区分「还没选」和「选了公开」
+    // hasChosen=1 表示用户已主动选择过（包括普通活动），picker 需区分「还没选」和「选了普通」
     const hasChosen = teamId !== undefined ? 1 : 0
     wx.navigateTo({
       url: `/pages/team/picker?currentTeamId=${teamId || ''}&hasChosen=${hasChosen}`

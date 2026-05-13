@@ -19,7 +19,7 @@ Page({
   onLoad(options) {
     let currentTeamId = options.currentTeamId || ''
     if (currentTeamId === 'undefined') currentTeamId = ''
-    // hasChosen=1 表示用户已主动做过选择（包括选了公开活动），此时即使为空也要保持空（选中公开活动）
+    // hasChosen=1 表示用户已主动做过选择（包括选了普通活动），此时即使为空也要保持空（选中普通活动）
     const hasChosen = options.hasChosen === '1'
 
     let selectedId = currentTeamId
@@ -27,7 +27,7 @@ Page({
       // 没传值且用户没选过 → 用默认球队
       selectedId = wx.getStorageSync(DEFAULT_TEAM_KEY) || ''
     } else if (!selectedId && hasChosen) {
-      // 用户主动选了公开活动 → 保持空
+      // 用户主动选了普通活动 → 保持空
       selectedId = ''
     }
 
